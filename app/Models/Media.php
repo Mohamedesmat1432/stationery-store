@@ -3,14 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use Spatie\Permission\Models\Role as SpatieRole;
+use Spatie\MediaLibrary\MediaCollections\Models\Media as SpatieMedia;
 
-class Role extends SpatieRole
+class Media extends SpatieMedia
 {
     use HasUlids;
-    /**
-     * Primary key is ULID string, not integer
-     */
+
     public $incrementing = false;
     protected $keyType = 'string';
 }
