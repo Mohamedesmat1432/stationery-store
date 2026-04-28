@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -24,6 +25,12 @@ class User extends Authenticatable implements HasMedia
     use HasUlids, HasRoles, InteractsWithMedia;
 
     /**
+     * Primary key is ULID string, not integer
+     */
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -35,5 +42,26 @@ class User extends Authenticatable implements HasMedia
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')->singleFile();
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->getFirstMediaUrl('avatar') ?: null;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNotNull('email_verified_at');
     }
 }
