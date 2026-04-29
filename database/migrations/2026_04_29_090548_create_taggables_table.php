@@ -19,7 +19,6 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['tag_id', 'taggable_type', 'taggable_id']);
-            $table->index(['taggable_type', 'taggable_id']);
         });
     }
 

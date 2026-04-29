@@ -27,8 +27,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['priceable_type', 'priceable_id', 'currency_id', 'type', 'start_at', 'end_at']);
-            $table->index(['currency_id', 'type']);
+            $table->index(['priceable_type', 'priceable_id', 'currency_id', 'type', 'start_at', 'end_at'], 'prices_priceable_attrs_idx');
+            $table->index(['currency_id', 'type'], 'prices_currency_type_idx');
         });
     }
 

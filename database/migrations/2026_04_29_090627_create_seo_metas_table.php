@@ -29,8 +29,6 @@ return new class extends Migration
             $table->string('robots')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
-            $table->index(['seoable_type', 'seoable_id']);
         });
     }
 
