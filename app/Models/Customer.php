@@ -2,9 +2,106 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Customer extends Model
+class Customer extends BaseModel
 {
-    //
+    use HasFactory;
+
+    protected $fillable = [
+        'user_id',
+        'phone',
+        'birth_date',
+        'gender',
+        'tax_number',
+        'company_name',
+        'total_spent',
+        'orders_count',
+        'customer_group_id',
+        'metadata',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'birth_date' => 'date',
+            'total_spent' => 'decimal:4',
+            'metadata' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
+    }
+
+    public function addresses(): MorphMany
+    {
+        return $this->morphMany(Address::class, 'addressable');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function scopeWithOrdersCount(Builder $query): Builder
+    {
+        return $query->withCount('orders');
+    }
+
+    public function scopeVip(Builder $query): Builder
+    {
+        return $query->whereHas('group', fn(Builder $q) => $q->where('slug', 'vip'));
+    }
+
+    public function defaultBillingAddress(): ?Address
+    {
+        return $this->addresses()
+            ->where('type', 'billing')
+            ->where('is_default', true)
+            ->first();
+    }
+
+    public function defaultShippingAddress(): ?Address
+    {
+        return $this->addresses()
+            ->where('type', 'shipping')
+            ->where('is_default', true)
+            ->first();
+    }
+
+    public function updateTotalSpent(): void
+    {
+        $total = $this->orders()
+            ->where('status', OrderStatus::DELIVERED->value)
+            ->where('payment_status', PaymentStatus::PAID->value)
+            ->sum('grand_total');
+
+        $this->update([
+            'total_spent' => $total,
+            'orders_count' => $this->orders()->count(),
+        ]);
+    }
 }
