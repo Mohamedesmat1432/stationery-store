@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { UserCircle, Plus, Pencil, Trash2, Filter, Mail, Phone, Building2, RotateCcw, Trash } from 'lucide-vue-next';
+import { UserCircle, Pencil, Trash2, RotateCcw, Trash, Building2, Mail, Phone } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
-import SearchInput from '@/components/SearchInput.vue';
+import { useResourceFilters } from '@/composables/useResourceFilters';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
 import {
     Select,
     SelectContent,
@@ -44,44 +47,17 @@ const props = defineProps<{
     available_groups: any[];
 }>();
 
-const searchQuery = ref(props.filters.filter?.search || '');
-const groupFilter = ref(props.filters.filter?.group || 'all');
-const showTrashed = ref(props.filters.filter?.trash === 'only');
+const { searchQuery, showTrashed, extraFilters, applyFilters } = useResourceFilters(props.filters.filter, {
+    baseUrl: '/admin/customers',
+});
 
-// Sync state when props change (e.g. navigation)
-watch(() => props.filters.filter, (filter) => {
-    searchQuery.value = filter?.search || '';
-    groupFilter.value = filter?.group || 'all';
-    showTrashed.value = filter?.trash === 'only';
-}, { deep: true });
-
-const applyFilters = () => {
-    router.get('/admin/customers', {
-        filter: {
-            search: searchQuery.value || undefined,
-            group: groupFilter.value === 'all' ? undefined : groupFilter.value,
-            trash: showTrashed.value ? 'only' : undefined
-        },
-    }, {
-        preserveState: true,
-        replace: true,
-    });
-};
-
-const handleSearch = (val: string) => {
-    searchQuery.value = val;
-    applyFilters();
-};
-
-const handleGroupChange = (val: any) => {
-    groupFilter.value = val;
-    applyFilters();
-};
-
-const handleTrashToggle = (checked: boolean | 'indeterminate') => {
-    showTrashed.value = checked === true;
-    applyFilters();
-};
+const groupFilter = computed({
+    get: () => extraFilters.value.group || 'all',
+    set: (val) => {
+        extraFilters.value.group = val === 'all' ? undefined : val;
+        applyFilters();
+    }
+});
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -99,99 +75,58 @@ const {
 </script>
 
 <template>
-    <Head title="Customers" />
+    <Head :title="$t('Customers')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
         <Card>
-            <CardHeader class="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle class="text-xl font-bold flex items-center gap-2">
-                        <UserCircle class="w-6 h-6" /> Customers
-                    </CardTitle>
-                    <CardDescription>View and manage your customer base.</CardDescription>
-                </div>
-                <div class="flex items-center gap-2">
-                    <template v-if="selectedIds.length > 0">
-                        <template v-if="!showTrashed">
-                            <Button 
-                                v-if="can('delete_customers')"
-                                variant="destructive" 
-                                size="sm" 
-                                class="flex items-center gap-2"
-                                @click="bulkAction('delete')"
-                            >
-                                <Trash2 class="w-4 h-4" /> Delete Selected ({{ selectedIds.length }})
-                            </Button>
-                        </template>
-                        <template v-else>
-                            <Button 
-                                v-if="can('restore_customers')"
-                                variant="outline" 
-                                size="sm" 
-                                class="flex items-center gap-2"
-                                @click="bulkAction('restore')"
-                            >
-                                <RotateCcw class="w-4 h-4" /> Restore Selected ({{ selectedIds.length }})
-                            </Button>
-                            <Button 
-                                v-if="can('force_delete_customers')"
-                                variant="destructive" 
-                                size="sm" 
-                                class="flex items-center gap-2"
-                                @click="bulkAction('forceDelete')"
-                            >
-                                <Trash class="w-4 h-4" /> Force Delete Selected ({{ selectedIds.length }})
-                            </Button>
-                        </template>
-                    </template>
-                    <Button v-if="can('create_customers')" as-child class="flex items-center gap-2">
-                        <Link href="/admin/customers/create">
-                            <Plus class="w-4 h-4" /> Create Customer
-                        </Link>
-                    </Button>
-                </div>
-            </CardHeader>
+            <AdminPageHeader
+                title="Customers"
+                description="View and manage your customer base."
+                :icon="UserCircle"
+                :selected-count="selectedIds.length"
+                :show-trashed="showTrashed"
+                :can-create="can('create_customers')"
+                create-url="/admin/customers/create"
+                create-label="Create Customer"
+                :can-delete="can('delete_customers')"
+                :can-restore="can('restore_customers')"
+                :can-force-delete="can('force_delete_customers')"
+                @bulk-delete="bulkAction('delete')"
+                @bulk-restore="bulkAction('restore')"
+                @bulk-force-delete="bulkAction('forceDelete')"
+            />
+
             <CardContent>
-                <div class="flex flex-col md:flex-row gap-4 mb-6">
-                    <SearchInput
-                        v-model="searchQuery"
-                        placeholder="Search by name, email, phone..."
-                        @search="handleSearch"
-                    />
-                    
-                    <div class="flex items-center gap-2 min-w-[200px]">
-                        <Filter class="w-4 h-4 text-muted-foreground" />
-                        <Select :model-value="groupFilter" @update:model-value="handleGroupChange">
-                            <SelectTrigger class="h-9">
-                                <SelectValue placeholder="Filter by Group" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Groups</SelectItem>
-                                <SelectItem 
-                                    v-for="group in available_groups" 
-                                    :key="group.id" 
-                                    :value="group.id"
-                                >
-                                    {{ group.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <ResourceFilterBar
+                    v-model:search="searchQuery"
+                    v-model:trashed="showTrashed"
+                    search-placeholder="Search by name, email, phone..."
+                    @search="applyFilters"
+                    @update:trashed="applyFilters"
+                >
+                    <template #filters>
+                        <div class="flex items-center gap-2 min-w-[200px]">
+                            <Select v-model="groupFilter">
+                                <SelectTrigger class="h-9">
+                                    <SelectValue :placeholder="$t('Filter by Group')" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">{{ $t('All Groups') }}</SelectItem>
+                                    <SelectItem 
+                                        v-for="group in available_groups" 
+                                        :key="group.id" 
+                                        :value="group.id"
+                                    >
+                                        {{ group.name }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </template>
+                </ResourceFilterBar>
 
-                    <div class="flex items-center gap-2 px-3 ml-auto">
-                        <Checkbox 
-                            id="show-trashed" 
-                            :model-value="showTrashed" 
-                            @update:model-value="handleTrashToggle"
-                        />
-                        <label for="show-trashed" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            Show Trashed
-                        </label>
-                    </div>
-                </div>
-
-                <div class="rounded-md border border-sidebar-border overflow-hidden">
-                    <table class="w-full text-sm text-left">
+                <div class="rounded-md border border-sidebar-border overflow-x-auto">
+                    <table class="w-full text-sm text-start">
                         <thead class="text-xs text-muted-foreground uppercase bg-sidebar border-b border-sidebar-border">
                             <tr>
                                 <th class="px-4 py-3 font-medium w-10">
@@ -200,12 +135,12 @@ const {
                                         @update:model-value="toggleAll"
                                     />
                                 </th>
-                                <th class="px-4 py-3 font-medium">Customer</th>
-                                <th class="px-4 py-3 font-medium">Contact</th>
-                                <th class="px-4 py-3 font-medium">Group</th>
-                                <th class="px-4 py-3 font-medium text-right">Orders</th>
-                                <th class="px-4 py-3 font-medium text-right">Spent</th>
-                                <th class="px-4 py-3 font-medium text-right">Actions</th>
+                                <th class="px-4 py-3 font-medium">{{ $t('Customer') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ $t('Contact') }}</th>
+                                <th class="px-4 py-3 font-medium">{{ $t('Group') }}</th>
+                                <th class="px-4 py-3 font-medium text-end">{{ $t('Orders') }}</th>
+                                <th class="px-4 py-3 font-medium text-end">{{ $t('Spent') }}</th>
+                                <th class="px-4 py-3 font-medium text-end">{{ $t('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-sidebar-border">
@@ -218,7 +153,7 @@ const {
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex flex-col">
-                                        <span class="font-medium text-foreground">{{ customer.name || 'No User Linked' }}</span>
+                                        <span class="font-medium text-foreground">{{ customer.name || $t('No User Linked') }}</span>
                                         <span v-if="customer.company_name" class="text-xs text-muted-foreground flex items-center gap-1">
                                             <Building2 class="w-3 h-3" /> {{ customer.company_name }}
                                         </span>
@@ -238,27 +173,30 @@ const {
                                     <Badge variant="outline" v-if="customer.group_name">
                                         {{ customer.group_name }}
                                     </Badge>
-                                    <span v-else class="text-xs text-muted-foreground italic">No Group</span>
+                                    <span v-else class="text-xs text-muted-foreground italic">{{ $t('No Group') }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-right">{{ customer.orders_count }}</td>
-                                <td class="px-4 py-3 text-right font-medium">{{ formatCurrency(customer.total_spent) }}</td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="px-4 py-3 text-end">{{ customer.orders_count }}</td>
+                                <td class="px-4 py-3 text-end font-medium">{{ formatCurrency(customer.total_spent) }}</td>
+                                <td class="px-4 py-3 text-end">
                                     <div class="flex justify-end gap-2">
                                         <template v-if="!customer.deleted_at">
-                                            <Button v-if="can('update_customers')" variant="ghost" size="icon" as-child>
-                                                <Link :href="`/admin/customers/${customer.id}/edit`">
+                                            <Button :disabled="!can('update_customers')" variant="ghost" size="icon" as-child>
+                                                <Link v-if="can('update_customers')" :href="`/admin/customers/${customer.id}/edit`">
                                                     <Pencil class="w-4 h-4" />
                                                 </Link>
+                                                <span v-else class="flex items-center justify-center opacity-50">
+                                                    <Pencil class="w-4 h-4" />
+                                                </span>
                                             </Button>
-                                            <Button v-if="can('delete_customers')" variant="ghost" size="icon" @click="deleteItem(customer.id)" class="text-destructive">
+                                            <Button :disabled="!can('delete_customers')" variant="ghost" size="icon" @click="deleteItem(customer.id)" class="text-destructive">
                                                 <Trash2 class="w-4 h-4" />
                                             </Button>
                                         </template>
                                         <template v-else>
-                                            <Button v-if="can('restore_customers')" variant="ghost" size="icon" title="Restore" @click="restoreItem(customer.id)">
+                                            <Button :disabled="!can('restore_customers')" variant="ghost" size="icon" title="Restore" @click="restoreItem(customer.id)">
                                                 <RotateCcw class="w-4 h-4" />
                                             </Button>
-                                            <Button v-if="can('force_delete_customers')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(customer.id)" class="text-destructive">
+                                            <Button :disabled="!can('force_delete_customers')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(customer.id)" class="text-destructive">
                                                 <Trash class="w-4 h-4" />
                                             </Button>
                                         </template>
@@ -267,36 +205,19 @@ const {
                             </tr>
                             <tr v-if="customers.data.length === 0">
                                 <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">
-                                    No customers found.
+                                    {{ $t('No customers found.') }}
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="mt-4 flex items-center justify-between" v-if="customers.total > 0">
-                    <div class="text-sm text-muted-foreground">
-                        Showing {{ customers.data.length }} of {{ customers.total }} customers
-                    </div>
-                    <div class="flex gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            :disabled="customers.current_page === 1"
-                            @click="router.visit(customers.links[0].url)"
-                        >
-                            Previous
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            :disabled="customers.current_page === customers.last_page"
-                            @click="router.visit(customers.links[customers.links.length - 1].url)"
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </div>
+                <ResourcePagination
+                    :links="customers.links"
+                    :total="customers.total"
+                    :count="customers.data.length"
+                    resource-name="customers"
+                />
             </CardContent>
         </Card>
     </div>

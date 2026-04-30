@@ -34,7 +34,7 @@ const handleSubmit = () => {
 </script>
 
 <template>
-    <Head title="Edit User" />
+    <Head :title="$t('Edit User')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4 max-w-4xl mx-auto w-full">
         <form @submit.prevent="handleSubmit">
@@ -42,20 +42,20 @@ const handleSubmit = () => {
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle class="text-xl font-bold flex items-center gap-2">
-                            <Users class="w-6 h-6" /> Edit User: {{ user.name }}
+                            <Users class="w-6 h-6" /> {{ $t('Edit User') }}: {{ user.name }}
                         </CardTitle>
-                        <CardDescription>Update user profile and adjust assigned roles.</CardDescription>
+                        <CardDescription>{{ $t('Update user profile and adjust assigned roles.') }}</CardDescription>
                     </div>
                     <Button variant="outline" as-child type="button">
                         <Link href="/admin/users" class="flex items-center gap-2">
-                            <ArrowLeft class="w-4 h-4" /> Back
+                            <ArrowLeft class="w-4 h-4" /> {{ $t('Back') }}
                         </Link>
                     </Button>
                 </CardHeader>
                 <CardContent class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <Label for="name">Full Name <span class="text-destructive">*</span></Label>
+                            <Label for="name">{{ $t('Full Name') }} <span class="text-destructive">*</span></Label>
                             <Input 
                                 id="name" 
                                 v-model="form.name" 
@@ -64,7 +64,7 @@ const handleSubmit = () => {
                             <InputError :message="form.errors.name" />
                         </div>
                         <div class="space-y-2">
-                            <Label for="email">Email Address <span class="text-destructive">*</span></Label>
+                            <Label for="email">{{ $t('Email Address') }} <span class="text-destructive">*</span></Label>
                             <Input 
                                 id="email" 
                                 type="email"
@@ -76,7 +76,7 @@ const handleSubmit = () => {
                     </div>
 
                     <div class="space-y-2 max-w-md">
-                        <Label for="password">Password <span class="text-muted-foreground text-xs font-normal">(Leave blank to keep current)</span></Label>
+                        <Label for="password">{{ $t('Password') }} <span class="text-muted-foreground text-xs font-normal">({{ $t('Leave blank to keep current') }})</span></Label>
                         <Input 
                             id="password" 
                             type="password"
@@ -88,7 +88,7 @@ const handleSubmit = () => {
                     </div>
 
                     <div class="space-y-4 pt-4 border-t border-sidebar-border">
-                        <Label class="text-lg font-semibold">Assign Roles</Label>
+                        <Label class="text-lg font-semibold">{{ $t('Assign Roles') }}</Label>
                         <InputError :message="form.errors.roles" />
                         
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -114,7 +114,7 @@ const handleSubmit = () => {
                 </CardContent>
                 <CardFooter class="border-t border-sidebar-border pt-6 flex justify-end">
                     <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
-                        <Save class="w-4 h-4" /> Update User
+                        <Save class="w-4 h-4" /> {{ $t('Update User') }}
                     </Button>
                 </CardFooter>
             </Card>

@@ -2,6 +2,8 @@
 import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import { ShieldCheck, Save, ArrowLeft, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,7 +44,9 @@ const submit = () => {
 };
 
 const confirmDelete = () => {
-    if (confirm('Are you sure you want to delete this role?')) {
+    const message = t('Are you sure you want to delete this role?');
+        
+    if (confirm(message)) {
         router.delete(`/admin/roles/${props.role.id}`);
     }
 };
@@ -52,7 +56,7 @@ const can = (permission: string) => pagePermissions.value.includes(permission);
 </script>
 
 <template>
-    <Head title="Edit Role" />
+    <Head :title="$t('Edit Role')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4 max-w-5xl mx-auto w-full">
         <form @submit.prevent="submit">
@@ -60,33 +64,33 @@ const can = (permission: string) => pagePermissions.value.includes(permission);
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle class="text-xl font-bold flex items-center gap-2">
-                            <ShieldCheck class="w-6 h-6" /> Edit Role: {{ role.name }}
+                            <ShieldCheck class="w-6 h-6" /> {{ $t('Edit Role: {name}', { name: role.name }) }}
                         </CardTitle>
-                        <CardDescription>Modify role details and update its access matrix.</CardDescription>
+                        <CardDescription>{{ $t('Modify role details and update its access matrix.') }}</CardDescription>
                     </div>
                     <Button variant="outline" as-child type="button">
                         <Link href="/admin/roles" class="flex items-center gap-2">
-                            <ArrowLeft class="w-4 h-4" /> Back
+                            <ArrowLeft class="w-4 h-4" /> {{ $t('Back') }}
                         </Link>
                     </Button>
                 </CardHeader>
                 <CardContent class="space-y-8">
                     <!-- Role Name -->
                     <div class="space-y-2 max-w-md">
-                        <Label for="name">Role Name <span class="text-destructive">*</span></Label>
+                        <Label for="name">{{ $t('Role Name') }} <span class="text-destructive">*</span></Label>
                         <Input 
                             id="name" 
                             v-model="form.name" 
-                            placeholder="e.g. Content Manager" 
+                            :placeholder="$t('e.g. Content Manager')" 
                             :disabled="form.processing || !can('update_roles')"
                         />
-                        <p v-if="!can('update_roles')" class="text-xs text-muted-foreground mt-1">You do not have permission to rename roles.</p>
+                        <p v-if="!can('update_roles')" class="text-xs text-muted-foreground mt-1">{{ $t('You do not have permission to rename roles.') }}</p>
                         <InputError :message="form.errors.name" />
                     </div>
 
                     <!-- Permissions Matrix -->
                     <div class="space-y-4">
-                        <Label class="text-lg font-semibold">Permissions Matrix</Label>
+                        <Label class="text-lg font-semibold">{{ $t('Permissions Matrix') }}</Label>
                         <InputError :message="form.errors.permissions" />
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -105,7 +109,7 @@ const can = (permission: string) => pagePermissions.value.includes(permission);
                                         @click="toggleModule(permissions)"
                                         :disabled="form.processing"
                                     >
-                                        Toggle All
+                                        {{ $t('Toggle All') }}
                                     </Button>
                                 </div>
                                 <div class="space-y-3">
@@ -141,11 +145,11 @@ const can = (permission: string) => pagePermissions.value.includes(permission);
                             @click="confirmDelete"
                             class="flex items-center gap-2"
                         >
-                            <Trash2 class="w-4 h-4" /> Delete Role
+                            <Trash2 class="w-4 h-4" /> {{ $t('Delete Role') }}
                         </Button>
                     </div>
                     <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
-                        <Save class="w-4 h-4" /> Update Role
+                        <Save class="w-4 h-4" /> {{ $t('Update Role') }}
                     </Button>
                 </CardFooter>
             </Card>

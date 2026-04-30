@@ -28,7 +28,7 @@ const { isCurrentUrl } = useCurrentUrl();
 
 <template>
     <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel>Platform</SidebarGroupLabel>
+        <SidebarGroupLabel>{{ $t('Platform') }}</SidebarGroupLabel>
         <SidebarMenu>
             <template v-for="item in items" :key="item.title">
                 <!-- Dropdown Item -->
@@ -42,9 +42,9 @@ const { isCurrentUrl } = useCurrentUrl();
                         <CollapsibleTrigger as-child>
                             <SidebarMenuButton :tooltip="item.title">
                                 <component :is="item.icon" v-if="item.icon" />
-                                <span>{{ item.title }}</span>
+                                <span>{{ $t(item.title) }}</span>
                                 <ChevronRight
-                                    class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                                    class="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180"
                                 />
                             </SidebarMenuButton>
                         </CollapsibleTrigger>
@@ -54,7 +54,7 @@ const { isCurrentUrl } = useCurrentUrl();
                                     <SidebarMenuSubButton as-child :is-active="isCurrentUrl(subItem.href)">
                                         <Link :href="subItem.href">
                                             <component :is="subItem.icon" v-if="subItem.icon" />
-                                            <span>{{ subItem.title }}</span>
+                                            <span>{{ $t(subItem.title) }}</span>
                                         </Link>
                                     </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
@@ -72,7 +72,7 @@ const { isCurrentUrl } = useCurrentUrl();
                     >
                         <Link :href="item.href">
                             <component :is="item.icon" v-if="item.icon" />
-                            <span>{{ item.title }}</span>
+                            <span>{{ $t(item.title) }}</span>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

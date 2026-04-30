@@ -27,7 +27,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head :title="$t('Log in')" />
 
     <div
         v-if="status"
@@ -44,7 +44,7 @@ defineProps<{
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">{{ $t('Email address') }}</Label>
                 <Input
                     id="email"
                     type="email"
@@ -60,14 +60,14 @@ defineProps<{
 
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
+                    <Label for="password">{{ $t('Password') }}</Label>
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot password?
+                        {{ $t('Forgot password?') }}
                     </TextLink>
                 </div>
                 <PasswordInput
@@ -76,7 +76,7 @@ defineProps<{
                     required
                     :tabindex="2"
                     autocomplete="current-password"
-                    placeholder="Password"
+                    :placeholder="$t('Password')"
                 />
                 <InputError :message="errors.password" />
             </div>
@@ -84,7 +84,7 @@ defineProps<{
             <div class="flex items-center justify-between">
                 <Label for="remember" class="flex items-center space-x-3">
                     <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
+                    <span>{{ $t('Remember me') }}</span>
                 </Label>
             </div>
 
@@ -96,7 +96,7 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                {{ $t('Log in') }}
             </Button>
         </div>
 
@@ -104,8 +104,8 @@ defineProps<{
             class="text-center text-sm text-muted-foreground"
             v-if="canRegister"
         >
-            Don't have an account?
-            <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+            {{ $t("Don't have an account?") }}
+            <TextLink :href="register()" :tabindex="5">{{ $t('Sign up') }}</TextLink>
         </div>
     </Form>
 </template>

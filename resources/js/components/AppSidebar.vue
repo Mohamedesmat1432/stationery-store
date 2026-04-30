@@ -128,7 +128,7 @@ const footerNavItems: NavItem[] = [
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon" variant="inset" :side="page.props.locale === 'ar' ? 'right' : 'left'">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>

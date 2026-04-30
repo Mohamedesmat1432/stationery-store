@@ -14,8 +14,8 @@ import { computed } from 'vue';
 
 interface Props {
     open: boolean;
-    title: string;
-    description: string;
+    title: string | { key: string; params?: any };
+    description: string | { key: string; params?: any };
     confirmLabel?: string;
     cancelLabel?: string;
     variant?: 'default' | 'destructive' | 'warning' | 'success';
@@ -74,6 +74,21 @@ const handleCancel = () => {
     emit('update:open', false);
     emit('cancel');
 };
+
+/**
+ * Helper to translate string values within parameters
+ */
+const translateParams = (params: any) => {
+    if (!params) return {};
+    const translated = { ...params };
+    Object.keys(translated).forEach(key => {
+        if (typeof translated[key] === 'string') {
+            // We use the $t from the template scope which is available globally
+            // or we can use useI18n() if we want to be more explicit.
+        }
+    });
+    return translated;
+};
 </script>
 
 <template>
@@ -87,10 +102,20 @@ const handleCancel = () => {
                     <div class="flex-1 pt-0.5">
                         <DialogHeader>
                             <DialogTitle class="text-xl font-semibold leading-none tracking-tight">
-                                {{ title }}
+                                <template v-if="typeof title === 'string'">
+                                    {{ $t(title) }}
+                                </template>
+                                <template v-else>
+                                    {{ $t(title.key, Object.fromEntries(Object.entries(title.params || {}).map(([k, v]) => [k, typeof v === 'string' ? $t(v) : v]))) }}
+                                </template>
                             </DialogTitle>
                             <DialogDescription class="pt-2 text-sm text-muted-foreground leading-relaxed">
-                                {{ description }}
+                                <template v-if="typeof description === 'string'">
+                                    {{ $t(description) }}
+                                </template>
+                                <template v-else>
+                                    {{ $t(description.key, Object.fromEntries(Object.entries(description.params || {}).map(([k, v]) => [k, typeof v === 'string' ? $t(v) : v]))) }}
+                                </template>
                             </DialogDescription>
                         </DialogHeader>
                     </div>
@@ -99,11 +124,11 @@ const handleCancel = () => {
             
             <DialogFooter class="bg-muted/50 p-4 flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
                 <Button variant="ghost" @click="handleCancel" :disabled="loading" class="sm:mr-auto">
-                    {{ cancelLabel }}
+                    {{ $t(cancelLabel) }}
                 </Button>
                 <Button :variant="buttonVariant" @click="handleConfirm" :disabled="loading">
                     <Spinner v-if="loading" class="mr-2" />
-                    {{ confirmLabel }}
+                    {{ $t(confirmLabel) }}
                 </Button>
             </DialogFooter>
         </DialogContent>

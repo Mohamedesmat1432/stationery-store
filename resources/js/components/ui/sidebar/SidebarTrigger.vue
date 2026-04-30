@@ -18,11 +18,12 @@ const { isMobile, state, toggleSidebar } = useSidebar()
     data-slot="sidebar-trigger"
     variant="ghost"
     size="icon"
+    :title="$t('Toggle sidebar')"
     :class="cn('h-7 w-7', props.class)"
     @click="toggleSidebar"
   >
-    <PanelLeftOpen v-if="isMobile || state === 'collapsed'" />
-    <PanelLeftClose v-else />
-    <span class="sr-only">Toggle sidebar</span>
+    <PanelLeftOpen v-if="isMobile || state === 'collapsed'" class="rtl:rotate-180" />
+    <PanelLeftClose v-else class="rtl:rotate-180" />
+    <span class="sr-only">{{ $t('Toggle sidebar') }}</span>
   </Button>
 </template>

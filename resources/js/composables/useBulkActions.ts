@@ -14,8 +14,8 @@ interface BulkActionsConfig {
 
 interface ConfirmState {
     isOpen: boolean;
-    title: string;
-    description: string;
+    title: string | { key: string, params?: any };
+    description: string | { key: string, params?: any };
     confirmLabel: string;
     variant: 'default' | 'destructive' | 'warning' | 'success';
     onConfirm: () => void;
@@ -57,7 +57,12 @@ export function useBulkActions<T extends { id: string | number }>(
      * Internal helper to open the confirmation dialog with common state.
      */
     const openConfirm = (
-        { title, description, label, variant }: { title: string, description: string, label: string, variant: ConfirmState['variant'] },
+        { title, description, label, variant }: { 
+            title: ConfirmState['title'], 
+            description: ConfirmState['description'], 
+            label: string, 
+            variant: ConfirmState['variant'] 
+        },
         onConfirm: () => void
     ) => {
         Object.assign(confirmState, {
@@ -84,8 +89,15 @@ export function useBulkActions<T extends { id: string | number }>(
         };
 
         openConfirm({
-            title: `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)}`,
-            description: `Are you sure you want to ${labels[action]} ${selectedIds.value.length} ${config.entityName}?`,
+            title: { key: 'bulk_confirm_title', params: { action: labels[action] } },
+            description: { 
+                key: 'bulk_confirm_description', 
+                params: { 
+                    action: labels[action], 
+                    count: selectedIds.value.length, 
+                    entity: config.entityName 
+                } 
+            },
             label: action === 'restore' ? 'Restore All' : 'Delete All',
             variant: action === 'restore' ? 'success' : 'destructive',
         }, () => {
@@ -101,8 +113,11 @@ export function useBulkActions<T extends { id: string | number }>(
 
     const deleteItem = (id: string | number) => {
         openConfirm({
-            title: 'Delete Item',
-            description: `Are you sure you want to delete this ${config.entityName.replace(/s$/, '')}?`,
+            title: { key: 'single_confirm_title', params: { action: 'Delete' } },
+            description: { 
+                key: 'single_confirm_description', 
+                params: { action: 'delete', entity: config.entityName.replace(/s$/, '') } 
+            },
             label: 'Delete',
             variant: 'destructive',
         }, () => {
@@ -115,8 +130,11 @@ export function useBulkActions<T extends { id: string | number }>(
 
     const restoreItem = (id: string | number) => {
         openConfirm({
-            title: 'Restore Item',
-            description: `Are you sure you want to restore this ${config.entityName.replace(/s$/, '')}?`,
+            title: { key: 'single_confirm_title', params: { action: 'Restore' } },
+            description: { 
+                key: 'single_confirm_description', 
+                params: { action: 'restore', entity: config.entityName.replace(/s$/, '') } 
+            },
             label: 'Restore',
             variant: 'success',
         }, () => {
@@ -129,8 +147,11 @@ export function useBulkActions<T extends { id: string | number }>(
 
     const forceDeleteItem = (id: string | number) => {
         openConfirm({
-            title: 'Permanently Delete',
-            description: `Are you sure you want to PERMANENTLY delete this ${config.entityName.replace(/s$/, '')}? This cannot be undone.`,
+            title: { key: 'force_delete_confirm_title' },
+            description: { 
+                key: 'force_delete_confirm_description', 
+                params: { entity: config.entityName.replace(/s$/, '') } 
+            },
             label: 'Permanently Delete',
             variant: 'destructive',
         }, () => {

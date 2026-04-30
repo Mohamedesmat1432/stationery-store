@@ -28,43 +28,43 @@ const handleSubmit = () => {
 </script>
 
 <template>
-    <Head title="Create Customer Group" />
+    <Head :title="$t('Create Customer Group')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 p-4 max-w-2xl mx-auto w-full">
         <Card>
             <CardHeader>
                 <CardTitle class="text-xl font-bold flex items-center gap-2">
-                    <Users class="w-6 h-6" /> Create Customer Group
+                    <Users class="w-6 h-6" /> {{ $t('Create Customer Group') }}
                 </CardTitle>
-                <CardDescription>Define a new segment for your customers.</CardDescription>
+                <CardDescription>{{ $t('Define a new segment for your customers.') }}</CardDescription>
             </CardHeader>
             <CardContent>
                 <form @submit.prevent="handleSubmit" class="space-y-6">
                     <div class="space-y-2">
-                        <Label for="name">Group Name</Label>
+                        <Label for="name">{{ $t('Group Name') }}</Label>
                         <Input 
                             id="name" 
                             v-model="form.name" 
                             @input="updateSlug"
-                            placeholder="e.g. VIP Customers" 
+                            :placeholder="$t('e.g. VIP Customers')" 
                             required 
                         />
                         <p v-if="form.errors.name" class="text-sm text-destructive">{{ form.errors.name }}</p>
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="slug">Slug</Label>
+                        <Label for="slug">{{ $t('Slug') }}</Label>
                         <Input 
                             id="slug" 
                             v-model="form.slug" 
-                            placeholder="e.g. vip-customers" 
+                            :placeholder="$t('e.g. vip-customers')" 
                             required 
                         />
                         <p v-if="form.errors.slug" class="text-sm text-destructive">{{ form.errors.slug }}</p>
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="discount">Discount Percentage (%)</Label>
+                        <Label for="discount">{{ $t('Discount Percentage (%)') }}</Label>
                         <Input 
                             id="discount" 
                             type="number"
@@ -76,11 +76,11 @@ const handleSubmit = () => {
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="description">Description</Label>
+                        <Label for="description">{{ $t('Description') }}</Label>
                         <Textarea 
                             id="description" 
                             v-model="form.description" 
-                            placeholder="Describe this group..." 
+                            :placeholder="$t('Describe this group...')" 
                         />
                         <p v-if="form.errors.description" class="text-sm text-destructive">{{ form.errors.description }}</p>
                     </div>
@@ -91,17 +91,17 @@ const handleSubmit = () => {
                             :model-value="form.is_active"
                             @update:model-value="(val) => form.is_active = !!val"
                         />
-                        <Label for="is_active">Active</Label>
+                        <Label for="is_active">{{ $t('Active') }}</Label>
                     </div>
 
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-sidebar-border">
                         <Button type="button" variant="ghost" as-child>
                             <Link href="/admin/customer-groups">
-                                <X class="w-4 h-4 mr-2" /> Cancel
+                                <X class="w-4 h-4 mr-2" /> {{ $t('Cancel') }}
                             </Link>
                         </Button>
                         <Button type="submit" :disabled="form.processing">
-                            <Save class="w-4 h-4 mr-2" /> Save Group
+                            <Save class="w-4 h-4 mr-2" /> {{ $t('Save Group') }}
                         </Button>
                     </div>
                 </form>

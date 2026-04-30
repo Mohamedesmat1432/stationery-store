@@ -38,24 +38,24 @@ const handleSubmit = () => {
 </script>
 
 <template>
-    <Head title="Create Customer" />
+    <Head :title="$t('Create Customer')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 p-4 max-w-3xl mx-auto w-full">
         <Card>
             <CardHeader>
                 <CardTitle class="text-xl font-bold flex items-center gap-2">
-                    <UserCircle class="w-6 h-6" /> Create Customer
+                    <UserCircle class="w-6 h-6" /> {{ $t('Create Customer') }}
                 </CardTitle>
-                <CardDescription>Add a new customer to your CRM.</CardDescription>
+                <CardDescription>{{ $t('Add a new customer to your CRM.') }}</CardDescription>
             </CardHeader>
             <CardContent>
                 <form @submit.prevent="handleSubmit" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <Label for="user_id">User Account</Label>
+                            <Label for="user_id">{{ $t('User Account') }}</Label>
                             <Select v-model="form.user_id" required>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select User" />
+                                    <SelectValue :placeholder="$t('Select User')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem v-for="user in available_users" :key="user.id" :value="user.id">
@@ -67,16 +67,16 @@ const handleSubmit = () => {
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="phone">Phone Number</Label>
+                            <Label for="phone">{{ $t('Phone Number') }}</Label>
                             <Input id="phone" v-model="form.phone" placeholder="e.g. +1234567890" />
                             <p v-if="form.errors.phone" class="text-sm text-destructive">{{ form.errors.phone }}</p>
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="customer_group_id">Customer Group</Label>
+                            <Label for="customer_group_id">{{ $t('Customer Group') }}</Label>
                             <Select v-model="form.customer_group_id">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select Group" />
+                                    <SelectValue :placeholder="$t('Select Group')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem v-for="group in available_groups" :key="group.id" :value="group.id">
@@ -88,33 +88,33 @@ const handleSubmit = () => {
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="company_name">Company Name</Label>
+                            <Label for="company_name">{{ $t('Company Name') }}</Label>
                             <Input id="company_name" v-model="form.company_name" placeholder="e.g. Acme Corp" />
                             <p v-if="form.errors.company_name" class="text-sm text-destructive">{{ form.errors.company_name }}</p>
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="tax_number">Tax Number</Label>
+                            <Label for="tax_number">{{ $t('Tax Number') }}</Label>
                             <Input id="tax_number" v-model="form.tax_number" placeholder="e.g. TAX-123" />
                             <p v-if="form.errors.tax_number" class="text-sm text-destructive">{{ form.errors.tax_number }}</p>
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="birth_date">Birth Date</Label>
+                            <Label for="birth_date">{{ $t('Birth Date') }}</Label>
                             <Input id="birth_date" type="date" v-model="form.birth_date" />
                             <p v-if="form.errors.birth_date" class="text-sm text-destructive">{{ form.errors.birth_date }}</p>
                         </div>
 
                         <div class="space-y-2">
-                            <Label for="gender">Gender</Label>
+                            <Label for="gender">{{ $t('Gender') }}</Label>
                             <Select v-model="form.gender">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select Gender" />
+                                    <SelectValue :placeholder="$t('Select Gender')" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="male">Male</SelectItem>
-                                    <SelectItem value="female">Female</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
+                                    <SelectItem value="male">{{ $t('Male') }}</SelectItem>
+                                    <SelectItem value="female">{{ $t('Female') }}</SelectItem>
+                                    <SelectItem value="other">{{ $t('Other') }}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <p v-if="form.errors.gender" class="text-sm text-destructive">{{ form.errors.gender }}</p>
@@ -124,11 +124,11 @@ const handleSubmit = () => {
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-sidebar-border">
                         <Button type="button" variant="ghost" as-child>
                             <Link href="/admin/customers">
-                                <X class="w-4 h-4 mr-2" /> Cancel
+                                <X class="w-4 h-4 mr-2" /> {{ $t('Cancel') }}
                             </Link>
                         </Button>
                         <Button type="submit" :disabled="form.processing">
-                            <Save class="w-4 h-4 mr-2" /> Save Customer
+                            <Save class="w-4 h-4 mr-2" /> {{ $t('Save Customer') }}
                         </Button>
                     </div>
                 </form>

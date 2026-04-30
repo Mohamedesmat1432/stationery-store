@@ -24,7 +24,7 @@ const { isMobile, state } = useSidebar();
 <template>
     <SidebarMenu>
         <SidebarMenuItem>
-            <DropdownMenu>
+            <DropdownMenu :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'">
                 <DropdownMenuTrigger as-child>
                     <SidebarMenuButton
                         size="lg"
@@ -32,7 +32,7 @@ const { isMobile, state } = useSidebar();
                         data-test="sidebar-menu-button"
                     >
                         <UserInfo :user="user" />
-                        <ChevronsUpDown class="ml-auto size-4" />
+                        <ChevronsUpDown class="ms-auto size-4" />
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -41,10 +41,10 @@ const { isMobile, state } = useSidebar();
                         isMobile
                             ? 'bottom'
                             : state === 'collapsed'
-                              ? 'left'
-                              : 'bottom'
+                                ? (page.props.locale === 'ar' ? 'right' : 'left')
+                                : 'bottom'
                     "
-                    align="end"
+                    :align="page.props.locale === 'ar' ? 'start' : 'end'"
                     :side-offset="4"
                 >
                     <UserMenuContent :user="user" />

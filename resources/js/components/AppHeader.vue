@@ -32,6 +32,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
@@ -91,7 +92,7 @@ const rightNavItems: NavItem[] = [
                                 <Menu class="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" class="w-[300px] p-6">
+                        <SheetContent :side="page.props.locale === 'ar' ? 'right' : 'left'" class="w-[300px] p-6">
                             <SheetTitle class="sr-only"
                                 >Navigation menu</SheetTitle
                             >
@@ -177,7 +178,7 @@ const rightNavItems: NavItem[] = [
                                         :is="item.icon"
                                         class="mr-2 h-4 w-4"
                                     />
-                                    {{ item.title }}
+                                    {{ $t(item.title) }}
                                 </Link>
                                 <div
                                     v-if="isCurrentUrl(item.href)"
@@ -237,6 +238,8 @@ const rightNavItems: NavItem[] = [
                             </template>
                         </div>
                     </div>
+
+                    <LanguageSwitcher />
 
                     <DropdownMenu>
                         <DropdownMenuTrigger :as-child="true">

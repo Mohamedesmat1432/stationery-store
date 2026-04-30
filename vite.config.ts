@@ -9,10 +9,16 @@ export default defineConfig({
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
-            refresh: true,
+            refresh: [
+                'resources/routes/**',
+                'routes/**',
+                'resources/js/**',
+                'resources/views/**',
+                'app/Http/Controllers/**',
+            ],
         }),
-        inertia(),
         tailwindcss(),
+        inertia(),
         vue({
             template: {
                 transformAssetUrls: {

@@ -25,30 +25,30 @@ defineProps<Props>();
 
 <template>
     <DropdownMenuLabel class="p-0 font-normal">
-        <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+        <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
             <UserInfo :user="user" :show-email="true" />
         </div>
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
-                <Settings class="mr-2 h-4 w-4" />
-                Settings
+            <Link class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5" :href="edit()" prefetch>
+                <Settings class="h-4 w-4" />
+                <span>{{ $t('Settings') }}</span>
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />
     <DropdownMenuItem :as-child="true">
         <Link
-            class="block w-full cursor-pointer"
+            class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5 text-destructive"
             :href="logout()"
             @click="handleLogout"
             as="button"
             data-test="logout-button"
         >
-            <LogOut class="mr-2 h-4 w-4" />
-            Log out
+            <LogOut class="h-4 w-4" />
+            <span>{{ $t('Log out') }}</span>
         </Link>
     </DropdownMenuItem>
 </template>

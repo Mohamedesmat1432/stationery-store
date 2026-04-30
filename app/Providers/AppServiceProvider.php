@@ -23,16 +23,19 @@ use App\Observers\ProductObserver;
 use App\Observers\StockObserver;
 use App\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\RoleRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\CustomerGroupRepository;
 use App\Repositories\Eloquent\CustomerRepository;
+use App\Repositories\Eloquent\ProductRepository;
 use App\Repositories\Eloquent\RoleRepository;
 use App\Repositories\Eloquent\UserRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -62,6 +65,11 @@ class AppServiceProvider extends ServiceProvider
             CustomerRepositoryInterface::class,
             CustomerRepository::class
         );
+
+        $this->app->bind(
+            ProductRepositoryInterface::class,
+            ProductRepository::class
+        );
     }
 
     /**
@@ -74,7 +82,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerEvents();
 
         // Grant 'admin' role full access to everything
-        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+        Gate::before(function ($user, $ability) {
             return $user->hasRole('admin') ? true : null;
         });
     }

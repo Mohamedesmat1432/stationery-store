@@ -2,7 +2,7 @@
 import { Form, Head } from '@inertiajs/vue3';
 import { ShieldCheck } from 'lucide-vue-next';
 import { onUnmounted, ref } from 'vue';
-import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import { update } from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -44,9 +44,9 @@ onUnmounted(() => clearTwoFactorAuthData());
 </script>
 
 <template>
-    <Head title="Security settings" />
+    <Head :title="$t('Security settings')" />
 
-    <h1 class="sr-only">Security settings</h1>
+    <h1 class="sr-only">{{ $t('Security settings') }}</h1>
 
     <div class="space-y-6">
         <Heading
@@ -56,7 +56,7 @@ onUnmounted(() => clearTwoFactorAuthData());
         />
 
         <Form
-            v-bind="SecurityController.update.form()"
+            v-bind="update.form()"
             :options="{
                 preserveScroll: true,
             }"
@@ -70,37 +70,37 @@ onUnmounted(() => clearTwoFactorAuthData());
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
-                <Label for="current_password">Current password</Label>
+                <Label for="current_password">{{ $t('Current password') }}</Label>
                 <PasswordInput
                     id="current_password"
                     name="current_password"
                     class="mt-1 block w-full"
                     autocomplete="current-password"
-                    placeholder="Current password"
+                    :placeholder="$t('Current password')"
                 />
                 <InputError :message="errors.current_password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">New password</Label>
+                <Label for="password">{{ $t('New password') }}</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="New password"
+                    :placeholder="$t('New password')"
                 />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">{{ $t('Confirm password') }}</Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
-                    placeholder="Confirm password"
+                    :placeholder="$t('Confirm password')"
                 />
                 <InputError :message="errors.password_confirmation" />
             </div>
@@ -110,7 +110,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     :disabled="processing"
                     data-test="update-password-button"
                 >
-                    Save password
+                    {{ $t('Save password') }}
                 </Button>
             </div>
         </Form>
@@ -128,14 +128,12 @@ onUnmounted(() => clearTwoFactorAuthData());
             class="flex flex-col items-start justify-start space-y-4"
         >
             <p class="text-sm text-muted-foreground">
-                When you enable two-factor authentication, you will be prompted
-                for a secure pin during login. This pin can be retrieved from a
-                TOTP-supported application on your phone.
+                {{ $t('When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.') }}
             </p>
 
             <div>
                 <Button v-if="hasSetupData" @click="showSetupModal = true">
-                    <ShieldCheck />Continue setup
+                    <ShieldCheck />{{ $t('Continue setup') }}
                 </Button>
                 <Form
                     v-else
@@ -144,7 +142,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     #default="{ processing }"
                 >
                     <Button type="submit" :disabled="processing">
-                        Enable 2FA
+                        {{ $t('Enable 2FA') }}
                     </Button>
                 </Form>
             </div>
@@ -152,9 +150,7 @@ onUnmounted(() => clearTwoFactorAuthData());
 
         <div v-else class="flex flex-col items-start justify-start space-y-4">
             <p class="text-sm text-muted-foreground">
-                You will be prompted for a secure, random pin during login,
-                which you can retrieve from the TOTP-supported application on
-                your phone.
+                {{ $t('You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.') }}
             </p>
 
             <div class="relative inline">
@@ -164,7 +160,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                         type="submit"
                         :disabled="processing"
                     >
-                        Disable 2FA
+                        {{ $t('Disable 2FA') }}
                     </Button>
                 </Form>
             </div>
