@@ -28,6 +28,8 @@ class Wishlist extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function ($wishlist) {
             if (empty($wishlist->share_token)) {
                 $wishlist->share_token = bin2hex(random_bytes(16));

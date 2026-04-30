@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Enums\OrderStatus;
+use App\Enums\ShipmentStatus;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shipment extends BaseModel
@@ -35,6 +35,7 @@ class Shipment extends BaseModel
             'shipping_cost' => 'decimal:4',
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'status' => ShipmentStatus::class,
         ];
     }
 
@@ -60,23 +61,23 @@ class Shipment extends BaseModel
 
     public function scopePending(Builder $query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', ShipmentStatus::PENDING->value);
     }
 
     public function scopeShipped(Builder $query)
     {
-        return $query->where('status', 'shipped');
+        return $query->where('status', ShipmentStatus::SHIPPED->value);
     }
 
     public function scopeDelivered(Builder $query)
     {
-        return $query->where('status', 'delivered');
+        return $query->where('status', ShipmentStatus::DELIVERED->value);
     }
 
     public function markAsShipped(): void
     {
         $this->update([
-            'status' => 'shipped',
+            'status' => ShipmentStatus::SHIPPED->value,
             'shipped_at' => now(),
         ]);
 
@@ -86,7 +87,7 @@ class Shipment extends BaseModel
     public function markAsDelivered(): void
     {
         $this->update([
-            'status' => 'delivered',
+            'status' => ShipmentStatus::DELIVERED->value,
             'delivered_at' => now(),
         ]);
 
@@ -95,7 +96,7 @@ class Shipment extends BaseModel
 
     public function getTrackingUrl(): ?string
     {
-        if (!$this->tracking_number || !$this->carrier) {
+        if (! $this->tracking_number || ! $this->carrier) {
             return null;
         }
 

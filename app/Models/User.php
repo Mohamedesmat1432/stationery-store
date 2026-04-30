@@ -8,16 +8,15 @@ use App\Concerns\HasRedisCache;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Testing\Fluent\Concerns\Has;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -31,12 +30,14 @@ class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
-    use HasUlids, HasRoles, InteractsWithMedia, SoftDeletes, HasRedisCache, LogsActivity;
+
+    use HasRedisCache, HasRoles, HasUlids, InteractsWithMedia, LogsActivity, SoftDeletes;
 
     /**
      * Primary key is ULID string, not integer
      */
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     /**
@@ -57,6 +58,14 @@ class User extends Authenticatable implements HasMedia
 
     protected static function booted(): void
     {
+        // No parent call needed here because User extends Authenticatable,
+        // and we want to ensure the trait booting or parent booted is handled if necessary.
+        // However, User uses HasRedisCache but doesn't call its boot logic if not using parent::booted()
+        // when BaseModel is not the parent. User extends Authenticatable.
+        // Wait, User DOES NOT extend BaseModel. It extends Authenticatable.
+        // Authenticatable doesn't have a booted() method that we care about in the same way,
+        // BUT BaseModel does. User uses HasRedisCache trait.
+
         static::saved(function ($model) {
             $model->forgetRedisCache();
         });
@@ -118,6 +127,7 @@ class User extends Authenticatable implements HasMedia
     public function getCachedPermissions(): array
     {
         $key = "user:{$this->id}:permissions";
+
         return $this->rememberInRedis($key, function () {
             return $this->getPermissionNames()->toArray();
         }, 3600);
@@ -126,9 +136,20 @@ class User extends Authenticatable implements HasMedia
     public function getCachedRoles(): array
     {
         $key = "user:{$this->id}:roles";
+
         return $this->rememberInRedis($key, function () {
             return $this->getRoleNames()->toArray();
         }, 3600);
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        return $query->when($search, function ($query, $search) {
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        });
     }
 
     public function flushPermissionCache(): void

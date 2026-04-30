@@ -13,7 +13,7 @@ enum OrderStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Pending',
             self::PROCESSING => 'Processing',
             self::SHIPPED => 'Shipped',
@@ -25,7 +25,7 @@ enum OrderStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'yellow',
             self::PROCESSING => 'blue',
             self::SHIPPED => 'purple',
@@ -33,5 +33,30 @@ enum OrderStatus: string
             self::CANCELLED => 'red',
             self::REFUNDED => 'gray',
         };
+    }
+
+    /**
+     * Define which status transitions are allowed.
+     *
+     * @return array<OrderStatus>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::PENDING => [self::PROCESSING, self::CANCELLED],
+            self::PROCESSING => [self::SHIPPED, self::CANCELLED],
+            self::SHIPPED => [self::DELIVERED, self::CANCELLED],
+            self::DELIVERED => [self::REFUNDED],
+            self::CANCELLED => [],
+            self::REFUNDED => [],
+        };
+    }
+
+    /**
+     * Check if transitioning to the given status is allowed.
+     */
+    public function canTransitionTo(self $target): bool
+    {
+        return in_array($target, $this->allowedTransitions());
     }
 }

@@ -25,17 +25,29 @@ trait HasRedisCache
 
     public function forgetRedisCache(?string $pattern = null): void
     {
-        $redis = Redis::connection();
         $pattern = $pattern ?? $this->cacheKey('*');
-        $keys = $redis->keys($pattern);
-
-        if (!empty($keys)) {
-            $redis->del(...$keys);
-        }
+        static::deleteRedisByPattern($pattern);
     }
 
     public static function flushRedisTag(): void
     {
-        Redis::connection()->del(...Redis::connection()->keys(static::cacheTag() . ':*'));
+        $pattern = static::cacheTag().':*';
+        static::deleteRedisByPattern($pattern);
+    }
+
+    /**
+     * Delete all Redis keys matching the given pattern using non-blocking SCAN.
+     */
+    protected static function deleteRedisByPattern(string $pattern): void
+    {
+        $redis = Redis::connection();
+        $cursor = '0';
+
+        do {
+            [$cursor, $keys] = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+            if (! empty($keys)) {
+                $redis->del(...$keys);
+            }
+        } while ($cursor !== '0');
     }
 }

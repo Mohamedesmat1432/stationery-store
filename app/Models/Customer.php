@@ -73,7 +73,7 @@ class Customer extends BaseModel
 
     public function scopeVip(Builder $query): Builder
     {
-        return $query->whereHas('group', fn(Builder $q) => $q->where('slug', 'vip'));
+        return $query->whereHas('group', fn (Builder $q) => $q->where('slug', 'vip'));
     }
 
     public function defaultBillingAddress(): ?Address
@@ -90,6 +90,20 @@ class Customer extends BaseModel
             ->where('type', 'shipping')
             ->where('is_default', true)
             ->first();
+    }
+
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        return $query->when($search, function ($query, $search) {
+            $query->where(function ($query) use ($search) {
+                $query->where('phone', 'like', "%{$search}%")
+                    ->orWhere('company_name', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        });
     }
 
     public function updateTotalSpent(): void

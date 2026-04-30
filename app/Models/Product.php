@@ -2,20 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Enums\InventoryPolicy;
 use App\Models\Scopes\ActiveScope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Facades\Redis;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Spatie\Activitylog\LogOptions;
-use Illuminate\Support\Facades\Redis;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 class Product extends BaseModel implements HasMedia
 {
@@ -67,6 +67,8 @@ class Product extends BaseModel implements HasMedia
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::addGlobalScope(new ActiveScope);
 
         static::saved(function ($product) {
@@ -198,7 +200,7 @@ class Product extends BaseModel implements HasMedia
 
     public function scopeInStock(Builder $query): Builder
     {
-        return $query->whereHas('stock', fn($q) => $q->where('available_quantity', '>', 0));
+        return $query->whereHas('stock', fn ($q) => $q->where('available_quantity', '>', 0));
     }
 
     public function scopeWithPrice(Builder $query, ?string $currencyCode = null)
@@ -208,7 +210,7 @@ class Product extends BaseModel implements HasMedia
             : config('app.currency_id');
 
         return $query->with([
-            'prices' => fn($q) => $q
+            'prices' => fn ($q) => $q
                 ->where('currency_id', $currencyId)
                 ->where('type', 'base')
                 ->where(function ($sq) {
@@ -216,7 +218,7 @@ class Product extends BaseModel implements HasMedia
                 })
                 ->where(function ($sq) {
                     $sq->whereNull('end_at')->orWhere('end_at', '>=', now());
-                })
+                }),
         ]);
     }
 
@@ -232,19 +234,19 @@ class Product extends BaseModel implements HasMedia
 
     public function scopeFilterByCategory(Builder $query, string $categorySlug)
     {
-        return $query->whereHas('category', fn($q) => $q->where('slug', $categorySlug));
+        return $query->whereHas('category', fn ($q) => $q->where('slug', $categorySlug));
     }
 
     public function scopeFilterByBrand(Builder $query, string $brandSlug): Builder
     {
-        return $query->whereHas('brand', fn($q) => $q->where('slug', $brandSlug));
+        return $query->whereHas('brand', fn ($q) => $q->where('slug', $brandSlug));
     }
 
     public function scopeFilterByPriceRange(Builder $query, float $min, float $max)
     {
         return $query->whereHas(
             'prices',
-            fn($q) => $q
+            fn ($q) => $q
                 ->whereBetween('amount', [$min, $max])
                 ->where('type', 'base')
         );
@@ -255,11 +257,12 @@ class Product extends BaseModel implements HasMedia
         foreach ($attributes as $attributeCode => $values) {
             $query->whereHas(
                 'variants.attributeValues',
-                fn($q) => $q
-                    ->whereHas('attribute', fn($aq) => $aq->where('code', $attributeCode))
+                fn ($q) => $q
+                    ->whereHas('attribute', fn ($aq) => $aq->where('code', $attributeCode))
                     ->whereIn('value', (array) $values)
             );
         }
+
         return $query;
     }
 
@@ -291,12 +294,13 @@ class Product extends BaseModel implements HasMedia
     public function getFeaturedImageUrl(string $conversion = 'medium'): ?string
     {
         $media = $this->getFirstMedia('featured');
+
         return $media ? $media->getUrl($conversion) : null;
     }
 
     public function getGalleryUrls(string $conversion = 'thumb'): array
     {
-        return $this->getMedia('gallery')->map(fn($m) => $m->getUrl($conversion))->toArray();
+        return $this->getMedia('gallery')->map(fn ($m) => $m->getUrl($conversion))->toArray();
     }
 
     public function incrementViewCount(): void
@@ -307,13 +311,16 @@ class Product extends BaseModel implements HasMedia
     public function getViewCount(): int
     {
         $redisCount = (int) Redis::connection()->get("product:{$this->id}:views");
+
         return $redisCount + $this->view_count;
     }
 
     public function syncViewCountToDatabase(): void
     {
-        $redisCount = (int) Redis::connection()->getdel("product:{$this->id}:views");
+        $key = "product:{$this->id}:views";
+        $redisCount = (int) Redis::connection()->get($key);
         if ($redisCount > 0) {
+            Redis::connection()->del($key);
             $this->increment('view_count', $redisCount);
         }
     }

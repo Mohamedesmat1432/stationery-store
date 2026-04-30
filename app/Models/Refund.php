@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RefundStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,7 @@ class Refund extends BaseModel
         return [
             'amount' => 'decimal:4',
             'processed_at' => 'datetime',
+            'status' => RefundStatus::class,
         ];
     }
 
@@ -53,12 +55,12 @@ class Refund extends BaseModel
 
     public function scopePending(Builder $query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', RefundStatus::PENDING->value);
     }
 
     public function scopeCompleted(Builder $query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', RefundStatus::COMPLETED->value);
     }
 
     public function scopeForOrder(Builder $query, string $orderId)
@@ -69,7 +71,7 @@ class Refund extends BaseModel
     public function markAsCompleted(): void
     {
         $this->update([
-            'status' => 'completed',
+            'status' => RefundStatus::COMPLETED->value,
             'processed_at' => now(),
         ]);
     }
@@ -77,7 +79,7 @@ class Refund extends BaseModel
     public function markAsFailed(?string $reason = null): void
     {
         $this->update([
-            'status' => 'failed',
+            'status' => RefundStatus::FAILED->value,
             'notes' => $reason,
         ]);
     }

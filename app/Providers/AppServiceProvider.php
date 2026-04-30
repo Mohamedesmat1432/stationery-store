@@ -2,9 +2,37 @@
 
 namespace App\Providers;
 
+use App\Events\OrderCancelled;
+use App\Events\OrderCreated;
+use App\Events\OrderDelivered;
+use App\Events\OrderPaid;
+use App\Events\OrderShipped;
+use App\Events\StockLow;
+use App\Listeners\DeductStockOnOrderPaid;
+use App\Listeners\NotifyAdminOfLowStock;
+use App\Listeners\ReleaseStockOnOrderCancelled;
+use App\Listeners\SendOrderConfirmation;
+use App\Listeners\SendShippingUpdate;
+use App\Listeners\UpdateCustomerStatsOnOrderDelivered;
+use App\Listeners\UpdateStockOnOrder;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Stock;
+use App\Observers\OrderObserver;
+use App\Observers\ProductObserver;
+use App\Observers\StockObserver;
+use App\Repositories\Contracts\CustomerGroupRepositoryInterface;
+use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\RoleRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Eloquent\CustomerGroupRepository;
+use App\Repositories\Eloquent\CustomerRepository;
+use App\Repositories\Eloquent\RoleRepository;
+use App\Repositories\Eloquent\UserRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -15,7 +43,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            RoleRepositoryInterface::class,
+            RoleRepository::class
+        );
+
+        $this->app->bind(
+            UserRepositoryInterface::class,
+            UserRepository::class
+        );
+
+        $this->app->bind(
+            CustomerGroupRepositoryInterface::class,
+            CustomerGroupRepository::class
+        );
+
+        $this->app->bind(
+            CustomerRepositoryInterface::class,
+            CustomerRepository::class
+        );
     }
 
     /**
@@ -24,6 +70,48 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->registerObservers();
+        $this->registerEvents();
+
+        // Grant 'admin' role full access to everything
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            return $user->hasRole('admin') ? true : null;
+        });
+    }
+
+    /**
+     * Register events and listeners.
+     */
+    protected function registerEvents(): void
+    {
+        // Order Created → reserve stock + send confirmation email
+        Event::listen(OrderCreated::class, UpdateStockOnOrder::class);
+        Event::listen(OrderCreated::class, SendOrderConfirmation::class);
+
+        // Order Paid (PROCESSING) → deduct stock from inventory
+        Event::listen(OrderPaid::class, DeductStockOnOrderPaid::class);
+
+        // Order Shipped → send shipping notification to customer
+        Event::listen(OrderShipped::class, SendShippingUpdate::class);
+
+        // Order Delivered → update customer lifetime stats
+        Event::listen(OrderDelivered::class, UpdateCustomerStatsOnOrderDelivered::class);
+
+        // Order Cancelled → release reserved stock
+        Event::listen(OrderCancelled::class, ReleaseStockOnOrderCancelled::class);
+
+        // Stock Low → notify admin
+        Event::listen(StockLow::class, NotifyAdminOfLowStock::class);
+    }
+
+    /**
+     * Register model observers.
+     */
+    protected function registerObservers(): void
+    {
+        Order::observe(OrderObserver::class);
+        Product::observe(ProductObserver::class);
+        Stock::observe(StockObserver::class);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ImportStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,7 @@ class ImportLog extends BaseModel
             'failed_rows' => 'integer',
             'errors' => 'array',
             'metadata' => 'array',
+            'status' => ImportStatus::class,
         ];
     }
 
@@ -45,17 +47,20 @@ class ImportLog extends BaseModel
 
     public function scopeCompleted(Builder $query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', ImportStatus::COMPLETED->value);
     }
 
     public function scopeFailed(Builder $query)
     {
-        return $query->where('status', 'failed');
+        return $query->where('status', ImportStatus::FAILED->value);
     }
 
     public function progressPercentage(): float
     {
-        if ($this->total_rows === 0) return 0;
+        if ($this->total_rows === 0) {
+            return 0;
+        }
+
         return round(($this->processed_rows / $this->total_rows) * 100, 2);
     }
 }

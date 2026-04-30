@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\StockLow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -118,6 +119,10 @@ class Stock extends BaseModel
         $this->decrement('available_quantity', $quantity);
         $this->decrement('reserved_quantity', $quantity);
         $this->updateRedisStock();
+
+        if ($this->isLowStock()) {
+            event(new StockLow($this));
+        }
     }
 
     public function add(float $quantity): void
@@ -138,6 +143,7 @@ class Stock extends BaseModel
     {
         $key = "stock:{$productId}:{$variantId}:{$warehouseId}";
         $data = Redis::connection()->hgetall($key);
+
         return empty($data) ? null : $data;
     }
 }

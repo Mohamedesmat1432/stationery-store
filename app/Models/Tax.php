@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Scopes\ActiveScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tax extends BaseModel
@@ -37,6 +36,7 @@ class Tax extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
         static::addGlobalScope(new ActiveScope);
     }
 
@@ -72,15 +72,19 @@ class Tax extends BaseModel
         if ($this->type === 'percentage') {
             return round($amount * ($this->rate / 100), 4);
         }
+
         return (float) $this->rate;
     }
 
     public function appliesToCountry(string $countryCode): bool
     {
-        if ($this->zone_type === 'global') return true;
+        if ($this->zone_type === 'global') {
+            return true;
+        }
         if ($this->zone_type === 'country') {
             return in_array($countryCode, $this->zone_codes ?? []);
         }
+
         return false;
     }
 }

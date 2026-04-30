@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Actions\CheckoutAction;
 use App\Enums\CartStatus;
-use App\Enums\OrderStatus;
+use App\Services\CartService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Redis;
 
 class Cart extends BaseModel
 {
@@ -97,91 +97,22 @@ class Cart extends BaseModel
 
     public function addItem(Product $product, float $quantity, ?ProductVariant $variant = null, ?Unit $unit = null): CartItem
     {
-        $unit = $unit ?? $product->productUnits()->where('is_default', true)->first()?->unit;
-        $variant = $variant ?? $product->defaultVariant();
-
-        $price = $variant
-            ? $variant->prices()->active()->forCurrency($this->currency_id)->first()
-            : $product->prices()->active()->forCurrency($this->currency_id)->first();
-
-        $unitPrice = $price?->amount ?? 0;
-        $subtotal = $unitPrice * $quantity;
-
-        $item = $this->items()->updateOrCreate(
-            [
-                'product_id' => $product->id,
-                'variant_id' => $variant?->id,
-                'unit_id' => $unit?->id,
-            ],
-            [
-                'quantity' => $quantity,
-                'unit_price' => $unitPrice,
-                'subtotal' => $subtotal,
-            ]
-        );
-
-        $this->recalculateTotals();
-        return $item;
+        return app(CartService::class)->addItem($this, $product, $quantity, $variant, $unit);
     }
 
     public function removeItem(string $itemId): void
     {
-        $this->items()->where('id', $itemId)->delete();
-        $this->recalculateTotals();
+        app(CartService::class)->removeItem($this, $itemId);
     }
 
     public function recalculateTotals(): void
     {
-        $subtotal = $this->items()->sum('subtotal');
-        $this->update([
-            'subtotal' => $subtotal,
-            'grand_total' => $subtotal + $this->tax_total + $this->shipping_total - $this->discount_total,
-        ]);
-
-        Redis::connection()->setex("cart:{$this->id}:totals", 300, json_encode([
-            'subtotal' => $subtotal,
-            'grand_total' => $subtotal + $this->tax_total + $this->shipping_total - $this->discount_total,
-        ]));
+        app(CartService::class)->recalculateTotals($this);
     }
 
     public function convertToOrder(): Order
     {
-        return \DB::transaction(function () {
-            $order = Order::create([
-                'user_id' => $this->user_id,
-                'customer_id' => $this->user?->customer?->id,
-                'currency_id' => $this->currency_id,
-                'subtotal' => $this->subtotal,
-                'tax_total' => $this->tax_total,
-                'discount_total' => $this->discount_total,
-                'shipping_total' => $this->shipping_total,
-                'grand_total' => $this->grand_total,
-                'status' => OrderStatus::PENDING->value,
-                'shipping_address_id' => $this->shipping_address_id,
-                'billing_address_id' => $this->billing_address_id,
-                'discount_id' => $this->discount_id,
-                'ip_address' => $this->ip_address,
-                'user_agent' => $this->user_agent,
-            ]);
-
-            foreach ($this->items as $item) {
-                $order->items()->create([
-                    'product_id' => $item->product_id,
-                    'variant_id' => $item->variant_id,
-                    'unit_id' => $item->unit_id,
-                    'name' => $item->product->name,
-                    'sku' => $item->variant?->sku ?? $item->product->sku,
-                    'image' => $item->product->getFeaturedImageUrl('thumb'),
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'subtotal' => $item->subtotal,
-                ]);
-            }
-
-            $this->update(['status' => CartStatus::CONVERTED->value]);
-
-            return $order;
-        });
+        return app(CheckoutAction::class)->execute($this);
     }
 
     public function isExpired(): bool

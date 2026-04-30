@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
-use App\Enums\FulfillmentStatus;
+use App\Enums\RefundStatus;
+use App\Services\OrderService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Spatie\Activitylog\LogOptions;
 use Illuminate\Support\Facades\Redis;
+use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Order extends BaseModel
@@ -72,6 +74,8 @@ class Order extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
+
         static::creating(function ($order) {
             if (empty($order->order_number)) {
                 $order->order_number = static::generateOrderNumber();
@@ -80,9 +84,12 @@ class Order extends BaseModel
 
         static::updated(function ($order) {
             if ($order->wasChanged('status')) {
+                $fromStatus = $order->getOriginal('status');
+                $toStatus = $order->status;
+
                 $order->statusHistories()->create([
-                    'from_status' => $order->getOriginal('status'),
-                    'to_status' => $order->status,
+                    'from_status' => $fromStatus instanceof \BackedEnum ? $fromStatus->value : $fromStatus,
+                    'to_status' => $toStatus instanceof \BackedEnum ? $toStatus->value : $toStatus,
                     'changed_by_type' => 'system',
                 ]);
             }
@@ -210,60 +217,38 @@ class Order extends BaseModel
 
     public static function generateOrderNumber(): string
     {
-        $prefix = 'ORD-' . now()->format('Y');
-        $lastOrder = static::withTrashed()
-            ->where('order_number', 'like', $prefix . '-%')
-            ->orderBy('order_number', 'desc')
-            ->value('order_number');
+        $prefix = 'ORD-'.now()->format('Y');
+        $key = 'order:sequence:'.now()->format('Y');
 
-        $sequence = $lastOrder
-            ? (int) substr($lastOrder, -7) + 1
-            : 1;
+        // Atomic increment in Redis
+        $sequence = Redis::connection()->incr($key);
 
-        return $prefix . '-' . str_pad((string) $sequence, 7, '0', STR_PAD_LEFT);
+        // Set expiry for the key to avoid cluttering Redis over years (optional but good practice)
+        if ($sequence === 1) {
+            Redis::connection()->expire($key, 60 * 60 * 24 * 400); // ~13 months
+        }
+
+        return $prefix.'-'.str_pad((string) $sequence, 7, '0', STR_PAD_LEFT);
     }
 
     public function markAsPaid(): void
     {
-        $this->update([
-            'payment_status' => PaymentStatus::PAID->value,
-            'paid_at' => now(),
-        ]);
+        app(OrderService::class)->markAsPaid($this);
     }
 
     public function markAsShipped(?string $trackingNumber = null): void
     {
-        $this->update([
-            'status' => OrderStatus::SHIPPED->value,
-            'fulfillment_status' => FulfillmentStatus::FULFILLED->value,
-            'shipped_at' => now(),
-            'tracking_number' => $trackingNumber,
-        ]);
+        app(OrderService::class)->markAsShipped($this, $trackingNumber);
     }
 
     public function markAsDelivered(): void
     {
-        $this->update([
-            'status' => OrderStatus::DELIVERED->value,
-            'delivered_at' => now(),
-        ]);
+        app(OrderService::class)->markAsDelivered($this);
     }
 
     public function markAsCancelled(?string $reason = null): void
     {
-        $this->update([
-            'status' => OrderStatus::CANCELLED->value,
-            'cancelled_at' => now(),
-        ]);
-
-        if ($reason) {
-            $this->statusHistories()->create([
-                'from_status' => $this->getOriginal('status'),
-                'to_status' => OrderStatus::CANCELLED->value,
-                'notes' => $reason,
-                'changed_by_type' => 'system',
-            ]);
-        }
+        app(OrderService::class)->cancel($this, $reason);
     }
 
     public function isPaid(): bool
@@ -297,7 +282,7 @@ class Order extends BaseModel
     public function getTotalRefunded(): float
     {
         return (float) $this->refunds()
-            ->where('status', 'completed')
+            ->where('status', RefundStatus::COMPLETED->value)
             ->sum('amount');
     }
 

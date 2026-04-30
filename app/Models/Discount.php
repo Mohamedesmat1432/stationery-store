@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Enums\DiscountType;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Redis;
@@ -105,7 +105,7 @@ class Discount extends BaseModel
             $q->where('applies_to', 'all')
                 ->orWhereHas(
                     'discountables',
-                    fn($dq) => $dq
+                    fn ($dq) => $dq
                         ->where('discountable_type', Product::class)
                         ->where('discountable_id', $productId)
                 );
@@ -114,19 +114,32 @@ class Discount extends BaseModel
 
     public function isValid(): bool
     {
-        if (!$this->is_active) return false;
-        if ($this->start_at && $this->start_at->isFuture()) return false;
-        if ($this->end_at && $this->end_at->isPast()) return false;
-        if ($this->usage_limit !== null && $this->usage_count >= $this->usage_limit) return false;
+        if (! $this->is_active) {
+            return false;
+        }
+        if ($this->start_at && $this->start_at->isFuture()) {
+            return false;
+        }
+        if ($this->end_at && $this->end_at->isPast()) {
+            return false;
+        }
+        if ($this->usage_limit !== null && $this->usage_count >= $this->usage_limit) {
+            return false;
+        }
+
         return true;
     }
 
     public function canBeUsedBy(string $userId): bool
     {
-        if (!$this->isValid()) return false;
-        if ($this->per_customer_limit === null) return true;
+        if (! $this->isValid()) {
+            return false;
+        }
+        if ($this->per_customer_limit === null) {
+            return true;
+        }
 
-        $usedCount = Order::where('discount_id', $this->id)
+        $usedCount = CouponUsage::where('discount_id', $this->id)
             ->where('user_id', $userId)
             ->count();
 
@@ -151,19 +164,27 @@ class Discount extends BaseModel
 
     public function getCacheKey(string $suffix = ''): string
     {
-        return "discount:{$this->id}" . ($suffix ? ":{$suffix}" : '');
+        return "discount:{$this->id}".($suffix ? ":{$suffix}" : '');
     }
 
     public static function getActiveCouponsFromCache(): array
     {
         $redis = Redis::connection();
-        $keys = $redis->keys('discount:*:active');
+        $pattern = 'discount:*:active';
         $coupons = [];
 
-        foreach ($keys as $key) {
-            $data = $redis->get($key);
-            if ($data) $coupons[] = json_decode($data, true);
-        }
+        $cursor = '0';
+        do {
+            [$cursor, $keys] = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+            if (! empty($keys)) {
+                foreach ($keys as $key) {
+                    $data = $redis->get($key);
+                    if ($data) {
+                        $coupons[] = json_decode($data, true);
+                    }
+                }
+            }
+        } while ($cursor !== '0');
 
         return $coupons;
     }

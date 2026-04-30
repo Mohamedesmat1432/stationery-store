@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Scopes\ActiveScope;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -42,6 +42,7 @@ class Category extends BaseModel
 
     protected static function booted(): void
     {
+        parent::booted();
         static::addGlobalScope(new ActiveScope);
     }
 
@@ -90,12 +91,13 @@ class Category extends BaseModel
 
     public function scopeWithProductsCount(Builder $query): Builder
     {
-        return $query->withCount(['products' => fn(Builder $q) => $q->active()]);
+        return $query->withCount(['products' => fn (Builder $q) => $q->active()]);
     }
 
     public function getCachedTree(): array
     {
         $key = 'categories:tree';
+
         return $this->rememberInRedis($key, function () {
             return $this->root()->with('children')->get()->toArray();
         }, 7200);
