@@ -68,8 +68,8 @@ class RoleAndPermissionSeeder extends Seeder
             PermissionName::VIEW_REPORTS->value,
         ]);
 
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+
         $customerRole = Role::firstOrCreate(['name' => 'customer']);
-        // Customers usually don't need explicit granular permissions,
-        // the role itself is enough for customer-facing policies.
     }
 }

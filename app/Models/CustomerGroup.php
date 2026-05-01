@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class CustomerGroup extends BaseModel
 {
@@ -30,6 +31,17 @@ class CustomerGroup extends BaseModel
             'discount_percentage' => 'decimal:2',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saving(function (self $model) {
+            if (empty($model->slug)) {
+                $model->slug = Str::slug($model->name);
+            }
+        });
     }
 
     public function customers(): HasMany

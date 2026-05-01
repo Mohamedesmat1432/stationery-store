@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin\Traits;
 
+use App\Enums\BulkActionType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rules\Enum;
 
 trait HandlesBulkActions
 {
@@ -18,7 +20,7 @@ trait HandlesBulkActions
 
         $this->{$serviceProperty}->{$methodName}($model);
 
-        return back()->with('success', 'Restored successfully.');
+        return back()->with('success', __('Restored successfully.'));
     }
 
     /**
@@ -31,38 +33,40 @@ trait HandlesBulkActions
 
         $this->{$serviceProperty}->{$methodName}($model);
 
-        return back()->with('success', 'Permanently deleted.');
+        return back()->with('success', __('Permanently deleted.'));
     }
 
     /**
      * Handle bulk operations (delete, restore, forceDelete).
      */
-    protected function performBulkAction(Request $request, string $modelClass, string $serviceProperty, string $entityPlural): RedirectResponse
+    protected function performBulkAction(Request $request, string $modelClass, string $serviceProperty): RedirectResponse
     {
         $data = $request->validate([
             'ids' => ['required', 'array'],
-            'action' => ['required', 'string', 'in:delete,restore,forceDelete'],
+            'action' => ['required', new Enum(BulkActionType::class)],
         ]);
 
+        $action = BulkActionType::from($data['action']);
+
         $config = [
-            'delete' => [
-                'method' => 'bulkDelete' . $entityPlural,
-                'message' => 'Selected items deleted successfully.',
+            BulkActionType::DELETE->value => [
+                'method' => 'bulkDelete',
+                'message' => __('Selected items deleted successfully.'),
             ],
-            'restore' => [
-                'method' => 'bulkRestore' . $entityPlural,
-                'message' => 'Selected items restored successfully.',
+            BulkActionType::RESTORE->value => [
+                'method' => 'bulkRestore',
+                'message' => __('Selected items restored successfully.'),
             ],
-            'forceDelete' => [
-                'method' => 'bulkForceDelete' . $entityPlural,
-                'message' => 'Selected items permanently deleted.',
+            BulkActionType::FORCE_DELETE->value => [
+                'method' => 'bulkForceDelete',
+                'message' => __('Selected items permanently deleted.'),
             ],
         ];
 
-        $actionConfig = $config[$data['action']] ?? abort(400, 'Invalid action');
+        $actionConfig = $config[$action->value];
 
-        Gate::authorize($data['action'], [$modelClass]);
-        
+        Gate::authorize($action->value, [$modelClass]);
+
         $this->{$serviceProperty}->{$actionConfig['method']}($data['ids']);
 
         return back()->with('success', $actionConfig['message']);

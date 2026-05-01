@@ -3,56 +3,48 @@
 namespace App\Services\CRM;
 
 use App\Data\CRM\CustomerData;
+use App\Exports\CustomersExport;
+use App\Imports\CustomersImport;
 use App\Models\Customer;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Services\Concerns\HandlesBulkOperations;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
+use Illuminate\Http\UploadedFile;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerService
 {
+    use HandlesBulkOperations;
+
     public function __construct(
         protected CustomerRepositoryInterface $customerRepository
     ) {}
 
     public function getCustomersPaginated(int $perPage = 15): LengthAwarePaginator
     {
-        return QueryBuilder::for(Customer::class)
-            ->with(['user', 'group'])
-            ->allowedFilters(...[
-                AllowedFilter::scope('search'),
-                AllowedFilter::exact('group', 'customer_group_id'),
-                AllowedFilter::callback('trash', function ($query, $value) {
-                    if ($value === 'only') {
-                        $query->onlyTrashed();
-                    } elseif ($value === 'with') {
-                        $query->withTrashed();
-                    }
-                }),
-            ])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+        return $this->customerRepository->paginate($perPage);
     }
 
     public function createCustomer(CustomerData $data): Customer
     {
-        return $this->customerRepository->create($data->toArray());
+        /** @var Customer $customer */
+        $customer = $this->customerRepository->create($data->toArray());
+
+        return $customer;
     }
 
     public function updateCustomer(Customer $customer, CustomerData $data): Customer
     {
-        return $this->customerRepository->update($customer, $data->toArray());
+        /** @var Customer $updatedCustomer */
+        $updatedCustomer = $this->customerRepository->update($customer, $data->toArray());
+
+        return $updatedCustomer;
     }
 
     public function deleteCustomer(Customer $customer): bool
     {
         return $this->customerRepository->delete($customer);
-    }
-
-    public function bulkDeleteCustomers(array $ids): bool
-    {
-        return $this->customerRepository->bulkDelete($ids);
     }
 
     public function restoreCustomer(Customer $customer): bool
@@ -65,13 +57,20 @@ class CustomerService
         return $this->customerRepository->forceDelete($customer);
     }
 
-    public function bulkRestoreCustomers(array $ids): bool
+    public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse
     {
-        return $this->customerRepository->bulkRestore($ids);
+        $format = $formatKey === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX;
+        $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
+
+        return Excel::download(
+            new CustomersExport($this->customerRepository->getExportQuery(), $columns),
+            'customers.'.$extension,
+            $format
+        );
     }
 
-    public function bulkForceDeleteCustomers(array $ids): bool
+    public function importCustomers(UploadedFile $file): void
     {
-        return $this->customerRepository->bulkForceDelete($ids);
+        Excel::import(new CustomersImport, $file);
     }
 }

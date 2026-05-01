@@ -5,6 +5,8 @@ namespace App\Repositories\Eloquent;
 use App\Models\Role;
 use App\Repositories\Contracts\RoleRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 {
@@ -15,7 +17,14 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
-        return Role::with('permissions')->orderBy('id', 'desc')->paginate($perPage);
+        return QueryBuilder::for(Role::class)
+            ->with('permissions')
+            ->allowedFilters(...[
+                AllowedFilter::scope('search'),
+            ])
+            ->defaultSort('-id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function findById(string $id): Role

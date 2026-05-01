@@ -44,7 +44,7 @@ class ProductController extends Controller
 
         $this->productService->createProduct($data);
 
-        return to_route('admin.products.index')->with('success', 'Product created successfully.');
+        return to_route('admin.products.index')->with('success', __('Product created successfully.'));
     }
 
     public function edit(Product $product): Response
@@ -62,7 +62,7 @@ class ProductController extends Controller
 
         $this->productService->updateProduct($product, $data);
 
-        return to_route('admin.products.index')->with('success', 'Product updated successfully.');
+        return to_route('admin.products.index')->with('success', __('Product updated successfully.'));
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -71,7 +71,7 @@ class ProductController extends Controller
 
         $this->productService->deleteProduct($product);
 
-        return to_route('admin.products.index')->with('success', 'Product deleted successfully.');
+        return to_route('admin.products.index')->with('success', __('Product deleted successfully.'));
     }
 
     public function restore($id): RedirectResponse

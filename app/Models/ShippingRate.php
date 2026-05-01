@@ -84,6 +84,7 @@ class ShippingRate extends BaseModel
         if ($this->isFreeForOrder($orderTotal)) {
             return 0;
         }
+
         return (float) $this->price;
     }
 }

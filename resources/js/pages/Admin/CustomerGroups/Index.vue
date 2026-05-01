@@ -128,23 +128,20 @@ const {
                                 <td class="px-4 py-3 text-end">
                                     <div class="flex justify-end gap-2">
                                         <template v-if="!group.deleted_at">
-                                            <Button :disabled="!can('update_customer_groups')" variant="ghost" size="icon" as-child>
-                                                <Link v-if="can('update_customer_groups')" :href="`/admin/customer-groups/${group.id}/edit`">
+                                            <Button v-if="can('update_customer_groups')" variant="ghost" size="icon" as-child>
+                                                <Link :href="`/admin/customer-groups/${group.id}/edit`">
                                                     <Pencil class="w-4 h-4" />
                                                 </Link>
-                                                <span v-else class="flex items-center justify-center opacity-50">
-                                                    <Pencil class="w-4 h-4" />
-                                                </span>
                                             </Button>
-                                            <Button :disabled="!can('delete_customer_groups')" variant="ghost" size="icon" @click="deleteItem(group.id)" class="text-destructive">
+                                            <Button v-if="can('delete_customer_groups')" variant="ghost" size="icon" @click="deleteItem(group.id)" class="text-destructive">
                                                 <Trash2 class="w-4 h-4" />
                                             </Button>
                                         </template>
                                         <template v-else>
-                                            <Button :disabled="!can('restore_customer_groups')" variant="ghost" size="icon" title="Restore" @click="restoreItem(group.id)">
+                                            <Button v-if="can('restore_customer_groups')" variant="ghost" size="icon" title="Restore" @click="restoreItem(group.id)">
                                                 <RotateCcw class="w-4 h-4" />
                                             </Button>
-                                            <Button :disabled="!can('force_delete_customer_groups')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(group.id)" class="text-destructive">
+                                            <Button v-if="can('force_delete_customer_groups')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(group.id)" class="text-destructive">
                                                 <Trash class="w-4 h-4" />
                                             </Button>
                                         </template>

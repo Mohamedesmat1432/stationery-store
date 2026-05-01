@@ -7,10 +7,14 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
         const groups: Record<string, string[]> = {};
         
         availablePermissions.forEach(permission => {
-            // Extract the noun part after the first underscore
             const parts = permission.split('_');
-            const action = parts[0];
-            const module = parts.slice(1).join('_') || 'system';
+            let module = 'system';
+
+            if (permission.startsWith('force_delete_')) {
+                module = parts.slice(2).join('_');
+            } else {
+                module = parts.slice(1).join('_') || 'system';
+            }
             
             if (!groups[module]) {
                 groups[module] = [];
@@ -23,6 +27,17 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
 
     const formatName = (str: string) => {
         return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    const formatPermissionLabel = (permission: string) => {
+        const parts = permission.split('_');
+        let label = parts[0];
+
+        if (permission.startsWith('force_delete_')) {
+            label = 'force_delete';
+        }
+
+        return formatName(label);
     };
 
     const togglePermission = (permission: string) => {
@@ -49,6 +64,7 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
     return {
         groupedPermissions,
         formatName,
+        formatPermissionLabel,
         togglePermission,
         toggleModule,
     };

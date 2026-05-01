@@ -56,20 +56,7 @@ class User extends Authenticatable implements HasMedia
         ];
     }
 
-    protected static function booted(): void
-    {
-        // No parent call needed here because User extends Authenticatable,
-        // and we want to ensure the trait booting or parent booted is handled if necessary.
-        // However, User uses HasRedisCache but doesn't call its boot logic if not using parent::booted()
-        // when BaseModel is not the parent. User extends Authenticatable.
-        // Wait, User DOES NOT extend BaseModel. It extends Authenticatable.
-        // Authenticatable doesn't have a booted() method that we care about in the same way,
-        // BUT BaseModel does. User uses HasRedisCache trait.
-
-        static::saved(function ($model) {
-            $model->forgetRedisCache();
-        });
-    }
+    // Removed booted() method, logic moved to UserObserver for better separation of concerns.
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -126,16 +113,17 @@ class User extends Authenticatable implements HasMedia
 
     public function getCachedPermissions(): array
     {
-        $key = "user:{$this->id}:permissions";
+        $key = $this->cacheKey('permissions');
 
         return $this->rememberInRedis($key, function () {
-            return $this->getPermissionNames()->toArray();
+            // Must use getAllPermissions() to include permissions inherited from roles
+            return $this->getAllPermissions()->pluck('name')->toArray();
         }, 3600);
     }
 
     public function getCachedRoles(): array
     {
-        $key = "user:{$this->id}:roles";
+        $key = $this->cacheKey('roles');
 
         return $this->rememberInRedis($key, function () {
             return $this->getRoleNames()->toArray();
@@ -154,7 +142,7 @@ class User extends Authenticatable implements HasMedia
 
     public function flushPermissionCache(): void
     {
-        $this->forgetRedisCache("user:{$this->id}:permissions");
-        $this->forgetRedisCache("user:{$this->id}:roles");
+        // Flush all keys for this user regardless of timestamp
+        $this->forgetRedisCache("User:{$this->id}:*");
     }
 }

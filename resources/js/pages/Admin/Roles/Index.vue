@@ -111,15 +111,12 @@ const {
                                     {{ role.permissions ? role.permissions.length : 0 }} {{ $t('Permissions') }}
                                 </td>
                                 <td class="px-6 py-4 text-right space-x-2">
-                                    <Button :disabled="!can('update_roles')" variant="outline" size="icon" class="h-8 w-8" as-child>
-                                        <Link v-if="can('update_roles')" :href="`/admin/roles/${role.id}/edit`">
+                                    <Button v-if="can('update_roles')" variant="outline" size="icon" class="h-8 w-8" as-child>
+                                        <Link :href="`/admin/roles/${role.id}/edit`">
                                             <Pencil class="w-4 h-4" />
                                         </Link>
-                                        <span v-else class="flex items-center justify-center opacity-50">
-                                            <Pencil class="w-4 h-4" />
-                                        </span>
                                     </Button>
-                                    <Button :disabled="!can('delete_roles')" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(role.id)">
+                                    <Button v-if="can('delete_roles')" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(role.id)">
                                         <Trash2 class="w-4 h-4" />
                                     </Button>
                                 </td>

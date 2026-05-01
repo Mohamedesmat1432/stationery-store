@@ -28,12 +28,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('roles', RoleController::class)->except(['show']);
 
         Route::post('users/bulk-action', [UserController::class, 'bulkDestroy'])->name('users.bulk-action');
+        Route::get('users/export', [UserController::class, 'export'])->name('users.export');
+        Route::post('users/import', [UserController::class, 'import'])->name('users.import');
         Route::post('users/{user}/restore', [UserController::class, 'restore'])->name('users.restore')->withTrashed();
         Route::delete('users/{user}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete')->withTrashed();
         Route::resource('users', UserController::class)->except(['show']);
 
         // CRM
         Route::post('customers/bulk-action', [CustomerController::class, 'bulkDestroy'])->name('customers.bulk-action');
+        Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
+        Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
         Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore')->withTrashed();
         Route::delete('customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.force-delete')->withTrashed();
         Route::resource('customers', CustomerController::class);

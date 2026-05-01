@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, Package, ShoppingCart, Users, Settings, Shield, ShieldCheck, UserCircle } from 'lucide-vue-next';
+import { LayoutGrid, Package, ShoppingCart, Users, Settings, Shield, ShieldCheck, UserCircle } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -24,13 +24,16 @@ const permissions = computed<string[]>(() => (page.props.auth as Auth).permissio
 const hasPermission = (permission: string) => permissions.value.includes(permission);
 
 const mainNavItems = computed<NavItem[]>(() => {
-    const items: NavItem[] = [
-        {
+    const items: NavItem[] = [];
+
+    // Dashboard is visible if the user has any permissions (meaning they are staff/admin)
+    if (permissions.value.length > 0) {
+        items.push({
             title: 'Dashboard',
             href: dashboard(),
             icon: LayoutGrid,
-        },
-    ];
+        });
+    }
 
     if (hasPermission('view_products')) {
         items.push({
@@ -113,18 +116,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     return items;
 });
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const footerNavItems: NavItem[] = [];
 </script>
 
 <template>
@@ -133,9 +125,12 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link v-if="permissions.length > 0" :href="dashboard()">
                             <AppLogo />
                         </Link>
+                        <div v-else class="flex items-center">
+                            <AppLogo />
+                        </div>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

@@ -4,14 +4,15 @@ namespace App\Services\AccessControl;
 
 use App\Data\AccessControl\RoleData;
 use App\Models\Role;
+use App\Models\User;
 use App\Repositories\Contracts\RoleRepositoryInterface;
+use App\Services\Concerns\HandlesBulkOperations;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
 
 class RoleService
 {
+    use HandlesBulkOperations;
 
     public function __construct(
         protected RoleRepositoryInterface $roleRepository
@@ -20,21 +21,17 @@ class RoleService
 
     public function getRolesPaginated(int $perPage = 15): LengthAwarePaginator
     {
-        return QueryBuilder::for(Role::class)
-            ->with('permissions')
-            ->allowedFilters(...[
-                AllowedFilter::scope('search'),
-            ])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+        return $this->roleRepository->paginate($perPage);
     }
 
     public function createRole(RoleData $data): Role
     {
         return DB::transaction(fn() => tap(
             $this->roleRepository->create(['name' => $data->name]),
-            fn(Role $role) => $this->roleRepository->syncPermissions($role, $data->permissions)
+            function (Role $role) use ($data) {
+                $this->roleRepository->syncPermissions($role, $data->permissions);
+                User::flushRedisTag();
+            }
         ));
     }
 
@@ -42,21 +39,42 @@ class RoleService
     {
         return DB::transaction(fn() => tap(
             $this->roleRepository->update($role, ['name' => $data->name]),
-            fn(Role $role) => $this->roleRepository->syncPermissions($role, $data->permissions)
+            function (Role $role) use ($data) {
+                $this->roleRepository->syncPermissions($role, $data->permissions);
+                User::flushRedisTag();
+            }
         ));
     }
 
     public function deleteRole(Role $role): bool
     {
-        return $this->roleRepository->delete($role);
+        if ($role->name === Role::ROLE_ADMIN) {
+            return false;
+        }
+
+        $deleted = $this->roleRepository->delete($role);
+
+        if ($deleted) {
+            User::flushRedisTag();
+        }
+
+        return $deleted;
     }
 
-    public function bulkDeleteRoles(array $ids): bool
+    public function bulkDelete(array $ids): bool
     {
-        $filteredIds = Role::whereIn('id', $ids)
+        // Prevent deleting the admin role
+        $ids = Role::whereIn('id', $ids)
+            ->where('name', '!=', Role::ROLE_ADMIN)
             ->pluck('id')
             ->toArray();
 
-        return !empty($filteredIds) && $this->roleRepository->bulkDelete($filteredIds);
+        $deleted = !empty($ids) && $this->roleRepository->bulkDelete($ids);
+
+        if ($deleted) {
+            User::flushRedisTag();
+        }
+
+        return $deleted;
     }
 }

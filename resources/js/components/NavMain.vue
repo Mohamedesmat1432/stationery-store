@@ -52,7 +52,7 @@ const { isCurrentUrl } = useCurrentUrl();
                             <SidebarMenuSub>
                                 <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
                                     <SidebarMenuSubButton as-child :is-active="isCurrentUrl(subItem.href)">
-                                        <Link :href="subItem.href">
+                                        <Link :href="subItem.href" prefetch>
                                             <component :is="subItem.icon" v-if="subItem.icon" />
                                             <span>{{ $t(subItem.title) }}</span>
                                         </Link>
@@ -70,7 +70,7 @@ const { isCurrentUrl } = useCurrentUrl();
                         :is-active="isCurrentUrl(item.href)"
                         :tooltip="item.title"
                     >
-                        <Link :href="item.href">
+                        <Link :href="item.href" prefetch>
                             <component :is="item.icon" v-if="item.icon" />
                             <span>{{ $t(item.title) }}</span>
                         </Link>

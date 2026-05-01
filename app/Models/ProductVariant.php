@@ -85,7 +85,7 @@ class ProductVariant extends BaseModel implements HasMedia
     public function getAttributeString(): string
     {
         return $this->attributeValues
-            ->map(fn($av) => "{$av->attribute->name}: {$av->value}")
+            ->map(fn ($av) => "{$av->attribute->name}: {$av->value}")
             ->implode(', ');
     }
 

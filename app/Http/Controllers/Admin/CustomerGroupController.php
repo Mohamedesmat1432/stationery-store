@@ -45,7 +45,7 @@ class CustomerGroupController extends Controller
         $this->customerGroupService->createCustomerGroup($data);
 
         return to_route('admin.customer-groups.index')
-            ->with('success', 'Customer group created successfully.');
+            ->with('success', __('Customer group created successfully.'));
     }
 
     public function edit(CustomerGroup $customerGroup): Response
@@ -64,7 +64,7 @@ class CustomerGroupController extends Controller
         $this->customerGroupService->updateCustomerGroup($customerGroup, $data);
 
         return to_route('admin.customer-groups.index')
-            ->with('success', 'Customer group updated successfully.');
+            ->with('success', __('Customer group updated successfully.'));
     }
 
     public function destroy(CustomerGroup $customerGroup): RedirectResponse
@@ -74,7 +74,7 @@ class CustomerGroupController extends Controller
         $this->customerGroupService->deleteCustomerGroup($customerGroup);
 
         return to_route('admin.customer-groups.index')
-            ->with('success', 'Customer group deleted successfully.');
+            ->with('success', __('Customer group deleted successfully.'));
     }
 
     public function restore($id): RedirectResponse
@@ -89,6 +89,6 @@ class CustomerGroupController extends Controller
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
-        return $this->performBulkAction($request, CustomerGroup::class, 'customerGroupService', 'CustomerGroups');
+        return $this->performBulkAction($request, CustomerGroup::class, 'customerGroupService');
     }
 }

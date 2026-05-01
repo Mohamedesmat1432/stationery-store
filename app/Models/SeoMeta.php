@@ -35,7 +35,7 @@ class SeoMeta extends BaseModel
         return [
             'schema_markup' => 'array',
         ];
-    }  
+    }
 
     public function seoable(): MorphTo
     {

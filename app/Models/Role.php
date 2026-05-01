@@ -9,6 +9,8 @@ class Role extends SpatieRole
 {
     use HasUlids;
 
+    public const ROLE_ADMIN = 'admin';
+
     /**
      * Primary key is ULID string, not integer
      */

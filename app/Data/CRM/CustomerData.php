@@ -68,8 +68,6 @@ class CustomerData extends Data
             'company_name' => ['nullable', 'string', 'max:255'],
             'customer_group_id' => ['nullable', Rule::exists('customer_groups', 'id')],
             'metadata' => ['nullable', 'array'],
-            'is_active' => ['boolean'],
-            'sort_order' => ['integer', 'min:0'],
         ];
     }
 }

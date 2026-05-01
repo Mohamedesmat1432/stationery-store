@@ -9,18 +9,25 @@ use App\Events\OrderPaid;
 use App\Events\OrderShipped;
 use App\Events\StockLow;
 use App\Listeners\DeductStockOnOrderPaid;
+use App\Listeners\FlushUserPermissionCache;
 use App\Listeners\NotifyAdminOfLowStock;
 use App\Listeners\ReleaseStockOnOrderCancelled;
 use App\Listeners\SendOrderConfirmation;
 use App\Listeners\SendShippingUpdate;
 use App\Listeners\UpdateCustomerStatsOnOrderDelivered;
 use App\Listeners\UpdateStockOnOrder;
+use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Stock;
+use App\Models\User;
+use App\Observers\CustomerGroupObserver;
+use App\Observers\CustomerObserver;
 use App\Observers\OrderObserver;
 use App\Observers\ProductObserver;
 use App\Observers\StockObserver;
+use App\Observers\UserObserver;
 use App\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
@@ -38,6 +45,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Events\PermissionAttachedEvent;
+use Spatie\Permission\Events\PermissionDetachedEvent;
+use Spatie\Permission\Events\RoleAttachedEvent;
+use Spatie\Permission\Events\RoleDetachedEvent;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -82,9 +93,9 @@ class AppServiceProvider extends ServiceProvider
         $this->registerEvents();
 
         // Grant 'admin' role full access to everything
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole('admin') ? true : null;
-        });
+        // Gate::before(function ($user, $ability) {
+        //     return $user->hasRole('admin') ? true : null;
+        // });
     }
 
     /**
@@ -110,6 +121,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Stock Low → notify admin
         Event::listen(StockLow::class, NotifyAdminOfLowStock::class);
+
+        // Access Control → Flush Redis Cache on Role/Permission changes
+        Event::listen(RoleAttachedEvent::class, FlushUserPermissionCache::class);
+        Event::listen(RoleDetachedEvent::class, FlushUserPermissionCache::class);
+        Event::listen(PermissionAttachedEvent::class, FlushUserPermissionCache::class);
+        Event::listen(PermissionDetachedEvent::class, FlushUserPermissionCache::class);
     }
 
     /**
@@ -120,6 +137,9 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(OrderObserver::class);
         Product::observe(ProductObserver::class);
         Stock::observe(StockObserver::class);
+        User::observe(UserObserver::class);
+        CustomerGroup::observe(CustomerGroupObserver::class);
+        Customer::observe(CustomerObserver::class);
     }
 
     /**
@@ -133,7 +153,8 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
+        Password::defaults(
+            fn (): ?Password => app()->isProduction()
             ? Password::min(12)
                 ->mixedCase()
                 ->letters()

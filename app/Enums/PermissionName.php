@@ -13,6 +13,8 @@ enum PermissionName: string
     case DELETE_USERS = 'delete_users';
     case RESTORE_USERS = 'restore_users';
     case FORCE_DELETE_USERS = 'force_delete_users';
+    case EXPORT_USERS = 'export_users';
+    case IMPORT_USERS = 'import_users';
 
     case VIEW_ROLES = 'view_roles';
     case CREATE_ROLES = 'create_roles';
@@ -33,6 +35,8 @@ enum PermissionName: string
     case DELETE_CUSTOMERS = 'delete_customers';
     case RESTORE_CUSTOMERS = 'restore_customers';
     case FORCE_DELETE_CUSTOMERS = 'force_delete_customers';
+    case EXPORT_CUSTOMERS = 'export_customers';
+    case IMPORT_CUSTOMERS = 'import_customers';
 
     case VIEW_CUSTOMER_GROUPS = 'view_customer_groups';
     case CREATE_CUSTOMER_GROUPS = 'create_customer_groups';

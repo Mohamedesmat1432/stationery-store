@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { UserCircle, Pencil, Trash2, RotateCcw, Trash, Building2, Mail, Phone } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { UserCircle, Pencil, Trash2, RotateCcw, Trash, Building2, Mail, Phone, Download, Upload } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 defineOptions({
     layout: {
@@ -72,6 +82,44 @@ const {
     bulkActionUrl: '/admin/customers/bulk-action',
     resourceUrl: '/admin/customers',
 });
+
+// Export logic
+const isExportModalOpen = ref(false);
+const exportColumns = ref(['name', 'email', 'group', 'total_spent', 'orders_count', 'created_at']);
+const exportFormat = ref('xlsx');
+const allColumns = [
+    { id: 'name', label: 'Name' },
+    { id: 'email', label: 'Email' },
+    { id: 'group', label: 'Group' },
+    { id: 'total_spent', label: 'Total Spent' },
+    { id: 'orders_count', label: 'Orders Count' },
+    { id: 'created_at', label: 'Created At' },
+];
+
+const submitExport = () => {
+    let url = `/admin/customers/export?format=${exportFormat.value}`;
+    exportColumns.value.forEach(col => {
+        url += `&columns[]=${col}`;
+    });
+    window.location.href = url;
+    isExportModalOpen.value = false;
+};
+
+// Import logic
+const isImportModalOpen = ref(false);
+const importForm = useForm({
+    file: null as File | null,
+});
+
+const submitImport = () => {
+    importForm.post('/admin/customers/import', {
+        preserveScroll: true,
+        onSuccess: () => {
+            isImportModalOpen.value = false;
+            importForm.reset();
+        },
+    });
+};
 </script>
 
 <template>
@@ -94,7 +142,16 @@ const {
                 @bulk-delete="bulkAction('delete')"
                 @bulk-restore="bulkAction('restore')"
                 @bulk-force-delete="bulkAction('forceDelete')"
-            />
+            >
+                <template #actions>
+                    <Button v-if="can('export_customers')" variant="outline" class="flex items-center gap-2" @click="isExportModalOpen = true">
+                        <Download class="w-4 h-4" /> {{ $t('Export') }}
+                    </Button>
+                    <Button v-if="can('import_customers')" variant="outline" class="flex items-center gap-2" @click="isImportModalOpen = true">
+                        <Upload class="w-4 h-4" /> {{ $t('Import') }}
+                    </Button>
+                </template>
+            </AdminPageHeader>
 
             <CardContent>
                 <ResourceFilterBar
@@ -180,23 +237,20 @@ const {
                                 <td class="px-4 py-3 text-end">
                                     <div class="flex justify-end gap-2">
                                         <template v-if="!customer.deleted_at">
-                                            <Button :disabled="!can('update_customers')" variant="ghost" size="icon" as-child>
-                                                <Link v-if="can('update_customers')" :href="`/admin/customers/${customer.id}/edit`">
+                                            <Button v-if="can('update_customers')" variant="ghost" size="icon" as-child>
+                                                <Link :href="`/admin/customers/${customer.id}/edit`">
                                                     <Pencil class="w-4 h-4" />
                                                 </Link>
-                                                <span v-else class="flex items-center justify-center opacity-50">
-                                                    <Pencil class="w-4 h-4" />
-                                                </span>
                                             </Button>
-                                            <Button :disabled="!can('delete_customers')" variant="ghost" size="icon" @click="deleteItem(customer.id)" class="text-destructive">
+                                            <Button v-if="can('delete_customers')" variant="ghost" size="icon" @click="deleteItem(customer.id)" class="text-destructive">
                                                 <Trash2 class="w-4 h-4" />
                                             </Button>
                                         </template>
                                         <template v-else>
-                                            <Button :disabled="!can('restore_customers')" variant="ghost" size="icon" title="Restore" @click="restoreItem(customer.id)">
+                                            <Button v-if="can('restore_customers')" variant="ghost" size="icon" title="Restore" @click="restoreItem(customer.id)">
                                                 <RotateCcw class="w-4 h-4" />
                                             </Button>
-                                            <Button :disabled="!can('force_delete_customers')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(customer.id)" class="text-destructive">
+                                            <Button v-if="can('force_delete_customers')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(customer.id)" class="text-destructive">
                                                 <Trash class="w-4 h-4" />
                                             </Button>
                                         </template>
@@ -231,4 +285,79 @@ const {
         :loading="confirmState.loading"
         @confirm="confirmState.onConfirm"
     />
+
+    <Dialog v-model:open="isExportModalOpen">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>{{ $t('Export Customers') }}</DialogTitle>
+                <DialogDescription>
+                    {{ $t('Select Columns to Export') }}
+                </DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+                <div class="space-y-2">
+                    <div v-for="col in allColumns" :key="col.id" class="flex items-center gap-2">
+                        <Checkbox 
+                            :id="col.id" 
+                            :value="col.id" 
+                            :checked="exportColumns.includes(col.id)"
+                            @update:checked="(checked: boolean) => {
+                                if (checked) exportColumns.push(col.id);
+                                else exportColumns = exportColumns.filter(c => c !== col.id);
+                            }"
+                        />
+                        <Label :for="col.id" class="cursor-pointer">{{ $t(col.label) }}</Label>
+                    </div>
+                </div>
+                <div class="space-y-2 mt-4">
+                    <Label>{{ $t('Export Format') }}</Label>
+                    <Select v-model="exportFormat">
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="xlsx">{{ $t('Excel (.xlsx)') }}</SelectItem>
+                            <SelectItem value="csv">{{ $t('CSV (.csv)') }}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" @click="isExportModalOpen = false">{{ $t('Cancel') }}</Button>
+                <Button @click="submitExport">{{ $t('Export') }}</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog v-model:open="isImportModalOpen">
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>{{ $t('Import Customers') }}</DialogTitle>
+                <DialogDescription>
+                    {{ $t('Select Excel or CSV file') }}
+                </DialogDescription>
+            </DialogHeader>
+            <form @submit.prevent="submitImport">
+                <div class="grid gap-4 py-4">
+                    <div class="space-y-2">
+                        <Label for="file">{{ $t('Select File') }}</Label>
+                        <Input 
+                            id="file" 
+                            type="file" 
+                            accept=".xlsx,.csv" 
+                            @change="(e: Event) => importForm.file = (e.target as HTMLInputElement).files?.[0] || null"
+                        />
+                        <div v-if="importForm.errors.file" class="text-sm text-destructive mt-1">{{ importForm.errors.file }}</div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="isImportModalOpen = false" :disabled="importForm.processing">{{ $t('Cancel') }}</Button>
+                    <Button type="submit" :disabled="importForm.processing || !importForm.file">
+                        <span v-if="importForm.processing">{{ $t('Uploading...') }}</span>
+                        <span v-else>{{ $t('Import') }}</span>
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
 </template>

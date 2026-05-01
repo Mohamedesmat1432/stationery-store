@@ -10,17 +10,22 @@ trait HasRedisCache
 
     public function rememberInRedis(string $key, \Closure $callback, int $ttl = 3600): mixed
     {
-        $redis = Redis::connection();
-        $cached = $redis->get($key);
+        try {
+            $redis = Redis::connection();
+            $cached = $redis->get($key);
 
-        if ($cached !== null) {
-            return json_decode($cached, true);
+            if ($cached !== null) {
+                return json_decode($cached, true);
+            }
+
+            $value = $callback();
+            $redis->setex($key, $ttl, json_encode($value));
+
+            return $value;
+        } catch (\Throwable $e) {
+            // Log error if needed, but fallback to direct callback to keep the app running
+            return $callback();
         }
-
-        $value = $callback();
-        $redis->setex($key, $ttl, json_encode($value));
-
-        return $value;
     }
 
     public function forgetRedisCache(?string $pattern = null): void
@@ -31,7 +36,7 @@ trait HasRedisCache
 
     public static function flushRedisTag(): void
     {
-        $pattern = static::cacheTag().':*';
+        $pattern = static::cacheTag() . ':*';
         static::deleteRedisByPattern($pattern);
     }
 
@@ -40,14 +45,30 @@ trait HasRedisCache
      */
     protected static function deleteRedisByPattern(string $pattern): void
     {
-        $redis = Redis::connection();
-        $cursor = '0';
+        $redisConnection = Redis::connection();
+        $client = $redisConnection->client();
+        $prefix = (string) config('database.redis.options.prefix');
 
-        do {
-            [$cursor, $keys] = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
-            if (! empty($keys)) {
-                $redis->del(...$keys);
+        $matchPattern = $prefix . $pattern;
+        $cursor = null;
+
+        while (($keys = $client->scan($cursor, $matchPattern, 100)) !== false) {
+            if (!empty($keys)) {
+                // phpredis scan returns prefixed keys.
+                // We must strip the prefix before passing them back to DEL via the connection,
+                // as the connection will re-prefix them.
+                if ($prefix) {
+                    $keys = array_map(function ($key) use ($prefix) {
+                        return str_starts_with($key, $prefix) ? substr($key, strlen($prefix)) : $key;
+                    }, $keys);
+                }
+
+                $redisConnection->del(...$keys);
             }
-        } while ($cursor !== '0');
+
+            if ($cursor == 0) {
+                break;
+            }
+        }
     }
 }

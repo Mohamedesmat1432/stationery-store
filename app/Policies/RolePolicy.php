@@ -37,11 +37,19 @@ class RolePolicy
 
     public function update(User $user, ?Role $role = null): bool
     {
+        if ($role && $role->name === Role::ROLE_ADMIN) {
+            return false;
+        }
+
         return $user->hasPermissionTo(PermissionName::UPDATE_ROLES->value);
     }
 
     public function delete(User $user, ?Role $role = null): bool
     {
+        if ($role && $role->name === Role::ROLE_ADMIN) {
+            return false;
+        }
+
         return $user->hasPermissionTo(PermissionName::DELETE_ROLES->value);
     }
 }

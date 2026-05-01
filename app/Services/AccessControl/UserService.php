@@ -3,39 +3,34 @@
 namespace App\Services\AccessControl;
 
 use App\Data\AccessControl\UserData;
+use App\Exports\UsersExport;
+use App\Imports\UsersImport;
+use App\Models\Role;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserService
 {
     public function __construct(
         protected UserRepositoryInterface $userRepository
-    ) {}
+    ) {
+    }
 
     public function getUsersPaginated(int $perPage = 15): LengthAwarePaginator
     {
-        return QueryBuilder::for(User::class)
-            ->with('roles')
-            ->allowedFilters(...[
-                AllowedFilter::scope('search'),
-                AllowedFilter::callback('role', function ($query, $value) {
-                    $query->role($value);
-                }),
-                AllowedFilter::trashed('trash'),
-            ])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+        return $this->userRepository->paginate($perPage);
     }
 
     public function createUser(UserData $data): User
     {
         return DB::transaction(function () use ($data) {
+            /** @var User $user */
             $user = $this->userRepository->create([
                 'name' => $data->name,
                 'email' => $data->email,
@@ -43,6 +38,8 @@ class UserService
             ]);
 
             $this->userRepository->syncRoles($user, $data->roles);
+
+            $user->flushPermissionCache();
 
             return $user;
         });
@@ -60,9 +57,12 @@ class UserService
                 $updateData['password'] = Hash::make($data->password);
             }
 
+            /** @var User $user */
             $user = $this->userRepository->update($user, $updateData);
 
             $this->userRepository->syncRoles($user, $data->roles);
+
+            $user->flushPermissionCache();
 
             return $user;
         });
@@ -83,14 +83,14 @@ class UserService
         return $this->userRepository->forceDelete($user);
     }
 
-    public function bulkDeleteUsers(array $ids): bool
+    public function bulkDelete(array $ids): bool
     {
         // Prevent deleting the current user
         $ids = array_diff($ids, [auth()->id()]);
 
         // If not admin, prevent deleting other admins
-        if (! auth()->user()->hasRole('admin')) {
-            $adminIds = User::role('admin')->whereIn('id', $ids)->pluck('id')->toArray();
+        if (!auth()->user()->hasRole(Role::ROLE_ADMIN)) {
+            $adminIds = User::role(Role::ROLE_ADMIN)->whereIn('id', $ids)->pluck('id')->toArray();
             $ids = array_diff($ids, $adminIds);
         }
 
@@ -98,22 +98,32 @@ class UserService
             return false;
         }
 
-        return $this->userRepository->bulkDelete($ids);
+        $deleted = $this->userRepository->bulkDelete($ids);
+        if ($deleted) {
+            User::flushRedisTag();
+        }
+
+        return $deleted;
     }
 
-    public function bulkRestoreUsers(array $ids): bool
+    public function bulkRestore(array $ids): bool
     {
-        return $this->userRepository->bulkRestore($ids);
+        $restored = $this->userRepository->bulkRestore($ids);
+        if ($restored) {
+            User::flushRedisTag();
+        }
+
+        return $restored;
     }
 
-    public function bulkForceDeleteUsers(array $ids): bool
+    public function bulkForceDelete(array $ids): bool
     {
         // Prevent deleting the current user
         $ids = array_diff($ids, [auth()->id()]);
 
         // If not admin, prevent deleting other admins
-        if (! auth()->user()->hasRole('admin')) {
-            $adminIds = User::onlyTrashed()->role('admin')->whereIn('id', $ids)->pluck('id')->toArray();
+        if (!auth()->user()->hasRole(Role::ROLE_ADMIN)) {
+            $adminIds = User::onlyTrashed()->role(Role::ROLE_ADMIN)->whereIn('id', $ids)->pluck('id')->toArray();
             $ids = array_diff($ids, $adminIds);
         }
 
@@ -121,12 +131,35 @@ class UserService
             return false;
         }
 
-        return $this->userRepository->bulkForceDelete($ids);
+        $deleted = $this->userRepository->bulkForceDelete($ids);
+        if ($deleted) {
+            User::flushRedisTag();
+        }
+
+        return $deleted;
     }
+
     public function getAvailableForCustomer(?string $includeUserId = null)
     {
         return User::whereDoesntHave('customer')
-            ->when($includeUserId, fn ($query) => $query->orWhere('id', $includeUserId))
+            ->when($includeUserId, fn($query) => $query->orWhere('id', $includeUserId))
             ->get();
+    }
+
+    public function exportUsers(array $columns, string $formatKey): BinaryFileResponse
+    {
+        $format = $formatKey === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX;
+        $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
+
+        return Excel::download(
+            new UsersExport($this->userRepository->getExportQuery(), $columns),
+            'users.' . $extension,
+            $format
+        );
+    }
+
+    public function importUsers(UploadedFile $file): void
+    {
+        Excel::import(new UsersImport, $file);
     }
 }

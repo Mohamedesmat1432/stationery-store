@@ -45,4 +45,14 @@ class CustomerPolicy
     {
         return $user->hasPermissionTo(PermissionName::FORCE_DELETE_CUSTOMERS->value);
     }
+
+    public function export(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::EXPORT_CUSTOMERS->value);
+    }
+
+    public function import(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::IMPORT_CUSTOMERS->value);
+    }
 }

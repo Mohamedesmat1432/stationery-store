@@ -10,7 +10,7 @@ enum FulfillmentStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::UNFULFILLED => 'Unfulfilled',
             self::PARTIAL => 'Partial',
             self::FULFILLED => 'Fulfilled',

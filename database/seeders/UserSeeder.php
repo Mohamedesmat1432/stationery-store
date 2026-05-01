@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'password' => $password,
-                'phone' => '+1234567890',
+                'phone' => '+212612345678',
                 'is_active' => true,
             ]
         );
@@ -33,22 +33,22 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Manager User',
                 'password' => $password,
-                'phone' => '+1234567891',
+                'phone' => '+212623456789',
                 'is_active' => true,
             ]
         );
         $manager->assignRole('manager');
 
         // Create Customer User
-        $customer = User::firstOrCreate(
-            ['email' => 'customer@example.com'],
+        $user = User::firstOrCreate(
+            ['email' => 'user@example.com'],
             [
-                'name' => 'Customer User',
+                'name' => 'User',
                 'password' => $password,
-                'phone' => '+1234567892',
+                'phone' => '+212634567890',
                 'is_active' => true,
             ]
         );
-        $customer->assignRole('customer');
+        $user->assignRole('user');
     }
 }

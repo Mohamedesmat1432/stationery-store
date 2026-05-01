@@ -92,4 +92,20 @@ class UserPolicy
 
         return $user->hasPermissionTo(PermissionName::FORCE_DELETE_USERS->value);
     }
+
+    /**
+     * Determine whether the user can export models.
+     */
+    public function export(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::EXPORT_USERS->value);
+    }
+
+    /**
+     * Determine whether the user can import models.
+     */
+    public function import(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::IMPORT_USERS->value);
+    }
 }

@@ -125,23 +125,20 @@ const formatCurrency = (amount: number) => {
                                 </td>
                                 <td class="px-6 py-4 text-end space-x-2">
                                     <template v-if="!product.deleted_at">
-                                        <Button :disabled="!can('update_products')" variant="outline" size="icon" class="h-8 w-8" as-child>
-                                            <Link v-if="can('update_products')" :href="`/admin/products/${product.id}/edit`">
+                                        <Button v-if="can('update_products')" variant="outline" size="icon" class="h-8 w-8" as-child>
+                                            <Link :href="`/admin/products/${product.id}/edit`">
                                                 <Pencil class="w-4 h-4" />
                                             </Link>
-                                            <span v-else class="flex items-center justify-center opacity-50">
-                                                <Pencil class="w-4 h-4" />
-                                            </span>
                                         </Button>
-                                        <Button :disabled="!can('delete_products')" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(product.id)">
+                                        <Button v-if="can('delete_products')" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(product.id)">
                                             <Trash2 class="w-4 h-4" />
                                         </Button>
                                     </template>
                                     <template v-else>
-                                        <Button :disabled="!can('restore_products')" variant="outline" size="icon" class="h-8 w-8" title="Restore" @click="restoreItem(product.id)">
+                                        <Button v-if="can('restore_products')" variant="outline" size="icon" class="h-8 w-8" title="Restore" @click="restoreItem(product.id)">
                                             <RotateCcw class="w-4 h-4" />
                                         </Button>
-                                        <Button :disabled="!can('force_delete_products')" variant="destructive" size="icon" class="h-8 w-8" title="Force Delete" @click="forceDeleteItem(product.id)">
+                                        <Button v-if="can('force_delete_products')" variant="destructive" size="icon" class="h-8 w-8" title="Force Delete" @click="forceDeleteItem(product.id)">
                                             <Trash class="w-4 h-4" />
                                         </Button>
                                     </template>

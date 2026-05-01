@@ -24,7 +24,7 @@ class UserNotificationPreference extends BaseModel
         return [
             'is_enabled' => 'boolean',
         ];
-    }   
+    }
 
     public function user(): BelongsTo
     {

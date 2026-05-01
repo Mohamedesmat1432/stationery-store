@@ -11,7 +11,7 @@ class SetLocale
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response)  $next
+     * @param  Closure(Request): (\Illuminate\Http\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {

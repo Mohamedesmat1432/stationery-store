@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Data\AccessControl\ExportUsersData;
+use App\Data\AccessControl\ImportUsersData;
 use App\Data\AccessControl\UserData;
 use App\Http\Controllers\Admin\Traits\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AccessControl\UserService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends Controller
 {
@@ -20,7 +25,7 @@ class UserController extends Controller
         protected UserService $userService
     ) {}
 
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         Gate::authorize('viewAny', User::class);
 
@@ -33,7 +38,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(): Response
     {
         Gate::authorize('create', User::class);
 
@@ -42,16 +47,16 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(UserData $data)
+    public function store(UserData $data): RedirectResponse
     {
         Gate::authorize('create', User::class);
 
         $this->userService->createUser($data);
 
-        return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
+        return to_route('admin.users.index')->with('success', __('User created successfully.'));
     }
 
-    public function edit(User $user)
+    public function edit(User $user): Response
     {
         Gate::authorize('update', $user);
 
@@ -61,36 +66,52 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(UserData $data, User $user)
+    public function update(UserData $data, User $user): RedirectResponse
     {
         Gate::authorize('update', $user);
 
         $this->userService->updateUser($user, $data);
 
-        return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
+        return to_route('admin.users.index')->with('success', __('User updated successfully.'));
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user): RedirectResponse
     {
         Gate::authorize('delete', $user);
 
         $this->userService->deleteUser($user);
 
-        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
+        return to_route('admin.users.index')->with('success', __('User deleted successfully.'));
     }
 
-    public function restore($id)
+    public function restore($id): RedirectResponse
     {
         return $this->performRestore($id, User::class, 'userService', 'restoreUser');
     }
 
-    public function forceDelete($id)
+    public function forceDelete($id): RedirectResponse
     {
         return $this->performForceDelete($id, User::class, 'userService', 'forceDeleteUser');
     }
 
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(Request $request): RedirectResponse
     {
-        return $this->performBulkAction($request, User::class, 'userService', 'Users');
+        return $this->performBulkAction($request, User::class, 'userService');
+    }
+
+    public function export(ExportUsersData $data): BinaryFileResponse
+    {
+        Gate::authorize('export', User::class);
+
+        return $this->userService->exportUsers($data->columns, $data->format);
+    }
+
+    public function import(ImportUsersData $data): RedirectResponse
+    {
+        Gate::authorize('import', User::class);
+
+        $this->userService->importUsers($data->file);
+
+        return to_route('admin.users.index')->with('success', __('Users imported successfully.'));
     }
 }

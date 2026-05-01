@@ -43,7 +43,7 @@ class Brand extends BaseModel implements HasMedia
 
     public function scopeWithProductsCount(Builder $query): Builder
     {
-        return $query->withCount(['products' => fn(Builder $q) => $q->active()]);
+        return $query->withCount(['products' => fn (Builder $q) => $q->active()]);
     }
 
     public function registerMediaCollections(): void

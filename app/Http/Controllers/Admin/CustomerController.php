@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Data\CRM\CustomerData;
 use App\Data\CRM\CustomerGroupData;
+use App\Data\CRM\ExportCustomersData;
+use App\Data\CRM\ImportCustomersData;
 use App\Http\Controllers\Admin\Traits\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
@@ -15,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerController extends Controller
 {
@@ -54,7 +57,7 @@ class CustomerController extends Controller
 
         $this->customerService->createCustomer($data);
 
-        return to_route('admin.customers.index')->with('success', 'Customer created successfully.');
+        return to_route('admin.customers.index')->with('success', __('Customer created successfully.'));
     }
 
     public function edit(Customer $customer): Response
@@ -74,7 +77,7 @@ class CustomerController extends Controller
 
         $this->customerService->updateCustomer($customer, $data);
 
-        return to_route('admin.customers.index')->with('success', 'Customer updated successfully.');
+        return to_route('admin.customers.index')->with('success', __('Customer updated successfully.'));
     }
 
     public function destroy(Customer $customer): RedirectResponse
@@ -83,7 +86,7 @@ class CustomerController extends Controller
 
         $this->customerService->deleteCustomer($customer);
 
-        return to_route('admin.customers.index')->with('success', 'Customer deleted successfully.');
+        return to_route('admin.customers.index')->with('success', __('Customer deleted successfully.'));
     }
 
     public function restore($id): RedirectResponse
@@ -98,6 +101,22 @@ class CustomerController extends Controller
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
-        return $this->performBulkAction($request, Customer::class, 'customerService', 'Customers');
+        return $this->performBulkAction($request, Customer::class, 'customerService');
+    }
+
+    public function export(ExportCustomersData $data): BinaryFileResponse
+    {
+        Gate::authorize('export', Customer::class);
+
+        return $this->customerService->exportCustomers($data->columns, $data->format);
+    }
+
+    public function import(ImportCustomersData $data): RedirectResponse
+    {
+        Gate::authorize('import', Customer::class);
+
+        $this->customerService->importCustomers($data->file);
+
+        return to_route('admin.customers.index')->with('success', __('Customers imported successfully.'));
     }
 }

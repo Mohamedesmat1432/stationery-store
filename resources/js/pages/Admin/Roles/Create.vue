@@ -28,7 +28,7 @@ const form = useForm({
     permissions: [] as string[],
 });
 
-const { groupedPermissions, formatName, togglePermission, toggleModule } = usePermissions(form, props.available_permissions);
+const { groupedPermissions, formatName, formatPermissionLabel, togglePermission, toggleModule } = usePermissions(form, props.available_permissions);
 
 const submit = () => {
     form.post('/admin/roles');
@@ -107,7 +107,7 @@ const submit = () => {
                                             :for="permission"
                                             class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                                         >
-                                            {{ formatName(permission.split('_')[0]) }}
+                                            {{ formatPermissionLabel(permission) }}
                                         </label>
                                     </div>
                                 </div>

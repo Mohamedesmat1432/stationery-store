@@ -10,19 +10,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 abstract class BaseModel extends Model
 {
-    use HasUlids, SoftDeletes, HasFactory, HasRedisCache;
+    use HasFactory, HasRedisCache, HasUlids, SoftDeletes;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected static function booted(): void
     {
-        static::saved(function ($model) {
-            $model->forgetRedisCache();
+        static::saved(function (self $model) {
+            $model->forgetRedisCache(class_basename($model).":{$model->id}:*");
         });
 
-        static::deleted(function ($model) {
-            $model->forgetRedisCache();
+        static::deleted(function (self $model) {
+            $model->forgetRedisCache(class_basename($model).":{$model->id}:*");
         });
     }
 }

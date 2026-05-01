@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
+import { useI18n } from 'vue-i18n';
 
 interface Props {
     links: Array<{
@@ -16,6 +17,19 @@ interface Props {
 withDefaults(defineProps<Props>(), {
     resourceName: 'results',
 });
+
+const { t } = useI18n();
+
+const translateLabel = (label: string) => {
+    if (!label) return label;
+    if (label.includes('Previous')) {
+        return label.replace('Previous', t('Previous'));
+    }
+    if (label.includes('Next')) {
+        return label.replace('Next', t('Next'));
+    }
+    return label;
+};
 </script>
 
 <template>
@@ -31,14 +45,14 @@ withDefaults(defineProps<Props>(), {
                     size="sm"
                     as-child
                 >
-                    <Link :href="link.url" v-html="link.label"></Link>
+                    <Link :href="link.url" v-html="translateLabel(link.label)"></Link>
                 </Button>
                 <Button 
                     v-else
                     variant="outline"
                     size="sm"
                     disabled
-                    v-html="link.label"
+                    v-html="translateLabel(link.label)"
                 >
                 </Button>
             </template>

@@ -83,6 +83,7 @@ class Address extends BaseModel
             "{$this->city}, {$this->state} {$this->postal_code}",
             $this->country,
         ];
+
         return implode("\n", array_filter($parts));
     }
 
@@ -104,6 +105,7 @@ class Address extends BaseModel
         $clone->addressable_type = Order::class;
         $clone->is_default = false;
         $clone->save();
+
         return $clone;
     }
 }

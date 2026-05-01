@@ -8,9 +8,11 @@ use App\Http\Controllers\Admin\Traits\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Services\AccessControl\RoleService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class RoleController extends Controller
 {
@@ -20,7 +22,7 @@ class RoleController extends Controller
         protected RoleService $roleService
     ) {}
 
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Role::class);
 
@@ -30,7 +32,7 @@ class RoleController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(): Response
     {
         Gate::authorize('create', Role::class);
 
@@ -39,16 +41,16 @@ class RoleController extends Controller
         ]);
     }
 
-    public function store(RoleData $data)
+    public function store(RoleData $data): RedirectResponse
     {
         Gate::authorize('create', Role::class);
 
         $this->roleService->createRole($data);
 
-        return to_route('admin.roles.index')->with('success', 'Role created successfully.');
+        return to_route('admin.roles.index')->with('success', __('Role created successfully.'));
     }
 
-    public function edit(Role $role)
+    public function edit(Role $role): Response
     {
         Gate::authorize('update', $role);
 
@@ -58,26 +60,26 @@ class RoleController extends Controller
         ]);
     }
 
-    public function update(RoleData $data, Role $role)
+    public function update(RoleData $data, Role $role): RedirectResponse
     {
         Gate::authorize('update', $role);
 
         $this->roleService->updateRole($role, $data);
 
-        return to_route('admin.roles.index')->with('success', 'Role updated successfully.');
+        return to_route('admin.roles.index')->with('success', __('Role updated successfully.'));
     }
 
-    public function destroy(Role $role)
+    public function destroy(Role $role): RedirectResponse
     {
         Gate::authorize('delete', $role);
 
         $this->roleService->deleteRole($role);
 
-        return to_route('admin.roles.index')->with('success', 'Role deleted successfully.');
+        return to_route('admin.roles.index')->with('success', __('Role deleted successfully.'));
     }
 
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(Request $request): RedirectResponse
     {
-        return $this->performBulkAction($request, Role::class, 'roleService', 'Roles');
+        return $this->performBulkAction($request, Role::class, 'roleService');
     }
 }

@@ -8,9 +8,11 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 class Permission extends SpatiePermission
 {
     use HasUlids;
+
     /**
      * Primary key is ULID string, not integer
      */
     public $incrementing = false;
+
     protected $keyType = 'string';
 }

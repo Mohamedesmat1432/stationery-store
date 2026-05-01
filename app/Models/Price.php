@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Enums\PriceType;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -97,13 +97,19 @@ class Price extends BaseModel
 
     public function discountPercentage(): float
     {
-        if (!$this->isOnSale()) return 0;
+        if (! $this->isOnSale()) {
+            return 0;
+        }
+
         return round((($this->compare_at_price - $this->amount) / $this->compare_at_price) * 100, 2);
     }
 
     public function marginPercentage(): ?float
     {
-        if (!$this->cost_price || $this->cost_price <= 0) return null;
+        if (! $this->cost_price || $this->cost_price <= 0) {
+            return null;
+        }
+
         return round((($this->amount - $this->cost_price) / $this->amount) * 100, 2);
     }
 }

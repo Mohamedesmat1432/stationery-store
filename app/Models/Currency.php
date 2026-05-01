@@ -44,6 +44,7 @@ class Currency extends BaseModel
     public function convertTo(float $amount, Currency $targetCurrency): float
     {
         $baseAmount = $amount / $this->rate;
+
         return $baseAmount * $targetCurrency->rate;
     }
 }

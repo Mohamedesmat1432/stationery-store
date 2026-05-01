@@ -10,5 +10,6 @@ class Media extends SpatieMedia
     use HasUlids;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
 }

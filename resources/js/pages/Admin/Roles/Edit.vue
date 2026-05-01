@@ -37,7 +37,7 @@ const form = useForm({
     permissions: props.role.permissions || [] as string[],
 });
 
-const { groupedPermissions, formatName, togglePermission, toggleModule } = usePermissions(form, props.available_permissions);
+const { groupedPermissions, formatName, formatPermissionLabel, togglePermission, toggleModule } = usePermissions(form, props.available_permissions);
 
 const submit = () => {
     form.put(`/admin/roles/${props.role.id}`);
@@ -128,7 +128,7 @@ const can = (permission: string) => pagePermissions.value.includes(permission);
                                             :for="permission"
                                             class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                                         >
-                                            {{ formatName(permission.split('_')[0]) }}
+                                            {{ formatPermissionLabel(permission) }}
                                         </label>
                                     </div>
                                 </div>

@@ -74,13 +74,12 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
                 </template>
             </template>
             
-            <Button v-if="createUrl" :disabled="!canCreate" as-child class="flex items-center gap-2">
-                <Link v-if="canCreate" :href="createUrl">
+            <slot name="actions"></slot>
+
+            <Button v-if="createUrl && canCreate" as-child class="flex items-center gap-2">
+                <Link :href="createUrl">
                     <Plus class="w-4 h-4" /> {{ createLabel ? $t(createLabel) : $t('Create {title}', { title: $t(title) }) }}
                 </Link>
-                <span v-else class="flex items-center gap-2 opacity-50">
-                    <Plus class="w-4 h-4" /> {{ createLabel ? $t(createLabel) : $t('Create {title}', { title: $t(title) }) }}
-                </span>
             </Button>
         </div>
     </CardHeader>

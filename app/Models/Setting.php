@@ -4,8 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 class Setting extends BaseModel
 {
@@ -55,6 +55,7 @@ class Setting extends BaseModel
 
         return Cache::store('redis')->remember($cacheKey, 3600, function () use ($key, $default) {
             $setting = static::where('key', $key)->first();
+
             return $setting?->getTypedValue() ?? $default;
         });
     }
@@ -71,6 +72,7 @@ class Setting extends BaseModel
         );
 
         Cache::store('redis')->forget("setting:{$key}");
+
         return $setting;
     }
 
@@ -84,7 +86,7 @@ class Setting extends BaseModel
     {
         return static::forGroup($group)
             ->get()
-            ->mapWithKeys(fn($s) => [$s->key => $s->getTypedValue()])
+            ->mapWithKeys(fn ($s) => [$s->key => $s->getTypedValue()])
             ->toArray();
     }
 
@@ -92,7 +94,7 @@ class Setting extends BaseModel
     {
         $redis = Redis::connection();
         $keys = $redis->keys('setting:*');
-        if (!empty($keys)) {
+        if (! empty($keys)) {
             $redis->del(...$keys);
         }
     }
