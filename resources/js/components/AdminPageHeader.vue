@@ -33,52 +33,78 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
 <template>
     <CardHeader class="flex flex-row items-center justify-between">
         <div>
-            <CardTitle class="text-xl font-bold flex items-center gap-2">
-                <component :is="icon" v-if="icon" class="w-6 h-6" />
+            <CardTitle class="flex items-center gap-2 text-xl font-bold">
+                <component :is="icon" v-if="icon" class="h-6 w-6" />
                 {{ $t(title) }}
             </CardTitle>
-            <CardDescription v-if="description">{{ $t(description) }}</CardDescription>
+            <CardDescription v-if="description">{{
+                $t(description)
+            }}</CardDescription>
         </div>
         <div class="flex items-center gap-2">
             <template v-if="selectedCount > 0">
                 <template v-if="!showTrashed">
-                    <Button 
+                    <Button
                         :disabled="!canDelete"
-                        variant="destructive" 
-                        size="sm" 
+                        variant="destructive"
+                        size="sm"
                         class="flex items-center gap-2"
                         @click="$emit('bulk-delete')"
                     >
-                        <Trash2 class="w-4 h-4" /> {{ $t('Delete Selected ({count})', { count: selectedCount }) }}
+                        <Trash2 class="h-4 w-4" />
+                        {{
+                            $t('Delete Selected ({count})', {
+                                count: selectedCount,
+                            })
+                        }}
                     </Button>
                 </template>
                 <template v-else>
-                    <Button 
+                    <Button
                         :disabled="!canRestore"
-                        variant="outline" 
-                        size="sm" 
+                        variant="outline"
+                        size="sm"
                         class="flex items-center gap-2"
                         @click="$emit('bulk-restore')"
                     >
-                        <RotateCcw class="w-4 h-4" /> {{ $t('Restore Selected ({count})', { count: selectedCount }) }}
+                        <RotateCcw class="h-4 w-4" />
+                        {{
+                            $t('Restore Selected ({count})', {
+                                count: selectedCount,
+                            })
+                        }}
                     </Button>
-                    <Button 
+                    <Button
                         :disabled="!canForceDelete"
-                        variant="destructive" 
-                        size="sm" 
+                        variant="destructive"
+                        size="sm"
                         class="flex items-center gap-2"
                         @click="$emit('bulk-force-delete')"
                     >
-                        <Trash class="w-4 h-4" /> {{ $t('Force Delete Selected ({count})', { count: selectedCount }) }}
+                        <Trash class="h-4 w-4" />
+                        {{
+                            $t('Force Delete Selected ({count})', {
+                                count: selectedCount,
+                            })
+                        }}
                     </Button>
                 </template>
             </template>
-            
+
             <slot name="actions"></slot>
 
-            <Button v-if="createUrl && canCreate" as-child class="flex items-center gap-2">
+            <Button
+                v-if="createUrl && canCreate"
+                as-child
+                class="flex items-center gap-2"
+            >
                 <Link :href="createUrl">
-                    <Plus class="w-4 h-4" /> {{ createLabel ? $t(createLabel) : $t('Create {title}', { title: $t(title) }) }}
+                    <Plus class="h-4 w-4" />
+                    {{
+                        createLabel
+                            ? $t(createLabel)
+                            : $t('Create {title}', { title: $t(title) })
+                    }}
                 </Link>
             </Button>
         </div>

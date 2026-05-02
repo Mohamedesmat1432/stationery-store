@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { UserCircle, Save, X } from 'lucide-vue-next';
+import { UserCircle, Save, ArrowLeft } from 'lucide-vue-next';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,7 +20,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-
 import { useCustomers } from '@/composables/useCustomers';
 
 defineOptions({
@@ -32,108 +39,168 @@ const props = defineProps<{
 }>();
 
 const { form, submit } = useCustomers(props.customer);
-
-const handleSubmit = () => {
-    submit(props.customer.id);
-};
+const handleSubmit = () => submit(props.customer.id);
 </script>
 
 <template>
     <Head :title="$t('Edit Customer')" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 p-4 max-w-3xl mx-auto w-full">
-        <Card>
-            <CardHeader>
-                <CardTitle class="text-xl font-bold flex items-center gap-2">
-                    <UserCircle class="w-6 h-6" /> {{ $t('Edit Customer') }}: {{ customer.name }}
-                </CardTitle>
-                <CardDescription>{{ $t('Update customer profile and group assignments.') }}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form @submit.prevent="handleSubmit" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div
+        class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-x-auto p-4"
+    >
+        <form @submit.prevent="handleSubmit">
+            <Card>
+                <CardHeader class="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle
+                            class="flex items-center gap-2 text-xl font-bold"
+                        >
+                            <UserCircle class="h-6 w-6" />
+                            {{ $t('Edit Customer') }}: {{ customer.name }}
+                        </CardTitle>
+                        <CardDescription>{{
+                            $t('Update customer profile and group assignments.')
+                        }}</CardDescription>
+                    </div>
+                    <Button variant="outline" as-child type="button">
+                        <Link
+                            href="/admin/customers"
+                            class="flex items-center gap-2"
+                        >
+                            <ArrowLeft class="h-4 w-4" /> {{ $t('Back') }}
+                        </Link>
+                    </Button>
+                </CardHeader>
+                <CardContent class="space-y-6">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div class="space-y-2">
-                            <Label for="user_id">{{ $t('User Account') }}</Label>
+                            <Label for="user_id">{{
+                                $t('User Account')
+                            }}</Label>
                             <Select v-model="form.user_id" disabled>
                                 <SelectTrigger>
-                                    <SelectValue :placeholder="$t('Select User')" />
+                                    <SelectValue
+                                        :placeholder="$t('Select User')"
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem v-for="user in available_users" :key="user.id" :value="user.id">
+                                    <SelectItem
+                                        v-for="user in available_users"
+                                        :key="user.id"
+                                        :value="user.id"
+                                    >
                                         {{ user.name }} ({{ user.email }})
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <p class="text-xs text-muted-foreground">{{ $t('User account cannot be changed after creation.') }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{
+                                    $t(
+                                        'User account cannot be changed after creation.',
+                                    )
+                                }}
+                            </p>
                         </div>
-
                         <div class="space-y-2">
                             <Label for="phone">{{ $t('Phone Number') }}</Label>
-                            <Input id="phone" v-model="form.phone" />
-                            <p v-if="form.errors.phone" class="text-sm text-destructive">{{ form.errors.phone }}</p>
+                            <Input
+                                id="phone"
+                                v-model="form.phone"
+                                :disabled="form.processing"
+                            />
+                            <InputError :message="form.errors.phone" />
                         </div>
-
                         <div class="space-y-2">
-                            <Label for="customer_group_id">{{ $t('Customer Group') }}</Label>
+                            <Label for="customer_group_id">{{
+                                $t('Customer Group')
+                            }}</Label>
                             <Select v-model="form.customer_group_id">
-                                <SelectTrigger>
-                                    <SelectValue :placeholder="$t('Select Group')" />
-                                </SelectTrigger>
+                                <SelectTrigger
+                                    ><SelectValue
+                                        :placeholder="$t('Select Group')"
+                                /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem v-for="group in available_groups" :key="group.id" :value="group.id">
-                                        {{ group.name }}
-                                    </SelectItem>
+                                    <SelectItem
+                                        v-for="group in available_groups"
+                                        :key="group.id"
+                                        :value="group.id"
+                                        >{{ group.name }}</SelectItem
+                                    >
                                 </SelectContent>
                             </Select>
-                            <p v-if="form.errors.customer_group_id" class="text-sm text-destructive">{{ form.errors.customer_group_id }}</p>
+                            <InputError
+                                :message="form.errors.customer_group_id"
+                            />
                         </div>
-
                         <div class="space-y-2">
-                            <Label for="company_name">{{ $t('Company Name') }}</Label>
-                            <Input id="company_name" v-model="form.company_name" />
-                            <p v-if="form.errors.company_name" class="text-sm text-destructive">{{ form.errors.company_name }}</p>
+                            <Label for="company_name">{{
+                                $t('Company Name')
+                            }}</Label>
+                            <Input
+                                id="company_name"
+                                v-model="form.company_name"
+                                :disabled="form.processing"
+                            />
+                            <InputError :message="form.errors.company_name" />
                         </div>
-
                         <div class="space-y-2">
-                            <Label for="tax_number">{{ $t('Tax Number') }}</Label>
-                            <Input id="tax_number" v-model="form.tax_number" />
-                            <p v-if="form.errors.tax_number" class="text-sm text-destructive">{{ form.errors.tax_number }}</p>
+                            <Label for="tax_number">{{
+                                $t('Tax Number')
+                            }}</Label>
+                            <Input
+                                id="tax_number"
+                                v-model="form.tax_number"
+                                :disabled="form.processing"
+                            />
+                            <InputError :message="form.errors.tax_number" />
                         </div>
-
                         <div class="space-y-2">
-                            <Label for="birth_date">{{ $t('Birth Date') }}</Label>
-                            <Input id="birth_date" type="date" v-model="form.birth_date" />
-                            <p v-if="form.errors.birth_date" class="text-sm text-destructive">{{ form.errors.birth_date }}</p>
+                            <Label for="birth_date">{{
+                                $t('Birth Date')
+                            }}</Label>
+                            <Input
+                                id="birth_date"
+                                type="date"
+                                v-model="form.birth_date"
+                                :disabled="form.processing"
+                            />
+                            <InputError :message="form.errors.birth_date" />
                         </div>
-
                         <div class="space-y-2">
                             <Label for="gender">{{ $t('Gender') }}</Label>
                             <Select v-model="form.gender">
-                                <SelectTrigger>
-                                    <SelectValue :placeholder="$t('Select Gender')" />
-                                </SelectTrigger>
+                                <SelectTrigger
+                                    ><SelectValue
+                                        :placeholder="$t('Select Gender')"
+                                /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="male">{{ $t('Male') }}</SelectItem>
-                                    <SelectItem value="female">{{ $t('Female') }}</SelectItem>
-                                    <SelectItem value="other">{{ $t('Other') }}</SelectItem>
+                                    <SelectItem value="male">{{
+                                        $t('Male')
+                                    }}</SelectItem>
+                                    <SelectItem value="female">{{
+                                        $t('Female')
+                                    }}</SelectItem>
+                                    <SelectItem value="other">{{
+                                        $t('Other')
+                                    }}</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <p v-if="form.errors.gender" class="text-sm text-destructive">{{ form.errors.gender }}</p>
+                            <InputError :message="form.errors.gender" />
                         </div>
                     </div>
-
-                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-sidebar-border">
-                        <Button type="button" variant="ghost" as-child>
-                            <Link href="/admin/customers">
-                                <X class="w-4 h-4 mr-2" /> {{ $t('Cancel') }}
-                            </Link>
-                        </Button>
-                        <Button type="submit" :disabled="form.processing">
-                            <Save class="w-4 h-4 mr-2" /> {{ $t('Update Customer') }}
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
+                </CardContent>
+                <CardFooter
+                    class="flex justify-end border-t border-sidebar-border pt-6"
+                >
+                    <Button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="flex items-center gap-2"
+                    >
+                        <Save class="h-4 w-4" /> {{ $t('Update Customer') }}
+                    </Button>
+                </CardFooter>
+            </Card>
+        </form>
     </div>
 </template>

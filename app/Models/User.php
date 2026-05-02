@@ -111,25 +111,6 @@ class User extends Authenticatable implements HasMedia
         return $query->where('last_login_at', '>=', now()->subDays($days));
     }
 
-    public function getCachedPermissions(): array
-    {
-        $key = $this->cacheKey('permissions');
-
-        return $this->rememberInRedis($key, function () {
-            // Must use getAllPermissions() to include permissions inherited from roles
-            return $this->getAllPermissions()->pluck('name')->toArray();
-        }, 3600);
-    }
-
-    public function getCachedRoles(): array
-    {
-        $key = $this->cacheKey('roles');
-
-        return $this->rememberInRedis($key, function () {
-            return $this->getRoleNames()->toArray();
-        }, 3600);
-    }
-
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function ($query, $search) {
@@ -138,11 +119,5 @@ class User extends Authenticatable implements HasMedia
                     ->orWhere('email', 'like', "%{$search}%");
             });
         });
-    }
-
-    public function flushPermissionCache(): void
-    {
-        // Flush all keys for this user regardless of timestamp
-        $this->forgetRedisCache("User:{$this->id}:*");
     }
 }

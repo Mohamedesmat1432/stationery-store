@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Users, Save, ArrowLeft } from 'lucide-vue-next';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import InputError from '@/components/InputError.vue';
 import { useRoles } from '@/composables/useRoles';
 import { useUsers } from '@/composables/useUsers';
 
@@ -35,77 +42,98 @@ const handleSubmit = () => {
 <template>
     <Head :title="$t('Create User')" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4 max-w-4xl mx-auto w-full">
+    <div
+        class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-x-auto p-4"
+    >
         <form @submit.prevent="handleSubmit">
             <Card>
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle class="text-xl font-bold flex items-center gap-2">
-                            <Users class="w-6 h-6" /> {{ $t('Create New User') }}
+                        <CardTitle
+                            class="flex items-center gap-2 text-xl font-bold"
+                        >
+                            <Users class="h-6 w-6" />
+                            {{ $t('Create New User') }}
                         </CardTitle>
-                        <CardDescription>{{ $t('Add a new user and assign them roles.') }}</CardDescription>
+                        <CardDescription>{{
+                            $t('Add a new user and assign them roles.')
+                        }}</CardDescription>
                     </div>
                     <Button variant="outline" as-child type="button">
-                        <Link href="/admin/users" class="flex items-center gap-2">
-                            <ArrowLeft class="w-4 h-4" /> {{ $t('Back') }}
+                        <Link
+                            href="/admin/users"
+                            class="flex items-center gap-2"
+                        >
+                            <ArrowLeft class="h-4 w-4" /> {{ $t('Back') }}
                         </Link>
                     </Button>
                 </CardHeader>
                 <CardContent class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div class="space-y-2">
-                            <Label for="name">{{ $t('Full Name') }} <span class="text-destructive">*</span></Label>
-                            <Input 
-                                id="name" 
-                                v-model="form.name" 
-                                :placeholder="$t('John Doe')" 
+                            <Label for="name"
+                                >{{ $t('Full Name') }}
+                                <span class="text-destructive">*</span></Label
+                            >
+                            <Input
+                                id="name"
+                                v-model="form.name"
+                                :placeholder="$t('John Doe')"
                                 :disabled="form.processing"
                             />
                             <InputError :message="form.errors.name" />
                         </div>
                         <div class="space-y-2">
-                            <Label for="email">{{ $t('Email Address') }} <span class="text-destructive">*</span></Label>
-                            <Input 
-                                id="email" 
+                            <Label for="email"
+                                >{{ $t('Email Address') }}
+                                <span class="text-destructive">*</span></Label
+                            >
+                            <Input
+                                id="email"
                                 type="email"
-                                v-model="form.email" 
-                                placeholder="john@example.com" 
+                                v-model="form.email"
+                                placeholder="john@example.com"
                                 :disabled="form.processing"
                             />
                             <InputError :message="form.errors.email" />
                         </div>
                     </div>
 
-                    <div class="space-y-2 max-w-md">
-                        <Label for="password">{{ $t('Password') }} <span class="text-destructive">*</span></Label>
-                        <Input 
-                            id="password" 
+                    <div class="max-w-md space-y-2">
+                        <Label for="password"
+                            >{{ $t('Password') }}
+                            <span class="text-destructive">*</span></Label
+                        >
+                        <Input
+                            id="password"
                             type="password"
-                            v-model="form.password" 
-                            placeholder="••••••••" 
+                            v-model="form.password"
+                            placeholder="••••••••"
                             :disabled="form.processing"
                         />
                         <InputError :message="form.errors.password" />
                     </div>
 
-                    <div class="space-y-4 pt-4 border-t border-sidebar-border">
-                        <Label class="text-lg font-semibold">{{ $t('Assign Roles') }}</Label>
+                    <div class="space-y-4 border-t border-sidebar-border pt-4">
+                        <Label class="text-lg font-semibold">{{
+                            $t('Assign Roles')
+                        }}</Label>
                         <InputError :message="form.errors.roles" />
-                        
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div 
-                                v-for="role in available_roles" 
+
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+                            <div
+                                v-for="role in available_roles"
                                 :key="role"
-                                class="flex items-center space-x-2 border border-sidebar-border rounded-lg p-4 hover:bg-sidebar-accent/50 transition-colors"
+                                class="flex items-center space-x-2 rounded-lg border border-sidebar-border p-4 transition-colors hover:bg-sidebar-accent/50"
                             >
-                                <Checkbox 
-                                    :id="'role-' + role" 
+                                <Checkbox
+                                    :id="'role-' + role"
                                     :model-value="form.roles.includes(role)"
                                     @update:model-value="toggleRole(role)"
                                 />
-                                <label 
+                                <label
                                     :for="'role-' + role"
-                                    class="text-sm font-medium leading-none cursor-pointer"
+                                    class="cursor-pointer text-sm leading-none font-medium"
                                 >
                                     {{ formatRoleName(role) }}
                                 </label>
@@ -113,9 +141,15 @@ const handleSubmit = () => {
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter class="border-t border-sidebar-border pt-6 flex justify-end">
-                    <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
-                        <Save class="w-4 h-4" /> {{ $t('Save User') }}
+                <CardFooter
+                    class="flex justify-end border-t border-sidebar-border pt-6"
+                >
+                    <Button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="flex items-center gap-2"
+                    >
+                        <Save class="h-4 w-4" /> {{ $t('Save User') }}
                     </Button>
                 </CardFooter>
             </Card>

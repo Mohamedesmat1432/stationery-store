@@ -1,4 +1,5 @@
-import { ref, computed, watch, toValue, type MaybeRefOrGetter } from 'vue';
+import { ref, computed, watch, toValue  } from 'vue';
+import type {MaybeRefOrGetter} from 'vue';
 
 export function useSelection<T extends { id: string | number }>(itemsSource: MaybeRefOrGetter<T[]>) {
     const selectedIds = ref<(string | number)[]>([]);
@@ -10,12 +11,14 @@ export function useSelection<T extends { id: string | number }>(itemsSource: May
 
     const isAllSelected = computed(() => {
         const currentItems = items.value;
+
         return currentItems.length > 0 && currentItems.every(item => selectedIds.value.includes(item.id));
     });
 
     const isIndeterminate = computed(() => {
         const currentItems = items.value;
         const selectedCount = currentItems.filter(item => selectedIds.value.includes(item.id)).length;
+
         return selectedCount > 0 && selectedCount < currentItems.length;
     });
 

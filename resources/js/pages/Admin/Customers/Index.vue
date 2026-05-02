@@ -1,24 +1,28 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { UserCircle, Pencil, Trash2, RotateCcw, Trash, Building2, Mail, Phone, Download, Upload } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+    UserCircle,
+    Pencil,
+    Trash2,
+    RotateCcw,
+    Trash,
+    Building2,
+    Mail,
+    Phone,
+    Download,
+    Upload,
+} from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useBulkActions } from '@/composables/useBulkActions';
-import { useResourceFilters } from '@/composables/useResourceFilters';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourcePagination from '@/components/ResourcePagination.vue';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -27,8 +31,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useBulkActions } from '@/composables/useBulkActions';
+import { useResourceFilters } from '@/composables/useResourceFilters';
 
 defineOptions({
     layout: {
@@ -57,36 +70,48 @@ const props = defineProps<{
     available_groups: any[];
 }>();
 
-const { searchQuery, showTrashed, extraFilters, applyFilters } = useResourceFilters(props.filters.filter, {
-    baseUrl: '/admin/customers',
-});
+const { searchQuery, showTrashed, extraFilters, applyFilters } =
+    useResourceFilters(props.filters.filter, {
+        baseUrl: '/admin/customers',
+    });
 
 const groupFilter = computed({
     get: () => extraFilters.value.group || 'all',
     set: (val) => {
         extraFilters.value.group = val === 'all' ? undefined : val;
         applyFilters();
-    }
+    },
 });
 
 const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(value);
 };
 
 const {
-    selectedIds, isAllSelected, isIndeterminate, toggleAll, toggleItem,
-    can, bulkAction, deleteItem, restoreItem, forceDeleteItem,
-    confirmState
+    selectedIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleAll,
+    toggleItem,
+    can,
+    bulkAction,
+    deleteItem,
+    restoreItem,
+    forceDeleteItem,
+    confirmState,
 } = useBulkActions(() => props.customers.data, {
     entityName: 'customers',
     bulkActionUrl: '/admin/customers/bulk-action',
     resourceUrl: '/admin/customers',
 });
 
-// Export logic
+// Export/Import state
 const isExportModalOpen = ref(false);
-const exportColumns = ref(['name', 'email', 'group', 'total_spent', 'orders_count', 'created_at']);
-const exportFormat = ref('xlsx');
+const isImportModalOpen = ref(false);
+
 const allColumns = [
     { id: 'name', label: 'Name' },
     { id: 'email', label: 'Email' },
@@ -95,31 +120,6 @@ const allColumns = [
     { id: 'orders_count', label: 'Orders Count' },
     { id: 'created_at', label: 'Created At' },
 ];
-
-const submitExport = () => {
-    let url = `/admin/customers/export?format=${exportFormat.value}`;
-    exportColumns.value.forEach(col => {
-        url += `&columns[]=${col}`;
-    });
-    window.location.href = url;
-    isExportModalOpen.value = false;
-};
-
-// Import logic
-const isImportModalOpen = ref(false);
-const importForm = useForm({
-    file: null as File | null,
-});
-
-const submitImport = () => {
-    importForm.post('/admin/customers/import', {
-        preserveScroll: true,
-        onSuccess: () => {
-            isImportModalOpen.value = false;
-            importForm.reset();
-        },
-    });
-};
 </script>
 
 <template>
@@ -144,11 +144,21 @@ const submitImport = () => {
                 @bulk-force-delete="bulkAction('forceDelete')"
             >
                 <template #actions>
-                    <Button v-if="can('export_customers')" variant="outline" class="flex items-center gap-2" @click="isExportModalOpen = true">
-                        <Download class="w-4 h-4" /> {{ $t('Export') }}
+                    <Button
+                        v-if="can('export_customers')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isExportModalOpen = true"
+                    >
+                        <Download class="h-4 w-4" /> {{ $t('Export') }}
                     </Button>
-                    <Button v-if="can('import_customers')" variant="outline" class="flex items-center gap-2" @click="isImportModalOpen = true">
-                        <Upload class="w-4 h-4" /> {{ $t('Import') }}
+                    <Button
+                        v-if="can('import_customers')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isImportModalOpen = true"
+                    >
+                        <Upload class="h-4 w-4" /> {{ $t('Import') }}
                     </Button>
                 </template>
             </AdminPageHeader>
@@ -162,16 +172,20 @@ const submitImport = () => {
                     @update:trashed="applyFilters"
                 >
                     <template #filters>
-                        <div class="flex items-center gap-2 min-w-[200px]">
+                        <div class="flex min-w-[200px] items-center gap-2">
                             <Select v-model="groupFilter">
                                 <SelectTrigger class="h-9">
-                                    <SelectValue :placeholder="$t('Filter by Group')" />
+                                    <SelectValue
+                                        :placeholder="$t('Filter by Group')"
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">{{ $t('All Groups') }}</SelectItem>
-                                    <SelectItem 
-                                        v-for="group in available_groups" 
-                                        :key="group.id" 
+                                    <SelectItem value="all">{{
+                                        $t('All Groups')
+                                    }}</SelectItem>
+                                    <SelectItem
+                                        v-for="group in available_groups"
+                                        :key="group.id"
                                         :value="group.id"
                                     >
                                         {{ group.name }}
@@ -182,83 +196,171 @@ const submitImport = () => {
                     </template>
                 </ResourceFilterBar>
 
-                <div class="rounded-md border border-sidebar-border overflow-x-auto">
-                    <table class="w-full text-sm text-start">
-                        <thead class="text-xs text-muted-foreground uppercase bg-sidebar border-b border-sidebar-border">
+                <div
+                    class="overflow-x-auto rounded-md border border-sidebar-border"
+                >
+                    <table class="w-full text-start text-sm">
+                        <thead
+                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+                        >
                             <tr>
-                                <th class="px-4 py-3 font-medium w-10">
-                                    <Checkbox 
-                                        :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
+                                <th class="w-10 px-6 py-3 font-medium">
+                                    <Checkbox
+                                        :model-value="
+                                            isIndeterminate
+                                                ? 'indeterminate'
+                                                : isAllSelected
+                                        "
                                         @update:model-value="toggleAll"
                                     />
                                 </th>
-                                <th class="px-4 py-3 font-medium">{{ $t('Customer') }}</th>
-                                <th class="px-4 py-3 font-medium">{{ $t('Contact') }}</th>
-                                <th class="px-4 py-3 font-medium">{{ $t('Group') }}</th>
-                                <th class="px-4 py-3 font-medium text-end">{{ $t('Orders') }}</th>
-                                <th class="px-4 py-3 font-medium text-end">{{ $t('Spent') }}</th>
-                                <th class="px-4 py-3 font-medium text-end">{{ $t('Actions') }}</th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Customer') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Contact') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Group') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Orders') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Spent') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Actions') }}
+                                </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-sidebar-border">
-                            <tr v-for="customer in customers.data" :key="customer.id" class="hover:bg-sidebar/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <Checkbox 
-                                        :model-value="selectedIds.includes(customer.id)"
-                                        @update:model-value="toggleItem(customer.id)"
+                        <tbody>
+                            <tr
+                                v-for="customer in customers.data"
+                                :key="customer.id"
+                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                            >
+                                <td class="px-6 py-4">
+                                    <Checkbox
+                                        :model-value="
+                                            selectedIds.includes(customer.id)
+                                        "
+                                        @update:model-value="
+                                            toggleItem(customer.id)
+                                        "
                                     />
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-6 py-4">
                                     <div class="flex flex-col">
-                                        <span class="font-medium text-foreground">{{ customer.name || $t('No User Linked') }}</span>
-                                        <span v-if="customer.company_name" class="text-xs text-muted-foreground flex items-center gap-1">
-                                            <Building2 class="w-3 h-3" /> {{ customer.company_name }}
+                                        <span
+                                            class="font-medium text-foreground"
+                                            >{{
+                                                customer.name ||
+                                                $t('No User Linked')
+                                            }}</span
+                                        >
+                                        <span
+                                            v-if="customer.company_name"
+                                            class="flex items-center gap-1 text-xs text-muted-foreground"
+                                        >
+                                            <Building2 class="h-3 w-3" />
+                                            {{ customer.company_name }}
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
-                                        <span v-if="customer.email" class="text-xs flex items-center gap-1">
-                                            <Mail class="w-3 h-3" /> {{ customer.email }}
+                                        <span
+                                            v-if="customer.email"
+                                            class="flex items-center gap-1 text-xs"
+                                        >
+                                            <Mail class="h-3 w-3" />
+                                            {{ customer.email }}
                                         </span>
-                                        <span v-if="customer.phone" class="text-xs flex items-center gap-1">
-                                            <Phone class="w-3 h-3" /> {{ customer.phone }}
+                                        <span
+                                            v-if="customer.phone"
+                                            class="flex items-center gap-1 text-xs"
+                                        >
+                                            <Phone class="h-3 w-3" />
+                                            {{ customer.phone }}
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">
-                                    <Badge variant="outline" v-if="customer.group_name">
+                                <td class="px-6 py-4">
+                                    <Badge
+                                        variant="outline"
+                                        v-if="customer.group_name"
+                                    >
                                         {{ customer.group_name }}
                                     </Badge>
-                                    <span v-else class="text-xs text-muted-foreground italic">{{ $t('No Group') }}</span>
+                                    <span
+                                        v-else
+                                        class="text-xs text-muted-foreground italic"
+                                        >{{ $t('No Group') }}</span
+                                    >
                                 </td>
-                                <td class="px-4 py-3 text-end">{{ customer.orders_count }}</td>
-                                <td class="px-4 py-3 text-end font-medium">{{ formatCurrency(customer.total_spent) }}</td>
-                                <td class="px-4 py-3 text-end">
-                                    <div class="flex justify-end gap-2">
-                                        <template v-if="!customer.deleted_at">
-                                            <Button v-if="can('update_customers')" variant="ghost" size="icon" as-child>
-                                                <Link :href="`/admin/customers/${customer.id}/edit`">
-                                                    <Pencil class="w-4 h-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button v-if="can('delete_customers')" variant="ghost" size="icon" @click="deleteItem(customer.id)" class="text-destructive">
-                                                <Trash2 class="w-4 h-4" />
-                                            </Button>
-                                        </template>
-                                        <template v-else>
-                                            <Button v-if="can('restore_customers')" variant="ghost" size="icon" title="Restore" @click="restoreItem(customer.id)">
-                                                <RotateCcw class="w-4 h-4" />
-                                            </Button>
-                                            <Button v-if="can('force_delete_customers')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(customer.id)" class="text-destructive">
-                                                <Trash class="w-4 h-4" />
-                                            </Button>
-                                        </template>
-                                    </div>
+                                <td class="px-6 py-4 text-start">
+                                    {{ customer.orders_count }}
+                                </td>
+                                <td class="px-6 py-4 text-start font-medium">
+                                    {{ formatCurrency(customer.total_spent) }}
+                                </td>
+                                <td class="space-x-2 px-6 py-4 text-start">
+                                    <template v-if="!customer.deleted_at">
+                                        <Button
+                                            v-if="can('update_customers')"
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            as-child
+                                        >
+                                            <Link
+                                                :href="`/admin/customers/${customer.id}/edit`"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            v-if="can('delete_customers')"
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            @click="deleteItem(customer.id)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </Button>
+                                    </template>
+                                    <template v-else>
+                                        <Button
+                                            v-if="can('restore_customers')"
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Restore"
+                                            @click="restoreItem(customer.id)"
+                                        >
+                                            <RotateCcw class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            v-if="can('force_delete_customers')"
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Force Delete"
+                                            @click="
+                                                forceDeleteItem(customer.id)
+                                            "
+                                        >
+                                            <Trash class="h-4 w-4" />
+                                        </Button>
+                                    </template>
                                 </td>
                             </tr>
                             <tr v-if="customers.data.length === 0">
-                                <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">
+                                <td
+                                    colspan="7"
+                                    class="px-6 py-8 text-center text-muted-foreground"
+                                >
                                     {{ $t('No customers found.') }}
                                 </td>
                             </tr>
@@ -286,78 +388,18 @@ const submitImport = () => {
         @confirm="confirmState.onConfirm"
     />
 
-    <Dialog v-model:open="isExportModalOpen">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{{ $t('Export Customers') }}</DialogTitle>
-                <DialogDescription>
-                    {{ $t('Select Columns to Export') }}
-                </DialogDescription>
-            </DialogHeader>
-            <div class="grid gap-4 py-4">
-                <div class="space-y-2">
-                    <div v-for="col in allColumns" :key="col.id" class="flex items-center gap-2">
-                        <Checkbox 
-                            :id="col.id" 
-                            :value="col.id" 
-                            :checked="exportColumns.includes(col.id)"
-                            @update:checked="(checked: boolean) => {
-                                if (checked) exportColumns.push(col.id);
-                                else exportColumns = exportColumns.filter(c => c !== col.id);
-                            }"
-                        />
-                        <Label :for="col.id" class="cursor-pointer">{{ $t(col.label) }}</Label>
-                    </div>
-                </div>
-                <div class="space-y-2 mt-4">
-                    <Label>{{ $t('Export Format') }}</Label>
-                    <Select v-model="exportFormat">
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="xlsx">{{ $t('Excel (.xlsx)') }}</SelectItem>
-                            <SelectItem value="csv">{{ $t('CSV (.csv)') }}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" @click="isExportModalOpen = false">{{ $t('Cancel') }}</Button>
-                <Button @click="submitExport">{{ $t('Export') }}</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+    <ResourceExportModal
+        v-model:open="isExportModalOpen"
+        title="Export Customers"
+        description="Choose the columns you want to include in your customer export."
+        :columns="allColumns"
+        export-url="/admin/customers/export"
+    />
 
-    <Dialog v-model:open="isImportModalOpen">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{{ $t('Import Customers') }}</DialogTitle>
-                <DialogDescription>
-                    {{ $t('Select Excel or CSV file') }}
-                </DialogDescription>
-            </DialogHeader>
-            <form @submit.prevent="submitImport">
-                <div class="grid gap-4 py-4">
-                    <div class="space-y-2">
-                        <Label for="file">{{ $t('Select File') }}</Label>
-                        <Input 
-                            id="file" 
-                            type="file" 
-                            accept=".xlsx,.csv" 
-                            @change="(e: Event) => importForm.file = (e.target as HTMLInputElement).files?.[0] || null"
-                        />
-                        <div v-if="importForm.errors.file" class="text-sm text-destructive mt-1">{{ importForm.errors.file }}</div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" @click="isImportModalOpen = false" :disabled="importForm.processing">{{ $t('Cancel') }}</Button>
-                    <Button type="submit" :disabled="importForm.processing || !importForm.file">
-                        <span v-if="importForm.processing">{{ $t('Uploading...') }}</span>
-                        <span v-else>{{ $t('Import') }}</span>
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-    </Dialog>
+    <ResourceImportModal
+        v-model:open="isImportModalOpen"
+        title="Import Customers"
+        description="Select an Excel or CSV file to import customers. The file should match the exported format."
+        import-url="/admin/customers/import"
+    />
 </template>

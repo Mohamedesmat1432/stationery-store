@@ -70,7 +70,9 @@ onUnmounted(() => clearTwoFactorAuthData());
             v-slot="{ errors, processing }"
         >
             <div class="grid gap-2">
-                <Label for="current_password">{{ $t('Current password') }}</Label>
+                <Label for="current_password">{{
+                    $t('Current password')
+                }}</Label>
                 <PasswordInput
                     id="current_password"
                     name="current_password"
@@ -94,7 +96,9 @@ onUnmounted(() => clearTwoFactorAuthData());
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">{{ $t('Confirm password') }}</Label>
+                <Label for="password_confirmation">{{
+                    $t('Confirm password')
+                }}</Label>
                 <PasswordInput
                     id="password_confirmation"
                     name="password_confirmation"
@@ -128,7 +132,11 @@ onUnmounted(() => clearTwoFactorAuthData());
             class="flex flex-col items-start justify-start space-y-4"
         >
             <p class="text-sm text-muted-foreground">
-                {{ $t('When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.') }}
+                {{
+                    $t(
+                        'When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.',
+                    )
+                }}
             </p>
 
             <div>
@@ -150,7 +158,11 @@ onUnmounted(() => clearTwoFactorAuthData());
 
         <div v-else class="flex flex-col items-start justify-start space-y-4">
             <p class="text-sm text-muted-foreground">
-                {{ $t('You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.') }}
+                {{
+                    $t(
+                        'You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.',
+                    )
+                }}
             </p>
 
             <div class="relative inline">

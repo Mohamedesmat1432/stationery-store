@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { Search, X } from 'lucide-vue-next';
-import { Input } from '@/components/ui/input';
 import { useDebounceFn } from '@vueuse/core';
+import { Search, X } from 'lucide-vue-next';
+import { ref, watch } from 'vue';
+import { Input } from '@/components/ui/input';
 
 const props = defineProps<{
     modelValue: string;
@@ -16,9 +16,12 @@ const emit = defineEmits<{
 
 const internalValue = ref(props.modelValue);
 
-watch(() => props.modelValue, (newVal) => {
-    internalValue.value = newVal;
-});
+watch(
+    () => props.modelValue,
+    (newVal) => {
+        internalValue.value = newVal;
+    },
+);
 
 const debouncedSearch = useDebounceFn((value: string) => {
     emit('search', value);
@@ -35,18 +38,20 @@ const clear = () => {
 </script>
 
 <template>
-    <div class="relative w-full max-w-sm flex items-center">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div class="relative flex w-full max-w-sm items-center">
+        <Search
+            class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
             v-model="internalValue"
             :placeholder="placeholder || 'Search...'"
-            class="pl-9 pr-9 h-9"
+            class="h-9 pr-9 pl-9"
         />
         <button
             v-if="internalValue"
             type="button"
             @click="clear"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
         >
             <X class="h-4 w-4" />
         </button>

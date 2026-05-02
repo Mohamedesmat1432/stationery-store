@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Filter } from 'lucide-vue-next';
-import { Checkbox } from '@/components/ui/checkbox';
 import SearchInput from '@/components/SearchInput.vue';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Props {
     searchPlaceholder?: string;
@@ -25,22 +25,25 @@ const handleSearch = (val: string) => {
 </script>
 
 <template>
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row">
         <SearchInput
             :model-value="modelSearch || ''"
             :placeholder="$t(searchPlaceholder)"
             @search="handleSearch"
         />
-        
+
         <slot name="filters"></slot>
 
-        <div class="flex items-center gap-2 px-3 ms-auto">
-            <Checkbox 
-                id="show-trashed" 
-                :model-value="modelTrashed" 
-                @update:model-value="(val) => modelTrashed = !!val"
+        <div class="ms-auto flex items-center gap-2 px-3">
+            <Checkbox
+                id="show-trashed"
+                :model-value="modelTrashed"
+                @update:model-value="(val) => (modelTrashed = !!val)"
             />
-            <label for="show-trashed" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+                for="show-trashed"
+                class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
                 {{ $t('Show Trashed') }}
             </label>
         </div>

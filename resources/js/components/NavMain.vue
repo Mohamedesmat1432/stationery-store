@@ -35,7 +35,9 @@ const { isCurrentUrl } = useCurrentUrl();
                 <Collapsible
                     v-if="item.items && item.items.length > 0"
                     as-child
-                    :default-open="item.items.some(subItem => isCurrentUrl(subItem.href))"
+                    :default-open="
+                        item.items.some((subItem) => isCurrentUrl(subItem.href))
+                    "
                     class="group/collapsible"
                 >
                     <SidebarMenuItem>
@@ -50,10 +52,19 @@ const { isCurrentUrl } = useCurrentUrl();
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
-                                    <SidebarMenuSubButton as-child :is-active="isCurrentUrl(subItem.href)">
+                                <SidebarMenuSubItem
+                                    v-for="subItem in item.items"
+                                    :key="subItem.title"
+                                >
+                                    <SidebarMenuSubButton
+                                        as-child
+                                        :is-active="isCurrentUrl(subItem.href)"
+                                    >
                                         <Link :href="subItem.href" prefetch>
-                                            <component :is="subItem.icon" v-if="subItem.icon" />
+                                            <component
+                                                :is="subItem.icon"
+                                                v-if="subItem.icon"
+                                            />
                                             <span>{{ $t(subItem.title) }}</span>
                                         </Link>
                                     </SidebarMenuSubButton>

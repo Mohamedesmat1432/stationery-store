@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Enums\PermissionName;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
+use Modules\Identity\Enums\PermissionName;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder

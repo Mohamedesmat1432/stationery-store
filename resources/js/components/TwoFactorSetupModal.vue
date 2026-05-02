@@ -196,9 +196,9 @@ watch(
                             <div
                                 class="absolute inset-0 top-1/2 h-px w-full bg-border"
                             />
-                            <span class="relative bg-card px-2 py-1"
-                                >{{ $t('or, enter the code manually') }}</span
-                            >
+                            <span class="relative bg-card px-2 py-1">{{
+                                $t('or, enter the code manually')
+                            }}</span>
                         </div>
 
                         <div

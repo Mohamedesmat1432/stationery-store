@@ -7,6 +7,7 @@ export function useRoles(form: InertiaForm<{ roles: string[]; [key: string]: any
 
     const toggleRole = (role: string) => {
         const index = form.roles.indexOf(role);
+
         if (index === -1) {
             form.roles = [...form.roles, role];
         } else {

@@ -1,7 +1,7 @@
-import { computed, reactive } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
-import { useSelection } from '@/composables/useSelection';
+import { computed, reactive } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
+import { useSelection } from '@/composables/useSelection';
 
 interface BulkActionsConfig {
     /** Plural entity label for confirm dialogs, e.g. "customers" */

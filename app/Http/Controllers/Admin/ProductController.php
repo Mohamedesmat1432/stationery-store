@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Data\ProductData;
-use App\Http\Controllers\Admin\Traits\HandlesBulkActions;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\ProductService;
@@ -12,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\Shared\Http\Controllers\Traits\HandlesBulkActions;
 
 class ProductController extends Controller
 {
@@ -86,6 +86,6 @@ class ProductController extends Controller
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
-        return $this->performBulkAction($request, Product::class, 'productService', 'Products');
+        return $this->performBulkAction($request, Product::class, 'productService');
     }
 }

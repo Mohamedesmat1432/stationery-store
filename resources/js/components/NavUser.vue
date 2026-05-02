@@ -41,8 +41,10 @@ const { isMobile, state } = useSidebar();
                         isMobile
                             ? 'bottom'
                             : state === 'collapsed'
-                                ? (page.props.locale === 'ar' ? 'right' : 'left')
-                                : 'bottom'
+                              ? page.props.locale === 'ar'
+                                  ? 'right'
+                                  : 'left'
+                              : 'bottom'
                     "
                     :align="page.props.locale === 'ar' ? 'start' : 'end'"
                     :side-offset="4"

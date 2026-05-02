@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { Head, Link, usePage, useForm } from '@inertiajs/vue3';
-import { Users, Pencil, Trash2, RotateCcw, Trash, Download, Upload } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+    Users,
+    Pencil,
+    Trash2,
+    RotateCcw,
+    Trash,
+    Download,
+    Upload,
+} from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useBulkActions } from '@/composables/useBulkActions';
-import { useResourceFilters } from '@/composables/useResourceFilters';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourcePagination from '@/components/ResourcePagination.vue';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -27,8 +28,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { useBulkActions } from '@/composables/useBulkActions';
+import { useResourceFilters } from '@/composables/useResourceFilters';
 
 defineOptions({
     layout: {
@@ -57,72 +67,61 @@ const props = defineProps<{
     available_roles: string[];
 }>();
 
-const { searchQuery, showTrashed, extraFilters, applyFilters } = useResourceFilters(props.filters.filter, {
-    baseUrl: '/admin/users',
-});
+const { searchQuery, showTrashed, extraFilters, applyFilters } =
+    useResourceFilters(props.filters.filter, {
+        baseUrl: '/admin/users',
+    });
 
 const roleFilter = computed({
     get: () => extraFilters.value.role || 'all',
     set: (val) => {
         extraFilters.value.role = val === 'all' ? undefined : val;
         applyFilters();
-    }
+    },
 });
 
 const formatRoleName = (name: string) => {
-    return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return name
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 };
 
 const page = usePage();
 const selectableUsers = computed(() => {
-    return props.users.data.filter((u: any) => u.id !== (page.props.auth as any).user.id);
+    return props.users.data.filter(
+        (u: any) => u.id !== (page.props.auth as any).user.id,
+    );
 });
 
 const {
-    selectedIds, isAllSelected, isIndeterminate, toggleAll, toggleItem,
-    can, bulkAction, deleteItem, restoreItem, forceDeleteItem,
-    confirmState
+    selectedIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleAll,
+    toggleItem,
+    can,
+    bulkAction,
+    deleteItem,
+    restoreItem,
+    forceDeleteItem,
+    confirmState,
 } = useBulkActions(() => selectableUsers.value, {
     entityName: 'users',
     bulkActionUrl: '/admin/users/bulk-action',
     resourceUrl: '/admin/users',
 });
 
-// Export logic
+// Export/Import state
 const isExportModalOpen = ref(false);
-const exportColumns = ref(['name', 'email', 'roles', 'created_at']);
-const exportFormat = ref('xlsx');
+const isImportModalOpen = ref(false);
+
 const allColumns = [
     { id: 'name', label: 'Name' },
     { id: 'email', label: 'Email' },
     { id: 'roles', label: 'Roles' },
     { id: 'created_at', label: 'Created At' },
 ];
-
-const submitExport = () => {
-    let url = `/admin/users/export?format=${exportFormat.value}`;
-    exportColumns.value.forEach(col => {
-        url += `&columns[]=${col}`;
-    });
-    window.location.href = url;
-    isExportModalOpen.value = false;
-};
-
-// Import logic
-const isImportModalOpen = ref(false);
-const importForm = useForm({
-    file: null as File | null,
-});
-
-const submitImport = () => {
-    importForm.post('/admin/users/import', {
-        preserveScroll: true,
-        onSuccess: () => {
-            isImportModalOpen.value = false;
-            importForm.reset();
-        },
-    });
-};
 </script>
 
 <template>
@@ -147,15 +146,25 @@ const submitImport = () => {
                 @bulk-force-delete="bulkAction('forceDelete')"
             >
                 <template #actions>
-                    <Button v-if="can('export_users')" variant="outline" class="flex items-center gap-2" @click="isExportModalOpen = true">
-                        <Download class="w-4 h-4" /> {{ $t('Export') }}
+                    <Button
+                        v-if="can('export_users')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isExportModalOpen = true"
+                    >
+                        <Download class="h-4 w-4" /> {{ $t('Export') }}
                     </Button>
-                    <Button v-if="can('import_users')" variant="outline" class="flex items-center gap-2" @click="isImportModalOpen = true">
-                        <Upload class="w-4 h-4" /> {{ $t('Import') }}
+                    <Button
+                        v-if="can('import_users')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isImportModalOpen = true"
+                    >
+                        <Upload class="h-4 w-4" /> {{ $t('Import') }}
                     </Button>
                 </template>
             </AdminPageHeader>
-            
+
             <CardContent>
                 <ResourceFilterBar
                     v-model:search="searchQuery"
@@ -165,16 +174,20 @@ const submitImport = () => {
                     @update:trashed="applyFilters"
                 >
                     <template #filters>
-                        <div class="flex items-center gap-2 min-w-[200px]">
+                        <div class="flex min-w-[200px] items-center gap-2">
                             <Select v-model="roleFilter">
                                 <SelectTrigger class="h-9">
-                                    <SelectValue :placeholder="$t('Filter by Role')" />
+                                    <SelectValue
+                                        :placeholder="$t('Filter by Role')"
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">{{ $t('All Roles') }}</SelectItem>
-                                    <SelectItem 
-                                        v-for="role in available_roles" 
-                                        :key="role" 
+                                    <SelectItem value="all">{{
+                                        $t('All Roles')
+                                    }}</SelectItem>
+                                    <SelectItem
+                                        v-for="role in available_roles"
+                                        :key="role"
                                         :value="role"
                                     >
                                         {{ formatRoleName(role) }}
@@ -185,68 +198,148 @@ const submitImport = () => {
                     </template>
                 </ResourceFilterBar>
 
-                <div class="rounded-md border border-sidebar-border overflow-x-auto">
-                    <table class="w-full text-sm text-start">
-                        <thead class="text-xs text-muted-foreground uppercase bg-sidebar border-b border-sidebar-border">
+                <div
+                    class="overflow-x-auto rounded-md border border-sidebar-border"
+                >
+                    <table class="w-full text-start text-sm">
+                        <thead
+                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+                        >
                             <tr>
-                                <th class="px-6 py-3 font-medium w-10">
-                                    <Checkbox 
-                                        :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
+                                <th class="w-10 px-6 py-3 font-medium">
+                                    <Checkbox
+                                        :model-value="
+                                            isIndeterminate
+                                                ? 'indeterminate'
+                                                : isAllSelected
+                                        "
                                         @update:model-value="toggleAll"
                                     />
                                 </th>
-                                <th class="px-6 py-3 font-medium">{{ $t('Name') }}</th>
-                                <th class="px-6 py-3 font-medium">{{ $t('Email') }}</th>
-                                <th class="px-6 py-3 font-medium">{{ $t('Roles') }}</th>
-                                <th class="px-6 py-3 font-medium text-end">{{ $t('Actions') }}</th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Name') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Email') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Roles') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Actions') }}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="user in users.data" :key="user.id" class="border-b border-sidebar-border last:border-0 hover:bg-sidebar-accent/50 transition-colors">
+                            <tr
+                                v-for="user in users.data"
+                                :key="user.id"
+                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                            >
                                 <td class="px-6 py-4">
-                                    <Checkbox 
-                                        v-if="user.id !== $page.props.auth.user.id"
-                                        :model-value="selectedIds.includes(user.id)"
-                                        @update:model-value="toggleItem(user.id)"
+                                    <Checkbox
+                                        v-if="
+                                            user.id !== $page.props.auth.user.id
+                                        "
+                                        :model-value="
+                                            selectedIds.includes(user.id)
+                                        "
+                                        @update:model-value="
+                                            toggleItem(user.id)
+                                        "
                                     />
                                 </td>
-                                <td class="px-6 py-4 font-medium">{{ user.name }}</td>
-                                <td class="px-6 py-4 text-muted-foreground">{{ user.email }}</td>
+                                <td class="px-6 py-4 font-medium">
+                                    {{ user.name }}
+                                </td>
+                                <td class="px-6 py-4 text-muted-foreground">
+                                    {{ user.email }}
+                                </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex gap-1 flex-wrap">
-                                        <Badge 
-                                            v-for="role in user.roles" 
+                                    <div class="flex flex-wrap gap-1">
+                                        <Badge
+                                            v-for="role in user.roles"
                                             :key="role"
-                                            :variant="role === 'admin' ? 'destructive' : 'secondary'"
+                                            :variant="
+                                                role === 'admin'
+                                                    ? 'destructive'
+                                                    : 'secondary'
+                                            "
                                         >
                                             {{ formatRoleName(role) }}
                                         </Badge>
-                                        <span v-if="!user.roles || user.roles.length === 0" class="text-xs text-muted-foreground italic">{{ $t('No Roles') }}</span>
+                                        <span
+                                            v-if="
+                                                !user.roles ||
+                                                user.roles.length === 0
+                                            "
+                                            class="text-xs text-muted-foreground italic"
+                                            >{{ $t('No Roles') }}</span
+                                        >
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-end space-x-2">
+                                <td class="space-x-2 px-6 py-4 text-start">
                                     <template v-if="!user.deleted_at">
-                                        <Button v-if="can('update_users')" variant="outline" size="icon" class="h-8 w-8" as-child>
-                                            <Link :href="`/admin/users/${user.id}/edit`">
-                                                <Pencil class="w-4 h-4" />
+                                        <Button
+                                            v-if="can('update_users')"
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            as-child
+                                        >
+                                            <Link
+                                                :href="`/admin/users/${user.id}/edit`"
+                                            >
+                                                <Pencil class="h-4 w-4" />
                                             </Link>
                                         </Button>
-                                        <Button v-if="can('delete_users') && user.id !== $page.props.auth.user.id" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(user.id)">
-                                            <Trash2 class="w-4 h-4" />
+                                        <Button
+                                            v-if="
+                                                can('delete_users') &&
+                                                user.id !==
+                                                    $page.props.auth.user.id
+                                            "
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            @click="deleteItem(user.id)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
                                         </Button>
                                     </template>
                                     <template v-else>
-                                        <Button v-if="can('restore_users')" variant="outline" size="icon" class="h-8 w-8" title="Restore" @click="restoreItem(user.id)">
-                                            <RotateCcw class="w-4 h-4" />
+                                        <Button
+                                            v-if="can('restore_users')"
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Restore"
+                                            @click="restoreItem(user.id)"
+                                        >
+                                            <RotateCcw class="h-4 w-4" />
                                         </Button>
-                                        <Button v-if="can('force_delete_users') && user.id !== $page.props.auth.user.id" variant="destructive" size="icon" class="h-8 w-8" title="Force Delete" @click="forceDeleteItem(user.id)">
-                                            <Trash class="w-4 h-4" />
+                                        <Button
+                                            v-if="
+                                                can('force_delete_users') &&
+                                                user.id !==
+                                                    $page.props.auth.user.id
+                                            "
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Force Delete"
+                                            @click="forceDeleteItem(user.id)"
+                                        >
+                                            <Trash class="h-4 w-4" />
                                         </Button>
                                     </template>
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">
-                                <td colspan="5" class="px-6 py-8 text-center text-muted-foreground">
+                                <td
+                                    colspan="5"
+                                    class="px-6 py-8 text-center text-muted-foreground"
+                                >
                                     {{ $t('No users found.') }}
                                 </td>
                             </tr>
@@ -274,78 +367,18 @@ const submitImport = () => {
         @confirm="confirmState.onConfirm"
     />
 
-    <Dialog v-model:open="isExportModalOpen">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{{ $t('Export Users') }}</DialogTitle>
-                <DialogDescription>
-                    {{ $t('Select Columns to Export') }}
-                </DialogDescription>
-            </DialogHeader>
-            <div class="grid gap-4 py-4">
-                <div class="space-y-2">
-                    <div v-for="col in allColumns" :key="col.id" class="flex items-center gap-2">
-                        <Checkbox 
-                            :id="col.id" 
-                            :value="col.id" 
-                            :checked="exportColumns.includes(col.id)"
-                            @update:checked="(checked: boolean) => {
-                                if (checked) exportColumns.push(col.id);
-                                else exportColumns = exportColumns.filter(c => c !== col.id);
-                            }"
-                        />
-                        <Label :for="col.id" class="cursor-pointer">{{ $t(col.label) }}</Label>
-                    </div>
-                </div>
-                <div class="space-y-2 mt-4">
-                    <Label>{{ $t('Export Format') }}</Label>
-                    <Select v-model="exportFormat">
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="xlsx">{{ $t('Excel (.xlsx)') }}</SelectItem>
-                            <SelectItem value="csv">{{ $t('CSV (.csv)') }}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" @click="isExportModalOpen = false">{{ $t('Cancel') }}</Button>
-                <Button @click="submitExport">{{ $t('Export') }}</Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
+    <ResourceExportModal
+        v-model:open="isExportModalOpen"
+        title="Export Users"
+        description="Choose the columns you want to include in your user export."
+        :columns="allColumns"
+        export-url="/admin/users/export"
+    />
 
-    <Dialog v-model:open="isImportModalOpen">
-        <DialogContent class="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>{{ $t('Import Users') }}</DialogTitle>
-                <DialogDescription>
-                    {{ $t('Select Excel or CSV file') }}
-                </DialogDescription>
-            </DialogHeader>
-            <form @submit.prevent="submitImport">
-                <div class="grid gap-4 py-4">
-                    <div class="space-y-2">
-                        <Label for="file">{{ $t('Select File') }}</Label>
-                        <Input 
-                            id="file" 
-                            type="file" 
-                            accept=".xlsx,.csv" 
-                            @change="(e: Event) => importForm.file = (e.target as HTMLInputElement).files?.[0] || null"
-                        />
-                        <div v-if="importForm.errors.file" class="text-sm text-destructive mt-1">{{ importForm.errors.file }}</div>
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" @click="isImportModalOpen = false" :disabled="importForm.processing">{{ $t('Cancel') }}</Button>
-                    <Button type="submit" :disabled="importForm.processing || !importForm.file">
-                        <span v-if="importForm.processing">{{ $t('Uploading...') }}</span>
-                        <span v-else>{{ $t('Import') }}</span>
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-    </Dialog>
+    <ResourceImportModal
+        v-model:open="isImportModalOpen"
+        title="Import Users"
+        description="Select an Excel or CSV file to import users. The file should match the exported format."
+        import-url="/admin/users/import"
+    />
 </template>

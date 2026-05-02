@@ -32,7 +32,11 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5" :href="edit()" prefetch>
+            <Link
+                class="flex w-full cursor-pointer items-center gap-2 px-2 py-1.5"
+                :href="edit()"
+                prefetch
+            >
                 <Settings class="h-4 w-4" />
                 <span>{{ $t('Settings') }}</span>
             </Link>

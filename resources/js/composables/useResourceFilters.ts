@@ -1,5 +1,5 @@
-import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 
 interface FilterState {
     search?: string;

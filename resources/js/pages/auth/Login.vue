@@ -105,7 +105,9 @@ defineProps<{
             v-if="canRegister"
         >
             {{ $t("Don't have an account?") }}
-            <TextLink :href="register()" :tabindex="5">{{ $t('Sign up') }}</TextLink>
+            <TextLink :href="register()" :tabindex="5">{{
+                $t('Sign up')
+            }}</TextLink>
         </div>
     </Form>
 </template>

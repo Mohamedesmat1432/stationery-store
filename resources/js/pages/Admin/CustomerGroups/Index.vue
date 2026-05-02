@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Users, Pencil, Trash2, RotateCcw, Trash } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Users, Pencil, Trash2, RotateCcw, Trash, Download, Upload } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
+import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ref, computed } from 'vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import AdminPageHeader from '@/components/AdminPageHeader.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 
 defineOptions({
     layout: {
@@ -38,19 +40,42 @@ const props = defineProps<{
     };
 }>();
 
-const { searchQuery, showTrashed, applyFilters } = useResourceFilters(props.filters.filter, {
-    baseUrl: '/admin/customer-groups',
-});
+const { searchQuery, showTrashed, applyFilters } = useResourceFilters(
+    props.filters.filter,
+    {
+        baseUrl: '/admin/customer-groups',
+    },
+);
 
 const {
-    selectedIds, isAllSelected, isIndeterminate, toggleAll, toggleItem,
-    can, bulkAction, deleteItem, restoreItem, forceDeleteItem,
-    confirmState
+    selectedIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleAll,
+    toggleItem,
+    can,
+    bulkAction,
+    deleteItem,
+    restoreItem,
+    forceDeleteItem,
+    confirmState,
 } = useBulkActions(() => props.groups.data, {
     entityName: 'customer groups',
     bulkActionUrl: '/admin/customer-groups/bulk-action',
     resourceUrl: '/admin/customer-groups',
 });
+
+// Export/Import state
+const isExportModalOpen = ref(false);
+const isImportModalOpen = ref(false);
+
+const allColumns = [
+    { id: 'name', label: 'Name' },
+    { id: 'slug', label: 'Slug' },
+    { id: 'discount_percentage', label: 'Discount Percentage' },
+    { id: 'is_active', label: 'Status' },
+    { id: 'created_at', label: 'Created At' },
+];
 </script>
 
 <template>
@@ -73,7 +98,26 @@ const {
                 @bulk-delete="bulkAction('delete')"
                 @bulk-restore="bulkAction('restore')"
                 @bulk-force-delete="bulkAction('forceDelete')"
-            />
+            >
+                <template #actions>
+                    <Button
+                        v-if="can('export_customer_groups')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isExportModalOpen = true"
+                    >
+                        <Download class="h-4 w-4" /> {{ $t('Export') }}
+                    </Button>
+                    <Button
+                        v-if="can('import_customer_groups')"
+                        variant="outline"
+                        class="flex items-center gap-2"
+                        @click="isImportModalOpen = true"
+                    >
+                        <Upload class="h-4 w-4" /> {{ $t('Import') }}
+                    </Button>
+                </template>
+            </AdminPageHeader>
 
             <CardContent>
                 <ResourceFilterBar
@@ -84,72 +128,153 @@ const {
                     @update:trashed="applyFilters"
                 />
 
-                <div class="rounded-md border border-sidebar-border overflow-x-auto">
-                    <table class="w-full text-sm text-start">
-                        <thead class="text-xs text-muted-foreground uppercase bg-sidebar border-b border-sidebar-border">
+                <div
+                    class="overflow-x-auto rounded-md border border-sidebar-border"
+                >
+                    <table class="w-full text-start text-sm">
+                        <thead
+                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+                        >
                             <tr>
-                                <th class="px-4 py-3 font-medium w-10">
-                                    <Checkbox 
-                                        :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
+                                <th class="w-10 px-6 py-3 font-medium">
+                                    <Checkbox
+                                        :model-value="
+                                            isIndeterminate
+                                                ? 'indeterminate'
+                                                : isAllSelected
+                                        "
                                         @update:model-value="toggleAll"
                                     />
                                 </th>
-                                <th class="px-4 py-3 font-medium">{{ $t('Name') }}</th>
-                                <th class="px-4 py-3 font-medium">{{ $t('Slug') }}</th>
-                                <th class="px-4 py-3 font-medium text-center">{{ $t('Discount') }}</th>
-                                <th class="px-4 py-3 font-medium text-center">{{ $t('Customers') }}</th>
-                                <th class="px-4 py-3 font-medium text-center">{{ $t('Status') }}</th>
-                                <th class="px-4 py-3 font-medium text-end">{{ $t('Actions') }}</th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Name') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Slug') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Discount') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Customers') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Status') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Actions') }}
+                                </th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-sidebar-border">
-                            <tr v-for="group in groups.data" :key="group.id" class="hover:bg-sidebar/50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <Checkbox 
-                                        :model-value="selectedIds.includes(group.id)"
-                                        @update:model-value="toggleItem(group.id)"
+                        <tbody>
+                            <tr
+                                v-for="group in groups.data"
+                                :key="group.id"
+                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                            >
+                                <td class="px-6 py-4">
+                                    <Checkbox
+                                        :model-value="
+                                            selectedIds.includes(group.id)
+                                        "
+                                        @update:model-value="
+                                            toggleItem(group.id)
+                                        "
                                     />
                                 </td>
-                                <td class="px-4 py-3">
-                                    <span class="font-medium text-foreground">{{ group.name }}</span>
+                                <td class="px-6 py-4 text-start font-medium">
+                                    {{ group.name }}
                                 </td>
-                                <td class="px-4 py-3 text-muted-foreground">{{ group.slug }}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <Badge variant="secondary">{{ group.discount_percentage }}%</Badge>
+                                <td
+                                    class="px-6 py-4 text-start text-muted-foreground"
+                                >
+                                    {{ group.slug }}
                                 </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="text-muted-foreground">{{ group.customers_count }}</span>
+                                <td class="px-6 py-4 text-start">
+                                    <Badge variant="secondary"
+                                        >{{ group.discount_percentage }}%</Badge
+                                    >
                                 </td>
-                                <td class="px-4 py-3 text-center">
-                                    <Badge :variant="group.is_active ? 'default' : 'destructive'">
-                                        {{ group.is_active ? $t('Active') : $t('Inactive') }}
+                                <td
+                                    class="px-6 py-4 text-start text-muted-foreground"
+                                >
+                                    {{ group.customers_count }}
+                                </td>
+                                <td class="px-6 py-4 text-start">
+                                    <Badge
+                                        :variant="
+                                            group.is_active
+                                                ? 'default'
+                                                : 'destructive'
+                                        "
+                                    >
+                                        {{
+                                            group.is_active
+                                                ? $t('Active')
+                                                : $t('Inactive')
+                                        }}
                                     </Badge>
                                 </td>
-                                <td class="px-4 py-3 text-end">
-                                    <div class="flex justify-end gap-2">
-                                        <template v-if="!group.deleted_at">
-                                            <Button v-if="can('update_customer_groups')" variant="ghost" size="icon" as-child>
-                                                <Link :href="`/admin/customer-groups/${group.id}/edit`">
-                                                    <Pencil class="w-4 h-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button v-if="can('delete_customer_groups')" variant="ghost" size="icon" @click="deleteItem(group.id)" class="text-destructive">
-                                                <Trash2 class="w-4 h-4" />
-                                            </Button>
-                                        </template>
-                                        <template v-else>
-                                            <Button v-if="can('restore_customer_groups')" variant="ghost" size="icon" title="Restore" @click="restoreItem(group.id)">
-                                                <RotateCcw class="w-4 h-4" />
-                                            </Button>
-                                            <Button v-if="can('force_delete_customer_groups')" variant="ghost" size="icon" title="Force Delete" @click="forceDeleteItem(group.id)" class="text-destructive">
-                                                <Trash class="w-4 h-4" />
-                                            </Button>
-                                        </template>
-                                    </div>
+                                <td class="space-x-2 px-6 py-4 text-start">
+                                    <template v-if="!group.deleted_at">
+                                        <Button
+                                            v-if="can('update_customer_groups')"
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            as-child
+                                        >
+                                            <Link
+                                                :href="`/admin/customer-groups/${group.id}/edit`"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            v-if="can('delete_customer_groups')"
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            @click="deleteItem(group.id)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </Button>
+                                    </template>
+                                    <template v-else>
+                                        <Button
+                                            v-if="
+                                                can('restore_customer_groups')
+                                            "
+                                            variant="outline"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Restore"
+                                            @click="restoreItem(group.id)"
+                                        >
+                                            <RotateCcw class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            v-if="
+                                                can(
+                                                    'force_delete_customer_groups',
+                                                )
+                                            "
+                                            variant="destructive"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            title="Force Delete"
+                                            @click="forceDeleteItem(group.id)"
+                                        >
+                                            <Trash class="h-4 w-4" />
+                                        </Button>
+                                    </template>
                                 </td>
                             </tr>
                             <tr v-if="groups.data.length === 0">
-                                <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">
+                                <td
+                                    colspan="7"
+                                    class="px-6 py-8 text-center text-muted-foreground"
+                                >
                                     {{ $t('No customer groups found.') }}
                                 </td>
                             </tr>
@@ -175,5 +300,20 @@ const {
         :confirm-label="confirmState.confirmLabel"
         :loading="confirmState.loading"
         @confirm="confirmState.onConfirm"
+    />
+
+    <ResourceExportModal
+        v-model:open="isExportModalOpen"
+        title="Export Customer Groups"
+        description="Choose the columns you want to include in your customer group export."
+        :columns="allColumns"
+        export-url="/admin/customer-groups/export"
+    />
+
+    <ResourceImportModal
+        v-model:open="isImportModalOpen"
+        title="Import Customer Groups"
+        description="Select an Excel or CSV file to import customer groups. The file should match the exported format."
+        import-url="/admin/customer-groups/import"
     />
 </template>

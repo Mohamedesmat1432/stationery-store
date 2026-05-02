@@ -1,11 +1,12 @@
 import { createInertiaApp, router } from '@inertiajs/vue3';
+import { createApp, h  } from 'vue';
+import type {DefineComponent} from 'vue';
+import { createI18n } from 'vue-i18n';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
-import { createI18n } from 'vue-i18n';
-import { createApp, h, type DefineComponent } from 'vue';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

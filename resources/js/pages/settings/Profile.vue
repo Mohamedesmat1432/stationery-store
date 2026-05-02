@@ -95,12 +95,18 @@ const user = computed(() => page.props.auth.user);
                     v-if="status === 'verification-link-sent'"
                     class="mt-2 text-sm font-medium text-green-600"
                 >
-                    {{ $t('A new verification link has been sent to your email address.') }}
+                    {{
+                        $t(
+                            'A new verification link has been sent to your email address.',
+                        )
+                    }}
                 </div>
             </div>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
+                <Button
+                    :disabled="processing"
+                    data-test="update-profile-button"
                     >{{ $t('Save') }}</Button
                 >
             </div>

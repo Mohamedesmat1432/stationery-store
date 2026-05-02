@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ShieldCheck, Pencil, Trash2 } from 'lucide-vue-next';
+import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import AdminPageHeader from '@/components/AdminPageHeader.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 
 defineOptions({
     layout: {
@@ -41,13 +41,24 @@ const { searchQuery, applyFilters } = useResourceFilters(props.filters.filter, {
 });
 
 const formatRoleName = (name: string) => {
-    return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return name
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 };
 
 const {
-    selectedIds, isAllSelected, isIndeterminate, toggleAll, toggleItem,
-    can, bulkAction, deleteItem, restoreItem, forceDeleteItem,
-    confirmState
+    selectedIds,
+    isAllSelected,
+    isIndeterminate,
+    toggleAll,
+    toggleItem,
+    can,
+    bulkAction,
+    deleteItem,
+    restoreItem,
+    forceDeleteItem,
+    confirmState,
 } = useBulkActions(() => props.roles.data, {
     entityName: 'roles',
     bulkActionUrl: '/admin/roles/bulk-action',
@@ -80,49 +91,97 @@ const {
                 />
 
                 <div class="rounded-md border border-sidebar-border">
-                    <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-muted-foreground uppercase bg-sidebar border-b border-sidebar-border">
+                    <table class="w-full text-start text-sm">
+                        <thead
+                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+                        >
                             <tr>
-                                <th class="px-6 py-3 font-medium w-10">
-                                    <Checkbox 
-                                        :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
+                                <th class="w-10 px-6 py-3 font-medium">
+                                    <Checkbox
+                                        :model-value="
+                                            isIndeterminate
+                                                ? 'indeterminate'
+                                                : isAllSelected
+                                        "
                                         @update:model-value="toggleAll"
                                     />
                                 </th>
-                                <th class="px-6 py-3 font-medium">{{ $t('Role Name') }}</th>
-                                <th class="px-6 py-3 font-medium">{{ $t('Permissions Count') }}</th>
-                                <th class="px-6 py-3 font-medium text-right">{{ $t('Actions') }}</th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Role Name') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Permissions Count') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Actions') }}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="role in roles.data" :key="role.id" class="border-b border-sidebar-border last:border-0 hover:bg-sidebar-accent/50 transition-colors">
+                            <tr
+                                v-for="role in roles.data"
+                                :key="role.id"
+                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                            >
                                 <td class="px-6 py-4">
-                                    <Checkbox 
-                                        :model-value="selectedIds.includes(role.id)"
-                                        @update:model-value="toggleItem(role.id)"
+                                    <Checkbox
+                                        :model-value="
+                                            selectedIds.includes(role.id)
+                                        "
+                                        @update:model-value="
+                                            toggleItem(role.id)
+                                        "
                                     />
                                 </td>
                                 <td class="px-6 py-4 font-medium">
-                                    <Badge :variant="role.name === 'admin' ? 'destructive' : 'default'">
+                                    <Badge
+                                        :variant="
+                                            role.name === 'admin'
+                                                ? 'destructive'
+                                                : 'default'
+                                        "
+                                    >
                                         {{ formatRoleName(role.name) }}
                                     </Badge>
                                 </td>
                                 <td class="px-6 py-4 text-muted-foreground">
-                                    {{ role.permissions ? role.permissions.length : 0 }} {{ $t('Permissions') }}
+                                    {{
+                                        role.permissions
+                                            ? role.permissions.length
+                                            : 0
+                                    }}
+                                    {{ $t('Permissions') }}
                                 </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <Button v-if="can('update_roles')" variant="outline" size="icon" class="h-8 w-8" as-child>
-                                        <Link :href="`/admin/roles/${role.id}/edit`">
-                                            <Pencil class="w-4 h-4" />
+                                <td class="space-x-2 px-6 py-4 text-start">
+                                    <Button
+                                        v-if="can('update_roles')"
+                                        variant="outline"
+                                        size="icon"
+                                        class="h-8 w-8"
+                                        as-child
+                                    >
+                                        <Link
+                                            :href="`/admin/roles/${role.id}/edit`"
+                                        >
+                                            <Pencil class="h-4 w-4" />
                                         </Link>
                                     </Button>
-                                    <Button v-if="can('delete_roles')" variant="destructive" size="icon" class="h-8 w-8" @click="deleteItem(role.id)">
-                                        <Trash2 class="w-4 h-4" />
+                                    <Button
+                                        v-if="can('delete_roles')"
+                                        variant="destructive"
+                                        size="icon"
+                                        class="h-8 w-8"
+                                        @click="deleteItem(role.id)"
+                                    >
+                                        <Trash2 class="h-4 w-4" />
                                     </Button>
                                 </td>
                             </tr>
                             <tr v-if="roles.data.length === 0">
-                                <td colspan="4" class="px-6 py-8 text-center text-muted-foreground">
+                                <td
+                                    colspan="4"
+                                    class="px-6 py-8 text-center text-muted-foreground"
+                                >
                                     {{ $t('No roles found.') }}
                                 </td>
                             </tr>

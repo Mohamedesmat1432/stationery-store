@@ -1,5 +1,5 @@
-import { computed } from 'vue';
 import type { InertiaForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: string]: any }>, availablePermissions: string[]) {
     // Group permissions by the entity name (e.g. view_users -> users)
@@ -19,6 +19,7 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
             if (!groups[module]) {
                 groups[module] = [];
             }
+
             groups[module].push(permission);
         });
         
@@ -42,6 +43,7 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
 
     const togglePermission = (permission: string) => {
         const index = form.permissions.indexOf(permission);
+
         if (index === -1) {
             form.permissions = [...form.permissions, permission];
         } else {
@@ -51,6 +53,7 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
 
     const toggleModule = (modulePermissions: string[]) => {
         const allChecked = modulePermissions.every(p => form.permissions.includes(p));
+
         if (allChecked) {
             // Uncheck all in this module
             form.permissions = form.permissions.filter(p => !modulePermissions.includes(p));

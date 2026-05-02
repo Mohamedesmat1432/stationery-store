@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,7 +33,6 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
@@ -82,21 +82,26 @@ const rightNavItems: NavItem[] = [
             <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
-                    <Sheet>
+                    <Sheet :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'">
                         <SheetTrigger :as-child="true">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                class="mr-2 h-9 w-9"
+                                class="me-2 h-9 w-9"
                             >
                                 <Menu class="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent :side="page.props.locale === 'ar' ? 'right' : 'left'" class="w-[300px] p-6">
+                        <SheetContent
+                            :side="
+                                page.props.locale === 'ar' ? 'right' : 'left'
+                            "
+                            class="w-[300px] p-6"
+                        >
                             <SheetTitle class="sr-only"
                                 >Navigation menu</SheetTitle
                             >
-                            <SheetHeader class="flex justify-start text-left">
+                            <SheetHeader class="items-start text-start">
                                 <AppLogoIcon
                                     class="size-6 fill-current text-black dark:text-white"
                                 />
@@ -104,7 +109,7 @@ const rightNavItems: NavItem[] = [
                             <div
                                 class="flex h-full flex-1 flex-col justify-between space-y-4 py-6"
                             >
-                                <nav class="-mx-3 space-y-1">
+                                <nav class="-mx-3 space-y-1 text-start">
                                     <Link
                                         v-for="item in mainNavItems"
                                         :key="item.title"
@@ -132,7 +137,7 @@ const rightNavItems: NavItem[] = [
                                         :href="toUrl(item.href)"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        class="flex items-center space-x-2 text-sm font-medium"
+                                        class="flex items-center gap-x-2 text-sm font-medium"
                                     >
                                         <component
                                             v-if="item.icon"
@@ -153,9 +158,9 @@ const rightNavItems: NavItem[] = [
 
                 <!-- Desktop Menu -->
                 <div class="hidden h-full lg:flex lg:flex-1">
-                    <NavigationMenu class="ml-10 flex h-full items-stretch">
+                    <NavigationMenu class="ms-10 flex h-full items-stretch">
                         <NavigationMenuList
-                            class="flex h-full items-stretch space-x-2"
+                            class="flex h-full items-stretch gap-x-2"
                         >
                             <NavigationMenuItem
                                 v-for="(item, index) in mainNavItems"
@@ -176,21 +181,21 @@ const rightNavItems: NavItem[] = [
                                     <component
                                         v-if="item.icon"
                                         :is="item.icon"
-                                        class="mr-2 h-4 w-4"
+                                        class="me-2 h-4 w-4"
                                     />
                                     {{ $t(item.title) }}
                                 </Link>
                                 <div
                                     v-if="isCurrentUrl(item.href)"
-                                    class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
+                                    class="absolute bottom-0 start-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
                                 ></div>
                             </NavigationMenuItem>
                         </NavigationMenuList>
                     </NavigationMenu>
                 </div>
 
-                <div class="ml-auto flex items-center space-x-2">
-                    <div class="relative flex items-center space-x-1">
+                <div class="ms-auto flex items-center gap-x-2">
+                    <div class="relative flex items-center gap-x-1">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -201,7 +206,7 @@ const rightNavItems: NavItem[] = [
                             />
                         </Button>
 
-                        <div class="hidden space-x-1 lg:flex">
+                        <div class="hidden gap-x-1 lg:flex">
                             <template
                                 v-for="item in rightNavItems"
                                 :key="item.title"
@@ -241,7 +246,7 @@ const rightNavItems: NavItem[] = [
 
                     <LanguageSwitcher />
 
-                    <DropdownMenu>
+                    <DropdownMenu :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'">
                         <DropdownMenuTrigger :as-child="true">
                             <Button
                                 variant="ghost"
@@ -264,7 +269,10 @@ const rightNavItems: NavItem[] = [
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56">
+                        <DropdownMenuContent
+                            align="start"
+                            class="w-56"
+                        >
                             <UserMenuContent :user="auth.user" />
                         </DropdownMenuContent>
                     </DropdownMenu>

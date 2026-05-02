@@ -45,7 +45,11 @@ onMounted(async () => {
                 <LockKeyhole class="size-4" />{{ $t('2FA recovery codes') }}
             </CardTitle>
             <CardDescription>
-                {{ $t('Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.') }}
+                {{
+                    $t(
+                        'Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.',
+                    )
+                }}
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -57,7 +61,8 @@ onMounted(async () => {
                         :is="isRecoveryCodesVisible ? EyeOff : Eye"
                         class="size-4"
                     />
-                    {{ isRecoveryCodesVisible ? $t('Hide') : $t('View') }} {{ $t('recovery codes') }}
+                    {{ isRecoveryCodesVisible ? $t('Hide') : $t('View') }}
+                    {{ $t('recovery codes') }}
                 </Button>
 
                 <Form
@@ -109,8 +114,14 @@ onMounted(async () => {
                         </div>
                     </div>
                     <p class="text-xs text-muted-foreground select-none">
-                        {{ $t('Each recovery code can be used once to access your account and will be removed after use. If you need more, click') }}
-                        <span class="font-bold">{{ $t('Regenerate codes') }}</span>
+                        {{
+                            $t(
+                                'Each recovery code can be used once to access your account and will be removed after use. If you need more, click',
+                            )
+                        }}
+                        <span class="font-bold">{{
+                            $t('Regenerate codes')
+                        }}</span>
                         {{ $t('above.') }}
                     </p>
                 </div>

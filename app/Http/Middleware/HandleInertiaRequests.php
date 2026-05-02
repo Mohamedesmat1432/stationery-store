@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Modules\Identity\Services\IdentityCacheService;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -42,12 +44,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
-                'roles' => $user ? $user->getCachedRoles() : [],
-                'permissions' => $user ? $user->getCachedPermissions() : [],
+                'roles' => $user ? IdentityCacheService::getUserRoles($user->id) : [],
+                'permissions' => $user ? IdentityCacheService::getUserPermissions($user->id) : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'locale' => app()->getLocale(),
-            'translations' => $this->getTranslations(),
+            'translations' => CacheService::getTranslations(app()->getLocale()),
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
@@ -55,17 +57,5 @@ class HandleInertiaRequests extends Middleware
                 'warning' => $request->session()->get('warning'),
             ],
         ];
-    }
-
-    protected function getTranslations(): array
-    {
-        $locale = app()->getLocale();
-        $file = base_path("lang/{$locale}.json");
-
-        if (file_exists($file)) {
-            return json_decode(file_get_contents($file), true);
-        }
-
-        return [];
     }
 }

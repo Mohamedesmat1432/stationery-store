@@ -2,10 +2,10 @@
 
 namespace App\Policies;
 
-use App\Enums\PermissionName;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Modules\Identity\Enums\PermissionName;
 
 class ReviewPolicy
 {

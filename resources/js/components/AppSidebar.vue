@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { LayoutGrid, Package, ShoppingCart, Users, Settings, Shield, ShieldCheck, UserCircle } from 'lucide-vue-next';
+import {
+    LayoutGrid,
+    Package,
+    ShoppingCart,
+    Users,
+    Settings,
+    Shield,
+    ShieldCheck,
+    UserCircle,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -20,8 +29,11 @@ import type { NavItem } from '@/types';
 import type { Auth } from '@/types/auth';
 
 const page = usePage();
-const permissions = computed<string[]>(() => (page.props.auth as Auth).permissions || []);
-const hasPermission = (permission: string) => permissions.value.includes(permission);
+const permissions = computed<string[]>(
+    () => (page.props.auth as Auth).permissions || [],
+);
+const hasPermission = (permission: string) =>
+    permissions.value.includes(permission);
 
 const mainNavItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
@@ -53,7 +65,7 @@ const mainNavItems = computed<NavItem[]>(() => {
 
     if (hasPermission('view_users') || hasPermission('view_roles')) {
         const accessControlItems: NavItem[] = [];
-        
+
         if (hasPermission('view_users')) {
             accessControlItems.push({
                 title: 'Users',
@@ -61,7 +73,7 @@ const mainNavItems = computed<NavItem[]>(() => {
                 icon: Users,
             });
         }
-        
+
         if (hasPermission('view_roles')) {
             accessControlItems.push({
                 title: 'Roles & Permissions',
@@ -78,7 +90,10 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    if (hasPermission('view_customers') || hasPermission('view_customer_groups')) {
+    if (
+        hasPermission('view_customers') ||
+        hasPermission('view_customer_groups')
+    ) {
         const crmItems: NavItem[] = [];
 
         if (hasPermission('view_customers')) {
@@ -120,7 +135,12 @@ const footerNavItems: NavItem[] = [];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset" :side="page.props.locale === 'ar' ? 'right' : 'left'">
+    <Sidebar
+        collapsible="icon"
+        variant="inset"
+        :side="page.props.locale === 'ar' ? 'right' : 'left'"
+        :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'"
+    >
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
