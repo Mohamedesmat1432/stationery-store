@@ -4,36 +4,63 @@ namespace Modules\CRM\Data;
 
 use App\Models\CustomerGroup;
 use Illuminate\Validation\Rule;
+use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class CustomerGroupData extends Data
 {
+    #[Computed]
+    public bool $is_protected;
+
     public function __construct(
+        /** @var string|null */
         public ?string $id,
+
+        /** @var string */
         public string $name,
+
+        /** @var string */
         public string $slug,
+
+        /** @var string|null */
         public ?string $description,
+
+        /** @var float */
         public float $discount_percentage,
+
+        /** @var bool */
         public bool $is_active = true,
+
+        /** @var int */
         public int $sort_order = 0,
+
+        /** @var int */
         public int $customers_count = 0,
+
+        /** @var string|null */
         public ?string $deleted_at = null,
     ) {}
 
-    public static function fromModel(CustomerGroup $group): self
+    public static function fromCustomerGroup(CustomerGroup $group): self
     {
-        return new self(
-            $group->id,
-            $group->name,
-            $group->slug,
-            $group->description,
-            (float) $group->discount_percentage,
-            $group->is_active,
-            $group->sort_order,
-            (int) ($group->customers_count ?? 0),
-            $group->deleted_at?->toDateTimeString(),
+        $data = new self(
+            id: $group->id,
+            name: $group->name,
+            slug: $group->slug,
+            description: $group->description,
+            discount_percentage: (float) $group->discount_percentage,
+            is_active: (bool) $group->is_active,
+            sort_order: (int) $group->sort_order,
+            customers_count: (int) ($group->customers_count ?? 0),
+            deleted_at: $group->deleted_at?->toDateTimeString(),
         );
+
+        $data->is_protected = $group->isProtected();
+
+        return $data;
     }
 
     public static function rules(?ValidationContext $context = null): array

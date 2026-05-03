@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, usePage, useForm } from '@inertiajs/vue3';
+import { formatLabel } from '@/lib/format';
+import { Head, Link, usePage, Deferred } from '@inertiajs/vue3';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Users,
     Pencil,
@@ -20,16 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import {
     Select,
     SelectContent,
@@ -39,19 +32,23 @@ import {
 } from '@/components/ui/select';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import * as usersRoutes from '@/routes/admin/users/index';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Users Management', href: '/admin/users' },
+            { title: 'Users Management', href: usersRoutes.index.url() },
         ],
     },
 });
 
+// Types are automatically generated via spatie/laravel-typescript-transformer
+type User = Modules.Identity.Data.UserData & { id: string };
+
 const props = defineProps<{
     users: {
-        data: any[];
+        data: User[];
         links: any[];
         current_page: number;
         last_page: number;
@@ -69,7 +66,7 @@ const props = defineProps<{
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
     useResourceFilters(props.filters.filter, {
-        baseUrl: '/admin/users',
+        baseUrl: usersRoutes.index.url(),
     });
 
 const roleFilter = computed({
@@ -80,18 +77,10 @@ const roleFilter = computed({
     },
 });
 
-const formatRoleName = (name: string) => {
-    return name
-        .split('_')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-};
+const formatRoleName = (name: string) => formatLabel(name);
 
-const page = usePage();
 const selectableUsers = computed(() => {
-    return props.users.data.filter(
-        (u: any) => u.id !== (page.props.auth as any).user.id,
-    );
+    return props.users.data.filter((u) => !u.is_protected);
 });
 
 const {
@@ -108,8 +97,8 @@ const {
     confirmState,
 } = useBulkActions(() => selectableUsers.value, {
     entityName: 'users',
-    bulkActionUrl: '/admin/users/bulk-action',
-    resourceUrl: '/admin/users',
+    bulkActionUrl: usersRoutes.bulkAction.url(),
+    resourceUrl: usersRoutes.index.url(),
 });
 
 // Export/Import state
@@ -136,7 +125,7 @@ const allColumns = [
                 :selected-count="selectedIds.length"
                 :show-trashed="showTrashed"
                 :can-create="can('create_users')"
-                create-url="/admin/users/create"
+                :create-url="usersRoutes.create.url()"
                 create-label="Create User"
                 :can-delete="can('delete_users')"
                 :can-restore="can('restore_users')"
@@ -175,25 +164,30 @@ const allColumns = [
                 >
                     <template #filters>
                         <div class="flex min-w-[200px] items-center gap-2">
-                            <Select v-model="roleFilter">
-                                <SelectTrigger class="h-9">
-                                    <SelectValue
-                                        :placeholder="$t('Filter by Role')"
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{{
-                                        $t('All Roles')
-                                    }}</SelectItem>
-                                    <SelectItem
-                                        v-for="role in available_roles"
-                                        :key="role"
-                                        :value="role"
-                                    >
-                                        {{ formatRoleName(role) }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Deferred data="available_roles">
+                                <template #fallback>
+                                    <Skeleton class="h-9 w-full" />
+                                </template>
+                                <Select v-model="roleFilter">
+                                    <SelectTrigger class="h-9">
+                                        <SelectValue
+                                            :placeholder="$t('Filter by Role')"
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">{{
+                                            $t('All Roles')
+                                        }}</SelectItem>
+                                        <SelectItem
+                                            v-for="role in available_roles"
+                                            :key="role"
+                                            :value="role"
+                                        >
+                                            {{ formatRoleName(role) }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Deferred>
                         </div>
                     </template>
                 </ResourceFilterBar>
@@ -234,12 +228,14 @@ const allColumns = [
                             <tr
                                 v-for="user in users.data"
                                 :key="user.id"
-                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                                class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
                                         v-if="
-                                            user.id !== $page.props.auth.user.id
+                                            selectableUsers.some(
+                                                (u) => u.id === user.id,
+                                            )
                                         "
                                         :model-value="
                                             selectedIds.includes(user.id)
@@ -288,7 +284,7 @@ const allColumns = [
                                             as-child
                                         >
                                             <Link
-                                                :href="`/admin/users/${user.id}/edit`"
+                                                :href="usersRoutes.edit.url(user.id)"
                                             >
                                                 <Pencil class="h-4 w-4" />
                                             </Link>
@@ -296,8 +292,9 @@ const allColumns = [
                                         <Button
                                             v-if="
                                                 can('delete_users') &&
-                                                user.id !==
-                                                    $page.props.auth.user.id
+                                                selectableUsers.some(
+                                                    (u) => u.id === user.id,
+                                                )
                                             "
                                             variant="destructive"
                                             size="icon"
@@ -321,8 +318,9 @@ const allColumns = [
                                         <Button
                                             v-if="
                                                 can('force_delete_users') &&
-                                                user.id !==
-                                                    $page.props.auth.user.id
+                                                selectableUsers.some(
+                                                    (u) => u.id === user.id,
+                                                )
                                             "
                                             variant="destructive"
                                             size="icon"
@@ -372,13 +370,13 @@ const allColumns = [
         title="Export Users"
         description="Choose the columns you want to include in your user export."
         :columns="allColumns"
-        export-url="/admin/users/export"
+        :export-url="usersRoutes.exportMethod.url()"
     />
 
     <ResourceImportModal
         v-model:open="isImportModalOpen"
         title="Import Users"
         description="Select an Excel or CSV file to import users. The file should match the exported format."
-        import-url="/admin/users/import"
+        :import-url="usersRoutes.importMethod.url()"
     />
 </template>

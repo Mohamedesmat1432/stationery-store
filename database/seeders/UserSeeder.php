@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Modules\Identity\Enums\RoleName;
 
 class UserSeeder extends Seeder
 {
@@ -25,7 +26,7 @@ class UserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $admin->assignRole('admin');
+        $admin->assignRole(RoleName::ADMIN->value);
 
         // Create Manager User
         $manager = User::firstOrCreate(
@@ -37,18 +38,18 @@ class UserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $manager->assignRole('manager');
+        $manager->assignRole(RoleName::MANAGER->value);
 
-        // Create Customer User
+        // Create Default User
         $user = User::firstOrCreate(
             ['email' => 'user@example.com'],
             [
-                'name' => 'User',
+                'name' => 'Default User',
                 'password' => $password,
                 'phone' => '+212634567890',
                 'is_active' => true,
             ]
         );
-        $user->assignRole('user');
+        $user->assignRole(RoleName::EDITOR->value);
     }
 }

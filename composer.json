@@ -21,7 +21,8 @@
         "spatie/laravel-data": "^4.22",
         "spatie/laravel-medialibrary": "^11.22",
         "spatie/laravel-permission": "^7.3",
-        "spatie/laravel-query-builder": "^7.2"
+        "spatie/laravel-query-builder": "^7.2",
+        "spatie/laravel-typescript-transformer": "^3.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^4.2",

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Users, Pencil, Trash2, RotateCcw, Trash, Download, Upload } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
@@ -14,19 +14,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import * as customerGroupsRoutes from '@/routes/admin/customer-groups/index';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Customer Groups', href: '/admin/customer-groups' },
+            { title: 'Customer Groups', href: customerGroupsRoutes.index.url() },
         ],
     },
 });
 
+// Types are automatically generated via spatie/laravel-typescript-transformer
+type CustomerGroup = Modules.CRM.Data.CustomerGroupData & { id: string };
+
 const props = defineProps<{
     groups: {
-        data: any[];
+        data: CustomerGroup[];
         links: any[];
         current_page: number;
         last_page: number;
@@ -43,9 +47,13 @@ const props = defineProps<{
 const { searchQuery, showTrashed, applyFilters } = useResourceFilters(
     props.filters.filter,
     {
-        baseUrl: '/admin/customer-groups',
+        baseUrl: customerGroupsRoutes.index.url(),
     },
 );
+
+const selectableGroups = computed(() => {
+    return props.groups.data.filter((g) => !g.is_protected);
+});
 
 const {
     selectedIds,
@@ -59,10 +67,10 @@ const {
     restoreItem,
     forceDeleteItem,
     confirmState,
-} = useBulkActions(() => props.groups.data, {
+} = useBulkActions(() => selectableGroups.value, {
     entityName: 'customer groups',
-    bulkActionUrl: '/admin/customer-groups/bulk-action',
-    resourceUrl: '/admin/customer-groups',
+    bulkActionUrl: customerGroupsRoutes.bulkAction.url(),
+    resourceUrl: customerGroupsRoutes.index.url(),
 });
 
 // Export/Import state
@@ -90,7 +98,7 @@ const allColumns = [
                 :selected-count="selectedIds.length"
                 :show-trashed="showTrashed"
                 :can-create="can('create_customer_groups')"
-                create-url="/admin/customer-groups/create"
+                :create-url="customerGroupsRoutes.create.url()"
                 create-label="Create Group"
                 :can-delete="can('delete_customer_groups')"
                 :can-restore="can('restore_customer_groups')"
@@ -170,7 +178,7 @@ const allColumns = [
                             <tr
                                 v-for="group in groups.data"
                                 :key="group.id"
-                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                                class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
@@ -225,13 +233,13 @@ const allColumns = [
                                             as-child
                                         >
                                             <Link
-                                                :href="`/admin/customer-groups/${group.id}/edit`"
+                                                :href="customerGroupsRoutes.edit.url(group.id)"
                                             >
                                                 <Pencil class="h-4 w-4" />
                                             </Link>
                                         </Button>
                                         <Button
-                                            v-if="can('delete_customer_groups')"
+                                            v-if="can('delete_customer_groups') && !group.is_protected"
                                             variant="destructive"
                                             size="icon"
                                             class="h-8 w-8"
@@ -307,13 +315,13 @@ const allColumns = [
         title="Export Customer Groups"
         description="Choose the columns you want to include in your customer group export."
         :columns="allColumns"
-        export-url="/admin/customer-groups/export"
+        :export-url="customerGroupsRoutes.exportMethod.url()"
     />
 
     <ResourceImportModal
         v-model:open="isImportModalOpen"
         title="Import Customer Groups"
         description="Select an Excel or CSV file to import customer groups. The file should match the exported format."
-        import-url="/admin/customer-groups/import"
+        :import-url="customerGroupsRoutes.importMethod.url()"
     />
 </template>

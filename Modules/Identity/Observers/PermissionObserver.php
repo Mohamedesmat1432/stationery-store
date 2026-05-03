@@ -9,6 +9,11 @@ use Spatie\Permission\PermissionRegistrar;
 class PermissionObserver
 {
     /**
+     * Handle the events immediately for zero-delay cache invalidation.
+     */
+    public bool $afterCommit = false;
+
+    /**
      * Handle the Permission "saved" event.
      * Flush caches when permission is created or updated.
      */

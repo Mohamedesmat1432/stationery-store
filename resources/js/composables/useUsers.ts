@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/vue3';
+import { store, update } from '@/actions/Modules/Identity/Http/Controllers/UserController';
 
-export function useUsers(initialData?: any) {
+export function useUsers(initialData?: Modules.Identity.Data.UserData) {
     const form = useForm({
         name: initialData?.name ?? '',
         email: initialData?.email ?? '',
@@ -10,9 +11,9 @@ export function useUsers(initialData?: any) {
 
     const submit = (id?: string) => {
         if (id) {
-            form.put(`/admin/users/${id}`);
+            form.put(update.url(id));
         } else {
-            form.post('/admin/users');
+            form.post(store.url());
         }
     };
 

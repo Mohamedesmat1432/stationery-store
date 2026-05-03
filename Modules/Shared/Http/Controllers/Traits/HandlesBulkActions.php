@@ -12,6 +12,8 @@ trait HandlesBulkActions
 {
     /**
      * Handle single restore operation.
+     *
+     * @param  string|int  $id
      */
     protected function performRestore($id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
     {
@@ -25,6 +27,8 @@ trait HandlesBulkActions
 
     /**
      * Handle single force delete operation.
+     *
+     * @param  string|int  $id
      */
     protected function performForceDelete($id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
     {

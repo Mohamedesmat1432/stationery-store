@@ -5,36 +5,64 @@ namespace Modules\Identity\Data;
 use App\Models\User;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class UserData extends Data
 {
+    /** @var string|null */
+    #[Computed]
+    public bool $is_protected;
+
     public function __construct(
+        /** @var string|null */
         public ?string $id,
+
+        /** @var string */
         public string $name,
+
+        /** @var string */
         public string $email,
+
+        /** @var string|null */
         public ?string $password,
+
         /** @var array<string> */
         public array $roles,
-        public ?string $deleted_at,
+
+        /** @var string|null */
+        public ?string $deleted_at = null,
     ) {}
 
-    public static function fromModel(User $user): self
+    /**
+     * Create a DTO instance from a User model.
+     */
+    public static function fromUser(User $user): self
     {
-        return new self(
-            $user->id,
-            $user->name,
-            $user->email,
-            null, // Do not expose password
-            $user->roles->pluck('name')->toArray(),
-            $user->deleted_at?->toDateTimeString(),
+        $data = new self(
+            id: $user->id,
+            name: $user->name,
+            email: $user->email,
+            password: null, // Do not expose password
+            roles: $user->roles->pluck('name')->toArray(),
+            deleted_at: $user->deleted_at?->toDateTimeString(),
         );
+
+        $data->is_protected = $user->isProtectedBy(auth()->user());
+
+        return $data;
     }
 
+    /**
+     * Validation rules for User data.
+     */
     public static function rules(?ValidationContext $context = null): array
     {
-        $userId = request()->route('user')?->id;
+        $user = request()->route('user');
+        $userId = $user instanceof User ? $user->id : $user;
         $isUpdate = $userId !== null;
 
         return [

@@ -15,7 +15,7 @@ use Modules\CRM\Http\Controllers\CustomerGroupController;
 */
 
 // Customers
-Route::post('customers/bulk-action', [CustomerController::class, 'bulkDestroy'])->name('customers.bulk-action');
+Route::post('customers/bulk-action', [CustomerController::class, 'bulkAction'])->name('customers.bulk-action');
 Route::get('customers/export', [CustomerController::class, 'export'])->name('customers.export');
 Route::post('customers/import', [CustomerController::class, 'import'])->name('customers.import');
 Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore')->withTrashed();
@@ -23,7 +23,7 @@ Route::delete('customers/{customer}/force-delete', [CustomerController::class, '
 Route::resource('customers', CustomerController::class);
 
 // Customer Groups
-Route::post('customer-groups/bulk-action', [CustomerGroupController::class, 'bulkDestroy'])->name('customer-groups.bulk-action');
+Route::post('customer-groups/bulk-action', [CustomerGroupController::class, 'bulkAction'])->name('customer-groups.bulk-action');
 Route::get('customer-groups/export', [CustomerGroupController::class, 'export'])->name('customer-groups.export');
 Route::post('customer-groups/import', [CustomerGroupController::class, 'import'])->name('customer-groups.import');
 Route::post('customer-groups/{customer_group}/restore', [CustomerGroupController::class, 'restore'])->name('customer-groups.restore')->withTrashed();

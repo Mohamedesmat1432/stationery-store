@@ -44,12 +44,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
-                'roles' => $user ? IdentityCacheService::getUserRoles($user->id) : [],
-                'permissions' => $user ? IdentityCacheService::getUserPermissions($user->id) : [],
+                'roles' => fn () => $user ? IdentityCacheService::getUserRoles($user->id) : [],
+                'permissions' => fn () => $user ? IdentityCacheService::getUserPermissions($user->id) : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'locale' => app()->getLocale(),
-            'translations' => CacheService::getTranslations(app()->getLocale()),
+            'translations' => fn () => CacheService::getTranslations(app()->getLocale()),
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

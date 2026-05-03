@@ -6,10 +6,20 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class CustomerGroup extends BaseModel
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'discount_percentage', 'is_active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'name',
@@ -65,5 +75,13 @@ class CustomerGroup extends BaseModel
             $query->where('name', 'like', "%{$search}%")
                 ->orWhere('slug', 'like', "%{$search}%");
         });
+    }
+
+    /**
+     * Check if the customer group is protected from deletion/modification.
+     */
+    public function isProtected(): bool
+    {
+        return in_array($this->slug, ['retail', 'general']);
     }
 }

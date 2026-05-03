@@ -8,11 +8,16 @@ use Modules\Identity\Services\IdentityCacheService;
 class UserObserver
 {
     /**
+     * Set to true to ensure cache is cleared AFTER the database transaction commits.
+     */
+    public bool $afterCommit = true;
+
+    /**
      * Handle the User "saved" event.
      */
     public function saved(User $user): void
     {
-        IdentityCacheService::flushUserCache($user->id);
+        IdentityCacheService::flushUserCaches();
     }
 
     /**
@@ -20,7 +25,7 @@ class UserObserver
      */
     public function deleted(User $user): void
     {
-        IdentityCacheService::flushUserCache($user->id);
+        IdentityCacheService::flushUserCaches();
     }
 
     /**
@@ -28,7 +33,7 @@ class UserObserver
      */
     public function restored(User $user): void
     {
-        IdentityCacheService::flushUserCache($user->id);
+        IdentityCacheService::flushUserCaches();
     }
 
     /**
@@ -36,6 +41,6 @@ class UserObserver
      */
     public function forceDeleted(User $user): void
     {
-        IdentityCacheService::flushUserCache($user->id);
+        IdentityCacheService::flushUserCaches();
     }
 }

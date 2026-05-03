@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Modules\Identity\Enums\PermissionName;
+use Modules\Identity\Enums\RoleName;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleAndPermissionSeeder extends Seeder
@@ -24,10 +25,10 @@ class RoleAndPermissionSeeder extends Seeder
         }
 
         // Create Roles and assign created permissions
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => RoleName::ADMIN->value]);
         $adminRole->givePermissionTo(Permission::all());
 
-        $managerRole = Role::firstOrCreate(['name' => 'manager']);
+        $managerRole = Role::firstOrCreate(['name' => RoleName::MANAGER->value]);
         $managerRole->givePermissionTo([
             // CRM
             PermissionName::VIEW_CUSTOMERS->value,
@@ -68,8 +69,8 @@ class RoleAndPermissionSeeder extends Seeder
             PermissionName::VIEW_REPORTS->value,
         ]);
 
-        $userRole = Role::firstOrCreate(['name' => 'user']);
+        Role::firstOrCreate(['name' => RoleName::EDITOR->value]);
 
-        $customerRole = Role::firstOrCreate(['name' => 'customer']);
+        Role::firstOrCreate(['name' => RoleName::CUSTOMER->value]);
     }
 }

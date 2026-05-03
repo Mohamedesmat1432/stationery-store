@@ -2,21 +2,30 @@
 
 namespace Modules\Identity\Repositories\Eloquent;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
+use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
-class UserRepository extends BaseRepository implements UserRepositoryInterface
+class UserRepository extends BaseRepository implements ProtectsBulkResources, UserRepositoryInterface
 {
+    /**
+     * Get the model class for this repository.
+     */
     protected function getModelClass(): string
     {
         return User::class;
     }
 
+    /**
+     * Get paginated users with filters and eager loading.
+     */
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return QueryBuilder::for(User::class)
@@ -28,23 +37,95 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 }),
                 AllowedFilter::trashed('trash'),
             ])
+            ->allowedIncludes(...['roles', 'customer'])
+            ->allowedSorts(...['name', 'email', 'created_at'])
             ->defaultSort('-id')
             ->paginate($perPage)
             ->withQueryString();
     }
 
+    /**
+     * Find a user by ID with roles.
+     */
     public function findById(string $id): User
     {
         return User::with('roles')->findOrFail($id);
     }
 
+    /**
+     * Sync roles to the given user.
+     */
     public function syncRoles(User $user, array $roles): void
     {
         $user->syncRoles($roles);
     }
 
+    /**
+     * Get the query for exporting users.
+     */
     public function getExportQuery(): Builder
     {
         return User::query()->with('roles');
+    }
+
+    /**
+     * Get permission names for a user.
+     */
+    public function getPermissions(string $userId): array
+    {
+        return User::find($userId)?->getAllPermissions()->pluck('name')->toArray() ?? [];
+    }
+
+    /**
+     * Get role names for a user.
+     */
+    public function getRoles(string $userId): array
+    {
+        return User::find($userId)?->getRoleNames()->toArray() ?? [];
+    }
+
+    /**
+     * Get users available for customer assignment.
+     */
+    public function getAvailableForCustomer(?string $includeUserId = null): Collection
+    {
+        return User::with('roles')
+            ->whereDoesntHave('customer')
+            ->when($includeUserId, fn ($query) => $query->orWhere('id', $includeUserId))
+            ->get();
+    }
+
+    /**
+     * Get IDs of admin users from the given set.
+     */
+    public function getAdminIds(array $ids, bool $withTrashed = false): array
+    {
+        $query = User::query()
+            ->role(Role::ROLE_ADMIN)
+            ->whereIn('id', $ids);
+
+        if ($withTrashed) {
+            $query->withTrashed();
+        }
+
+        return $query->pluck('id')->toArray();
+    }
+
+    /**
+     * Get IDs from the given set that are protected from deletion or modification.
+     */
+    public function getProtectedIds(array $ids): array
+    {
+        $currentUser = auth()->user();
+
+        if (! $currentUser) {
+            return [];
+        }
+
+        return User::whereIn('id', $ids)
+            ->get()
+            ->filter(fn (User $user) => $user->isProtectedBy($currentUser))
+            ->pluck('id')
+            ->toArray();
     }
 }

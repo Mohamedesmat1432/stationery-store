@@ -3,13 +3,14 @@
 namespace Modules\CRM\Services;
 
 use App\Models\Customer;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\CRM\Data\CustomerData;
 use Modules\CRM\Exports\CustomersExport;
 use Modules\CRM\Imports\CustomersImport;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
+use Modules\Shared\Events\BulkOperationCompleted;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -21,40 +22,65 @@ class CustomerService
         protected CustomerRepositoryInterface $customerRepository
     ) {}
 
-    public function getCustomersPaginated(int $perPage = 15): LengthAwarePaginator
+    protected function getRepository(): CustomerRepositoryInterface
     {
-        return $this->customerRepository->paginate($perPage);
+        return $this->customerRepository;
     }
 
+    /**
+     * Get paginated customers.
+     */
+    public function getCustomersPaginated(array $params = [], int $perPage = 15): array
+    {
+        return CRMCacheService::rememberCustomers(
+            $params,
+            $perPage,
+            fn () => $this->customerRepository->paginate($perPage)
+        );
+    }
+
+    /**
+     * Create a new customer.
+     */
     public function createCustomer(CustomerData $data): Customer
     {
-        /** @var Customer $customer */
-        $customer = $this->customerRepository->create($data->toArray());
-
-        return $customer;
+        return DB::transaction(function () use ($data) {
+            return $this->customerRepository->create($data->toArray());
+        });
     }
 
+    /**
+     * Update an existing customer.
+     */
     public function updateCustomer(Customer $customer, CustomerData $data): Customer
     {
-        /** @var Customer $updatedCustomer */
-        $updatedCustomer = $this->customerRepository->update($customer, $data->toArray());
-
-        return $updatedCustomer;
+        return DB::transaction(function () use ($customer, $data) {
+            return $this->customerRepository->update($customer, $data->toArray());
+        });
     }
 
+    /**
+     * Delete a customer.
+     */
     public function deleteCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->delete($customer);
+        return DB::transaction(fn () => $this->customerRepository->delete($customer));
     }
 
+    /**
+     * Restore a soft-deleted customer.
+     */
     public function restoreCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->restore($customer);
+        return DB::transaction(fn () => $this->customerRepository->restore($customer));
     }
 
+    /**
+     * Permanently delete a customer.
+     */
     public function forceDeleteCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->forceDelete($customer);
+        return DB::transaction(fn () => $this->customerRepository->forceDelete($customer));
     }
 
     public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse
@@ -71,6 +97,13 @@ class CustomerService
 
     public function importCustomers(UploadedFile $file): void
     {
-        Excel::import(new CustomersImport, $file);
+        Customer::withoutEvents(fn () => Excel::import(new CustomersImport, $file));
+
+        event(new BulkOperationCompleted(Customer::class, 'import'));
+    }
+
+    protected function getModelClass(): string
+    {
+        return Customer::class;
     }
 }

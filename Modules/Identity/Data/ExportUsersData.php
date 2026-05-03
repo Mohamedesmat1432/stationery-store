@@ -5,12 +5,16 @@ namespace Modules\Identity\Data;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class ExportUsersData extends Data
 {
     public function __construct(
         /** @var array<string> */
         public array $columns,
+
+        /** @var string */
         public string $format,
     ) {}
 

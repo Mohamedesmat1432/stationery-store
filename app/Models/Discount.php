@@ -159,7 +159,6 @@ class Discount extends BaseModel
     public function incrementUsage(): void
     {
         $this->increment('usage_count');
-        $this->forgetRedisCache();
     }
 
     public function getCacheKey(string $suffix = ''): string

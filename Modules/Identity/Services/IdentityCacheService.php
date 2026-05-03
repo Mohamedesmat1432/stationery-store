@@ -4,44 +4,41 @@ namespace Modules\Identity\Services;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
+use Modules\Identity\Data\RoleData;
+use Modules\Identity\Data\UserData;
 use Modules\Identity\Enums\PermissionName;
+use Modules\Identity\Enums\RoleName;
+use Modules\Identity\Repositories\Contracts\RoleRepositoryInterface;
+use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Shared\Services\Cache\BaseCacheService;
+use Spatie\Permission\PermissionRegistrar;
 
 class IdentityCacheService extends BaseCacheService
 {
-    private const PREFIX_USER = 'user';
+    public const TAG_USERS = 'users';
 
-    private const PREFIX_ROLE = 'role';
+    public const TAG_ROLES = 'roles';
 
-    private const PREFIX_PERMISSION = 'permission';
-
-    private const TAG_USERS = 'users';
-
-    private const TAG_ROLES = 'roles';
-
-    private const TAG_PERMISSIONS = 'permissions';
+    public const TAG_PERMISSIONS = 'permissions';
 
     // ========== USER CACHE METHODS ==========
 
     public static function getUserPermissions(string $userId): array
     {
-        return Cache::tags([self::TAG_USERS, self::TAG_PERMISSIONS])
-            ->remember(
-                self::key(self::PREFIX_USER, 'permissions', $userId),
-                self::TTL_LONG,
-                fn () => User::find($userId)?->getAllPermissions()->pluck('name')->toArray() ?? []
-            );
+        return self::rememberDirect(
+            self::TAG_USERS,
+            "user_permissions:{$userId}",
+            fn () => app(UserRepositoryInterface::class)->getPermissions($userId)
+        );
     }
 
     public static function getUserRoles(string $userId): array
     {
-        return Cache::tags([self::TAG_USERS, self::TAG_ROLES])
-            ->remember(
-                self::key(self::PREFIX_USER, 'roles', $userId),
-                self::TTL_LONG,
-                fn () => User::find($userId)?->getRoleNames()->toArray() ?? []
-            );
+        return self::rememberDirect(
+            self::TAG_USERS,
+            "user_roles:{$userId}",
+            fn () => app(UserRepositoryInterface::class)->getRoles($userId)
+        );
     }
 
     public static function userHasPermission(string $userId, string $permission): bool
@@ -51,81 +48,106 @@ class IdentityCacheService extends BaseCacheService
 
     public static function userIsAdmin(string $userId): bool
     {
-        return in_array(Role::ROLE_ADMIN, self::getUserRoles($userId));
+        return in_array(RoleName::ADMIN->value, self::getUserRoles($userId));
     }
 
+    public static function rememberUsers(array $params, int $perPage, callable $callback, ?callable $transform = null): array
+    {
+        return self::rememberPaginated(
+            self::TAG_USERS,
+            $params,
+            $perPage,
+            $callback,
+            $transform ?? fn ($collection) => UserData::collect($collection)
+        );
+    }
+
+    /**
+     * Flush all user-related caches.
+     */
     public static function flushUserCaches(): void
     {
-        Cache::tags([self::TAG_USERS])->flush();
+        self::flushTagsWithFallbacks([self::TAG_USERS]);
     }
 
+    /**
+     * Flush cache for a specific user.
+     */
     public static function flushUserCache(string $userId): void
     {
-        Cache::forget(self::key(self::PREFIX_USER, 'permissions', $userId));
-        Cache::forget(self::key(self::PREFIX_USER, 'roles', $userId));
+        // Currently flushes all user tags as more specific invalidation is pending implementation
+        self::flushUserCaches();
+    }
+
+    public static function getAvailableForCustomer(?string $includeUserId = null): array
+    {
+        $key = 'available_for_customer:'.($includeUserId ?? 'none');
+
+        return self::rememberDirect(
+            self::TAG_USERS,
+            $key,
+            fn () => app(UserRepositoryInterface::class)->getAvailableForCustomer($includeUserId),
+            fn ($collection) => UserData::collect($collection)->toArray()
+        );
     }
 
     // ========== ROLE CACHE METHODS ==========
 
     public static function getAvailableRoles(): array
     {
-        return Cache::tags([self::TAG_ROLES])
-            ->remember(
-                self::key(self::PREFIX_ROLE, 'available_list'),
-                self::TTL_MEDIUM,
-                fn () => Role::pluck('name')->toArray()
-            );
+        return self::rememberDirect(
+            self::TAG_ROLES,
+            'available_roles',
+            fn () => app(RoleRepositoryInterface::class)->getAvailableNames()
+        );
     }
 
     public static function getRolePermissions(string $roleId): array
     {
-        return Cache::tags([self::TAG_ROLES, self::TAG_PERMISSIONS])
-            ->remember(
-                self::key(self::PREFIX_ROLE, 'permissions', $roleId),
-                self::TTL_LONG,
-                fn () => Role::with('permissions')->find($roleId)?->permissions->pluck('name')->toArray() ?? []
-            );
+        return self::rememberDirect(
+            self::TAG_ROLES,
+            "role_permissions:{$roleId}",
+            fn () => app(RoleRepositoryInterface::class)->getPermissions($roleId)
+        );
     }
 
-    public static function getAllRolesWithPermissions(): array
-    {
-        return Cache::tags([self::TAG_ROLES, self::TAG_PERMISSIONS])
-            ->remember(
-                self::key(self::PREFIX_ROLE, 'all_with_permissions'),
-                self::TTL_MEDIUM,
-                function () {
-                    return Role::with('permissions')
-                        ->orderBy('name')
-                        ->get()
-                        ->map(fn ($role) => [
-                            'id' => $role->id,
-                            'name' => $role->name,
-                            'permissions' => $role->permissions->pluck('name')->toArray(),
-                        ])
-                        ->toArray();
-                }
-            );
-    }
-
+    /**
+     * Flush all role-related caches and Spatie internal cache.
+     */
     public static function flushRoleCaches(): void
     {
-        Cache::tags([self::TAG_ROLES])->flush();
+        self::flushTagsWithFallbacks([self::TAG_ROLES, self::TAG_USERS]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    public static function rememberRoles(array $params, int $perPage, callable $callback, ?callable $transform = null): array
+    {
+        return self::rememberPaginated(
+            self::TAG_ROLES,
+            $params,
+            $perPage,
+            $callback,
+            $transform ?? fn ($collection) => RoleData::collect($collection)
+        );
     }
 
     // ========== PERMISSION CACHE METHODS ==========
 
     public static function getAvailablePermissions(): array
     {
-        return Cache::tags([self::TAG_PERMISSIONS])
-            ->remember(
-                self::key(self::PREFIX_PERMISSION, 'available_list'),
-                self::TTL_MEDIUM,
-                fn () => PermissionName::values()
-            );
+        return self::rememberDirect(
+            self::TAG_PERMISSIONS,
+            'available_permissions',
+            fn () => PermissionName::values()
+        );
     }
 
+    /**
+     * Flush all permission-related caches.
+     */
     public static function flushPermissionCaches(): void
     {
-        Cache::tags([self::TAG_PERMISSIONS])->flush();
+        self::flushTagsWithFallbacks([self::TAG_PERMISSIONS, self::TAG_ROLES, self::TAG_USERS]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

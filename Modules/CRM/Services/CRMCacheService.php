@@ -2,40 +2,71 @@
 
 namespace Modules\CRM\Services;
 
-use App\Models\CustomerGroup;
-use Illuminate\Support\Facades\Cache;
+use Modules\CRM\Data\CustomerData;
+use Modules\CRM\Data\CustomerGroupData;
+use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use Modules\Shared\Services\Cache\BaseCacheService;
 
 class CRMCacheService extends BaseCacheService
 {
-    private const PREFIX_CUSTOMER_GROUP = 'customer_group';
+    public const TAG_CUSTOMERS = 'customers';
 
-    private const TAG_CUSTOMER_GROUPS = 'customer_groups';
+    public const TAG_CUSTOMER_GROUPS = 'customer_groups';
 
-    // ========== CUSTOMER GROUP CACHE METHODS ==========
+    /**
+     * Remember paginated customers in cache.
+     */
+    public static function rememberCustomers(array $params, int $perPage, callable $callback, ?callable $transform = null): array
+    {
+        return self::rememberPaginated(
+            self::TAG_CUSTOMERS,
+            $params,
+            $perPage,
+            $callback,
+            $transform ?? fn ($collection) => CustomerData::collect($collection)
+        );
+    }
 
+    /**
+     * Remember paginated customer groups in cache.
+     */
+    public static function rememberCustomerGroups(array $params, int $perPage, callable $callback, ?callable $transform = null): array
+    {
+        return self::rememberPaginated(
+            self::TAG_CUSTOMER_GROUPS,
+            $params,
+            $perPage,
+            $callback,
+            $transform ?? fn ($collection) => CustomerGroupData::collect($collection)
+        );
+    }
+
+    /**
+     * Get active customer groups from cache.
+     */
     public static function getActiveCustomerGroups(): array
     {
-        return Cache::tags([self::TAG_CUSTOMER_GROUPS])
-            ->remember(
-                self::key(self::PREFIX_CUSTOMER_GROUP, 'active'),
-                self::TTL_MEDIUM,
-                fn () => CustomerGroup::active()->get()->toArray()
-            );
+        return self::rememberDirect(
+            self::TAG_CUSTOMER_GROUPS,
+            'active_list',
+            fn () => app(CustomerGroupRepositoryInterface::class)->allActive(),
+            fn ($collection) => CustomerGroupData::collect($collection)->toArray()
+        );
     }
 
-    public static function getAvailableCustomerGroups(): array
+    /**
+     * Flush all customer-related caches.
+     */
+    public static function flushCustomerCaches(): void
     {
-        return Cache::tags([self::TAG_CUSTOMER_GROUPS])
-            ->remember(
-                self::key(self::PREFIX_CUSTOMER_GROUP, 'available_list'),
-                self::TTL_MEDIUM,
-                fn () => CustomerGroup::active()->pluck('name', 'id')->toArray()
-            );
+        self::flushTagsWithFallbacks([self::TAG_CUSTOMERS]);
     }
 
+    /**
+     * Flush all customer group-related caches.
+     */
     public static function flushCustomerGroupCaches(): void
     {
-        Cache::tags([self::TAG_CUSTOMER_GROUPS])->flush();
+        self::flushTagsWithFallbacks([self::TAG_CUSTOMER_GROUPS]);
     }
 }

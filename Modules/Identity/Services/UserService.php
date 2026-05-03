@@ -4,7 +4,7 @@ namespace Modules\Identity\Services;
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -13,19 +13,47 @@ use Modules\Identity\Data\UserData;
 use Modules\Identity\Exports\UsersExport;
 use Modules\Identity\Imports\UsersImport;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
+use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\ProtectsSystemResources;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserService
 {
-    public function __construct(
-        protected UserRepositoryInterface $userRepository
-    ) {}
-
-    public function getUsersPaginated(int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->userRepository->paginate($perPage);
+    use HandlesBulkOperations, ProtectsSystemResources {
+        ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
     }
 
+    public function __construct(
+        protected UserRepositoryInterface $userRepository
+    ) {
+    }
+
+    protected function getRepository(): UserRepositoryInterface
+    {
+        return $this->userRepository;
+    }
+
+    protected function getModelClass(): string
+    {
+        return User::class;
+    }
+
+    /**
+     * Get paginated users for the index view.
+     */
+    public function getUsersPaginated(array $params = [], int $perPage = 15): array
+    {
+        return IdentityCacheService::rememberUsers(
+            $params,
+            $perPage,
+            fn() => $this->userRepository->paginate($perPage)
+        );
+    }
+
+    /**
+     * Create a new user with roles.
+     */
     public function createUser(UserData $data): User
     {
         return DB::transaction(function () use ($data) {
@@ -37,18 +65,19 @@ class UserService
             ]);
 
             $roles = $data->roles;
-            if (auth()->check() && ! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
+            if (auth()->check() && !auth()->user()->hasRole(Role::ROLE_ADMIN)) {
                 $roles = array_diff($roles, [Role::ROLE_ADMIN]);
             }
 
             $this->userRepository->syncRoles($user, $roles);
 
-            // Cache invalidation handled by UserObserver::saved()
-
             return $user;
         });
     }
 
+    /**
+     * Update an existing user.
+     */
     public function updateUser(User $user, UserData $data): User
     {
         return DB::transaction(function () use ($user, $data) {
@@ -65,13 +94,9 @@ class UserService
             $user = $this->userRepository->update($user, $updateData);
 
             $roles = $data->roles;
-            if (auth()->check() && ! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-                // If they are updating an existing admin and somehow bypassed the policy,
-                // we should not strip the admin role if the user already had it.
-                // But generally, non-admins shouldn't assign it to anyone.
+            if (auth()->check() && !auth()->user()->hasRole(Role::ROLE_ADMIN)) {
                 $roles = array_diff($roles, [Role::ROLE_ADMIN]);
 
-                // If the user already was an admin, preserve it (though Policy prevents this edit anyway)
                 if ($user->hasRole(Role::ROLE_ADMIN)) {
                     $roles[] = Role::ROLE_ADMIN;
                 }
@@ -79,89 +104,53 @@ class UserService
 
             $this->userRepository->syncRoles($user, $roles);
 
-            // Cache invalidation handled by UserObserver::saved()
-
             return $user;
         });
     }
 
+    /**
+     * Delete a user if not protected.
+     */
     public function deleteUser(User $user): bool
     {
-        if (auth()->check() && auth()->id() === $user->id) {
+        if ($this->isProtected($user)) {
             return false;
         }
 
-        if ($user->hasRole(Role::ROLE_ADMIN) && auth()->check() && ! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-            return false;
-        }
-
-        return $this->userRepository->delete($user);
+        return DB::transaction(fn() => $this->userRepository->delete($user));
     }
 
+    /**
+     * Restore a soft-deleted user.
+     */
     public function restoreUser(User $user): bool
     {
-        return $this->userRepository->restore($user);
+        return DB::transaction(fn() => $this->userRepository->restore($user));
     }
 
+    /**
+     * Permanently delete a user.
+     */
     public function forceDeleteUser(User $user): bool
     {
-        if (auth()->check() && auth()->id() === $user->id) {
+        if ($this->isProtected($user)) {
             return false;
         }
 
-        if ($user->hasRole(Role::ROLE_ADMIN) && auth()->check() && ! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-            return false;
-        }
-
-        return $this->userRepository->forceDelete($user);
+        return DB::transaction(fn() => $this->userRepository->forceDelete($user));
     }
 
-    public function bulkDelete(array $ids): bool
+    /**
+     * Check if a user is protected from deletion/modification.
+     */
+    public function isProtected(Model|User $model): bool
     {
-        // Prevent deleting the current user
-        $ids = array_diff($ids, [auth()->id()]);
-
-        // If not admin, prevent deleting other admins
-        if (! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-            $adminIds = User::role(Role::ROLE_ADMIN)->whereIn('id', $ids)->pluck('id')->toArray();
-            $ids = array_diff($ids, $adminIds);
-        }
-
-        if (empty($ids)) {
-            return false;
-        }
-
-        return $this->userRepository->bulkDelete($ids);
-    }
-
-    public function bulkRestore(array $ids): bool
-    {
-        return $this->userRepository->bulkRestore($ids);
-    }
-
-    public function bulkForceDelete(array $ids): bool
-    {
-        // Prevent deleting the current user
-        $ids = array_diff($ids, [auth()->id()]);
-
-        // If not admin, prevent deleting other admins
-        if (! auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-            $adminIds = User::onlyTrashed()->role(Role::ROLE_ADMIN)->whereIn('id', $ids)->pluck('id')->toArray();
-            $ids = array_diff($ids, $adminIds);
-        }
-
-        if (empty($ids)) {
-            return false;
-        }
-
-        return $this->userRepository->bulkForceDelete($ids);
+        return $model->isProtectedBy(auth()->user());
     }
 
     public function getAvailableForCustomer(?string $includeUserId = null)
     {
-        return User::whereDoesntHave('customer')
-            ->when($includeUserId, fn ($query) => $query->orWhere('id', $includeUserId))
-            ->get();
+        return IdentityCacheService::getAvailableForCustomer($includeUserId);
     }
 
     public function exportUsers(array $columns, string $formatKey): BinaryFileResponse
@@ -171,13 +160,15 @@ class UserService
 
         return Excel::download(
             new UsersExport($this->userRepository->getExportQuery(), $columns),
-            'users.'.$extension,
+            'users.' . $extension,
             $format
         );
     }
 
     public function importUsers(UploadedFile $file): void
     {
-        Excel::import(new UsersImport, $file);
+        User::withoutEvents(fn() => Excel::import(new UsersImport, $file));
+
+        event(new BulkOperationCompleted(User::class, 'import'));
     }
 }

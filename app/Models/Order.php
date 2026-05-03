@@ -93,7 +93,6 @@ class Order extends BaseModel
                     'changed_by_type' => 'system',
                 ]);
             }
-            $order->forgetRedisCache();
         });
     }
 

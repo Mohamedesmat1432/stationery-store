@@ -4,7 +4,6 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\Concerns\HasRedisCache;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -17,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -24,6 +24,24 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * User Model
+ *
+ * @property string $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string|null $phone
+ * @property string|null $avatar_url
+ * @property string $locale
+ * @property string $timezone
+ * @property bool $is_active
+ * @property Carbon|null $email_verified_at
+ * @property Carbon|null $last_login_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property Carbon|null $deleted_at
+ */
 #[Fillable(['name', 'email', 'password', 'phone', 'avatar_url', 'locale', 'timezone', 'is_active'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements HasMedia
@@ -31,7 +49,7 @@ class User extends Authenticatable implements HasMedia
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    use HasRedisCache, HasRoles, HasUlids, InteractsWithMedia, LogsActivity, SoftDeletes;
+    use HasRoles, HasUlids, InteractsWithMedia, LogsActivity, SoftDeletes;
 
     /**
      * Primary key is ULID string, not integer
@@ -101,16 +119,47 @@ class User extends Authenticatable implements HasMedia
         return $this->wishlists()->where('is_default', true)->first();
     }
 
+    /**
+     * Check if the user is protected from deletion or modification by the given operator.
+     */
+    public function isProtectedBy(?User $operator = null): bool
+    {
+        if (! $operator) {
+            return false;
+        }
+
+        // Users cannot delete themselves
+        if ($operator->id === $this->id) {
+            return true;
+        }
+
+        // Only admins can delete other admins
+        if ($this->hasRole(Role::ROLE_ADMIN) && ! $operator->hasRole(Role::ROLE_ADMIN)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope a query to only include active users.
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * Scope a query to only include recently active users.
+     */
     public function scopeRecentlyActive(Builder $query, int $days = 30): Builder
     {
         return $query->where('last_login_at', '>=', now()->subDays($days));
     }
 
+    /**
+     * Scope a query to search users by name or email.
+     */
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
         return $query->when($search, function ($query, $search) {

@@ -51,8 +51,7 @@ const page = usePage();
 const auth = computed(() => page.props.auth);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
-const activeItemStyles =
-    'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
+const activeItemStyles = 'text-primary bg-primary/15 font-bold shadow-sm ring-1 ring-primary/20';
 
 const mainNavItems: NavItem[] = [
     {
@@ -103,7 +102,7 @@ const rightNavItems: NavItem[] = [
                             >
                             <SheetHeader class="items-start text-start">
                                 <AppLogoIcon
-                                    class="size-6 fill-current text-black dark:text-white"
+                                    class="size-6 fill-current text-primary"
                                 />
                             </SheetHeader>
                             <div
@@ -114,12 +113,11 @@ const rightNavItems: NavItem[] = [
                                         v-for="item in mainNavItems"
                                         :key="item.title"
                                         :href="item.href"
-                                        class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
+                                        class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150"
                                         :class="
-                                            whenCurrentUrl(
-                                                item.href,
-                                                activeItemStyles,
-                                            )
+                                            isCurrentUrl(item.href)
+                                                ? 'bg-primary/15 text-primary font-bold'
+                                                : 'text-muted-foreground hover:bg-primary/8 hover:text-primary'
                                         "
                                     >
                                         <component
@@ -187,7 +185,7 @@ const rightNavItems: NavItem[] = [
                                 </Link>
                                 <div
                                     v-if="isCurrentUrl(item.href)"
-                                    class="absolute bottom-0 start-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
+                                    class="absolute bottom-0 start-0 h-0.5 w-full translate-y-px bg-primary"
                                 ></div>
                             </NavigationMenuItem>
                         </NavigationMenuList>
@@ -262,7 +260,7 @@ const rightNavItems: NavItem[] = [
                                         :alt="auth.user.name"
                                     />
                                     <AvatarFallback
-                                        class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white"
+                                        class="rounded-lg bg-primary/10 font-bold text-primary"
                                     >
                                         {{ getInitials(auth.user?.name) }}
                                     </AvatarFallback>

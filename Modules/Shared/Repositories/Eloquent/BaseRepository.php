@@ -58,32 +58,38 @@ abstract class BaseRepository implements RepositoryInterface
     public function bulkDelete(array $ids): bool
     {
         return DB::transaction(
-            fn () => $this->model::whereIn('id', $ids)
-                ->get()
-                ->each(fn (Model $model) => $model->delete())
-                ->isNotEmpty()
+            fn () => $this->model::withoutEvents(
+                fn () => $this->model::whereIn('id', $ids)
+                    ->get()
+                    ->each(fn (Model $model) => $model->delete())
+                    ->isNotEmpty()
+            )
         );
     }
 
     public function bulkRestore(array $ids): bool
     {
         return DB::transaction(
-            fn () => $this->model::onlyTrashed()
-                ->whereIn('id', $ids)
-                ->get()
-                ->each(fn (Model $model) => $model->restore())
-                ->isNotEmpty()
+            fn () => $this->model::withoutEvents(
+                fn () => $this->model::onlyTrashed()
+                    ->whereIn('id', $ids)
+                    ->get()
+                    ->each(fn (Model $model) => $model->restore())
+                    ->isNotEmpty()
+            )
         );
     }
 
     public function bulkForceDelete(array $ids): bool
     {
         return DB::transaction(
-            fn () => $this->model::onlyTrashed()
-                ->whereIn('id', $ids)
-                ->get()
-                ->each(fn (Model $model) => $model->forceDelete())
-                ->isNotEmpty()
+            fn () => $this->model::withoutEvents(
+                fn () => $this->model::onlyTrashed()
+                    ->whereIn('id', $ids)
+                    ->get()
+                    ->each(fn (Model $model) => $model->forceDelete())
+                    ->isNotEmpty()
+            )
         );
     }
 }

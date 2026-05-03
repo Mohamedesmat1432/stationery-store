@@ -5,50 +5,94 @@ namespace Modules\CRM\Data;
 use App\Models\Customer;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Modules\CRM\Enums\Gender;
+use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Optional;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class CustomerData extends Data
 {
+    #[Computed]
+    public bool $is_protected;
+
     public function __construct(
+        /** @var string|null */
         public ?string $id,
+
+        /** @var string|null */
         public ?string $user_id,
+
+        /** @var string|null */
         public ?string $name = null,
+
+        /** @var string|null */
         public ?string $email = null,
+
+        /** @var string|null */
         public ?string $phone = null,
+
+        /** @var string|null */
         public ?string $birth_date = null,
-        public ?string $gender = null,
+
+        /** @var Gender|null */
+        public ?Gender $gender = null,
+
+        /** @var string|null */
         public ?string $tax_number = null,
+
+        /** @var string|null */
         public ?string $company_name = null,
-        public float $total_spent = 0.0,
-        public int $orders_count = 0,
+
+        /** @var string|null */
         public ?string $customer_group_id = null,
+
+        /** @var string|null */
         public ?string $group_name = null,
+
         /** @var array<string, mixed>|Optional */
         public array|Optional $metadata = [],
-        public ?string $deleted_at = null,
-    ) {}
 
-    public static function fromModel(Customer $customer): self
+        /** @var string|null */
+        public ?string $deleted_at = null,
+    ) {
+        $this->total_spent = 0.0;
+        $this->orders_count = 0;
+    }
+
+    #[Computed]
+    public float $total_spent;
+
+    #[Computed]
+    public int $orders_count;
+
+    public static function fromCustomer(Customer $customer): self
     {
-        return new self(
-            $customer->id,
-            $customer->user_id,
-            $customer->user?->name,
-            $customer->user?->email,
-            $customer->phone,
-            $customer->birth_date ? Carbon::parse($customer->birth_date)->toDateString() : null,
-            $customer->gender,
-            $customer->tax_number,
-            $customer->company_name,
-            (float) $customer->total_spent,
-            (int) $customer->orders_count,
-            $customer->customer_group_id,
-            $customer->group?->name,
-            $customer->metadata ?? [],
-            $customer->deleted_at?->toDateTimeString(),
+        $data = new self(
+            id: $customer->id,
+            user_id: $customer->user_id,
+            name: $customer->user?->name,
+            email: $customer->user?->email,
+            phone: $customer->phone,
+            birth_date: $customer->birth_date instanceof Carbon
+            ? $customer->birth_date->toDateString()
+            : (is_string($customer->birth_date) ? $customer->birth_date : null),
+            gender: $customer->gender instanceof Gender ? $customer->gender : Gender::tryFrom((string) $customer->gender),
+            tax_number: $customer->tax_number,
+            company_name: $customer->company_name,
+            customer_group_id: $customer->customer_group_id,
+            group_name: $customer->group?->name,
+            metadata: $customer->metadata ?? [],
+            deleted_at: $customer->deleted_at?->toDateTimeString(),
         );
+
+        $data->total_spent = (float) $customer->total_spent;
+        $data->orders_count = (int) $customer->orders_count;
+        $data->is_protected = false; // Customers are not protected by default
+
+        return $data;
     }
 
     public static function rules(?ValidationContext $context = null): array
@@ -63,7 +107,7 @@ class CustomerData extends Data
             ],
             'phone' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date'],
-            'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
+            'gender' => ['nullable', Rule::enum(Gender::class)],
             'tax_number' => ['nullable', 'string', 'max:50'],
             'company_name' => ['nullable', 'string', 'max:255'],
             'customer_group_id' => ['nullable', Rule::exists('customer_groups', 'id')],

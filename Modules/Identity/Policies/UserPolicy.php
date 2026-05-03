@@ -2,6 +2,7 @@
 
 namespace Modules\Identity\Policies;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Modules\Identity\Enums\PermissionName;
@@ -45,7 +46,7 @@ class UserPolicy
         }
 
         // Only admins can update other admins
-        if ($model->hasRole('admin') && ! $user->hasRole('admin')) {
+        if ($model->hasRole(Role::ROLE_ADMIN) && ! $user->hasRole(Role::ROLE_ADMIN)) {
             return false;
         }
 
@@ -57,15 +58,8 @@ class UserPolicy
      */
     public function delete(User $user, ?User $model = null): bool
     {
-        if ($model) {
-            // Prevent deleting self or admins unless you are super admin
-            if ($user->id === $model->id) {
-                return false;
-            }
-
-            if ($model->hasRole('admin') && ! $user->hasRole('admin')) {
-                return false;
-            }
+        if ($model && $model->isProtectedBy($user)) {
+            return false;
         }
 
         return $user->hasPermissionTo(PermissionName::DELETE_USERS->value);
@@ -84,10 +78,8 @@ class UserPolicy
      */
     public function forceDelete(User $user, ?User $model = null): bool
     {
-        if ($model) {
-            if ($model->hasRole('admin') && ! $user->hasRole('admin')) {
-                return false;
-            }
+        if ($model && $model->isProtectedBy($user)) {
+            return false;
         }
 
         return $user->hasPermissionTo(PermissionName::FORCE_DELETE_USERS->value);

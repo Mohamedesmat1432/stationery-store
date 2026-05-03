@@ -138,7 +138,7 @@ const formatCurrency = (amount: number) => {
                             <tr
                                 v-for="product in products.data"
                                 :key="product.id"
-                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                                class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox

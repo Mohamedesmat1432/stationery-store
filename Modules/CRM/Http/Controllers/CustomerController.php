@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\CRM\Data\CustomerData;
-use Modules\CRM\Data\CustomerGroupData;
 use Modules\CRM\Data\ExportCustomersData;
 use Modules\CRM\Data\ImportCustomersData;
 use Modules\CRM\Services\CustomerGroupService;
@@ -29,28 +28,37 @@ class CustomerController extends Controller
         protected UserService $userService
     ) {}
 
+    /**
+     * Display a listing of customers.
+     */
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Customer::class);
 
         return Inertia::render('Admin/Customers/Index', [
-            'customers' => CustomerData::collect($this->customerService->getCustomersPaginated()),
+            'customers' => $this->customerService->getCustomersPaginated($request->all()),
             'filters' => $request->only(['filter']),
-            'available_groups' => CustomerGroupData::collect($this->customerGroupService->getAllActive()),
-            'available_users' => $this->userService->getAvailableForCustomer(),
+            'available_groups' => Inertia::defer(fn () => $this->customerGroupService->getAllActive()),
+            'available_users' => Inertia::defer(fn () => $this->userService->getAvailableForCustomer()),
         ]);
     }
 
+    /**
+     * Show the form for creating a new customer.
+     */
     public function create(): Response
     {
         Gate::authorize('create', Customer::class);
 
         return Inertia::render('Admin/Customers/Create', [
-            'available_groups' => CustomerGroupData::collect($this->customerGroupService->getAllActive()),
-            'available_users' => $this->userService->getAvailableForCustomer(),
+            'available_groups' => Inertia::defer(fn () => $this->customerGroupService->getAllActive()),
+            'available_users' => Inertia::defer(fn () => $this->userService->getAvailableForCustomer()),
         ]);
     }
 
+    /**
+     * Store a newly created customer in storage.
+     */
     public function store(CustomerData $data): RedirectResponse
     {
         Gate::authorize('create', Customer::class);
@@ -60,17 +68,33 @@ class CustomerController extends Controller
         return to_route('admin.customers.index')->with('success', __('Customer created successfully.'));
     }
 
+    /**
+     * Display the specified customer.
+     */
+    public function show(Customer $customer): RedirectResponse
+    {
+        Gate::authorize('view', $customer);
+
+        return to_route('admin.customers.edit', $customer);
+    }
+
+    /**
+     * Show the form for editing the specified customer.
+     */
     public function edit(Customer $customer): Response
     {
         Gate::authorize('update', $customer);
 
         return Inertia::render('Admin/Customers/Edit', [
-            'customer' => CustomerData::from($customer),
-            'available_groups' => CustomerGroupData::collect($this->customerGroupService->getAllActive()),
-            'available_users' => $this->userService->getAvailableForCustomer($customer->user_id),
+            'customer' => CustomerData::fromCustomer($customer->loadMissing(['user', 'group'])),
+            'available_groups' => Inertia::defer(fn () => $this->customerGroupService->getAllActive()),
+            'available_users' => Inertia::defer(fn () => $this->userService->getAvailableForCustomer($customer->user_id)),
         ]);
     }
 
+    /**
+     * Update the specified customer in storage.
+     */
     public function update(Customer $customer, CustomerData $data): RedirectResponse
     {
         Gate::authorize('update', $customer);
@@ -80,6 +104,9 @@ class CustomerController extends Controller
         return to_route('admin.customers.index')->with('success', __('Customer updated successfully.'));
     }
 
+    /**
+     * Remove the specified customer from storage.
+     */
     public function destroy(Customer $customer): RedirectResponse
     {
         Gate::authorize('delete', $customer);
@@ -89,21 +116,37 @@ class CustomerController extends Controller
         return to_route('admin.customers.index')->with('success', __('Customer deleted successfully.'));
     }
 
+    /**
+     * Restore a soft-deleted customer.
+     *
+     * @param  string  $id
+     */
     public function restore($id): RedirectResponse
     {
         return $this->performRestore($id, Customer::class, 'customerService', 'restoreCustomer');
     }
 
+    /**
+     * Permanently delete a customer.
+     *
+     * @param  string  $id
+     */
     public function forceDelete($id): RedirectResponse
     {
         return $this->performForceDelete($id, Customer::class, 'customerService', 'forceDeleteCustomer');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    /**
+     * Handle bulk actions for customers.
+     */
+    public function bulkAction(Request $request): RedirectResponse
     {
         return $this->performBulkAction($request, Customer::class, 'customerService');
     }
 
+    /**
+     * Export customers.
+     */
     public function export(ExportCustomersData $data): BinaryFileResponse
     {
         Gate::authorize('export', Customer::class);
@@ -111,6 +154,9 @@ class CustomerController extends Controller
         return $this->customerService->exportCustomers($data->columns, $data->format);
     }
 
+    /**
+     * Import customers.
+     */
     public function import(ImportCustomersData $data): RedirectResponse
     {
         Gate::authorize('import', Customer::class);

@@ -2,6 +2,8 @@
 
 namespace Modules\Shared\Services\Concerns;
 
+use Modules\Shared\Events\BulkOperationCompleted;
+
 /**
  * Trait HandlesBulkOperations
  *
@@ -12,48 +14,87 @@ trait HandlesBulkOperations
 {
     /**
      * Bulk delete items by IDs.
+     *
+     * @param  array<int, string|int>  $ids
      */
     public function bulkDelete(array $ids): bool
     {
-        return $this->getRepository()->bulkDelete($ids);
+        $ids = $this->filterBulkIds($ids, 'delete');
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        $result = $this->getRepository()->bulkDelete($ids);
+        if ($result) {
+            event(new BulkOperationCompleted($this->getModelClass(), 'delete', $ids));
+        }
+
+        return $result;
     }
 
     /**
      * Bulk restore items by IDs.
+     *
+     * @param  array<int, string|int>  $ids
      */
     public function bulkRestore(array $ids): bool
     {
-        return $this->getRepository()->bulkRestore($ids);
+        $ids = $this->filterBulkIds($ids, 'restore');
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        $result = $this->getRepository()->bulkRestore($ids);
+        if ($result) {
+            event(new BulkOperationCompleted($this->getModelClass(), 'restore', $ids));
+        }
+
+        return $result;
     }
 
     /**
      * Bulk force delete items by IDs.
+     *
+     * @param  array<int, string|int>  $ids
      */
     public function bulkForceDelete(array $ids): bool
     {
-        return $this->getRepository()->bulkForceDelete($ids);
+        $ids = $this->filterBulkIds($ids, 'forceDelete');
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        $result = $this->getRepository()->bulkForceDelete($ids);
+        if ($result) {
+            event(new BulkOperationCompleted($this->getModelClass(), 'forceDelete', $ids));
+        }
+
+        return $result;
     }
 
     /**
-     * Helper to get the repository instance.
-     * Services using this trait must provide a getRepository() method or
-     * have a property named after the primary repository.
+     * Filter IDs before bulk operation.
+     * Services can override this to implement custom protection/filtering logic.
+     *
+     * @param  array<int, string|int>  $ids
+     * @return array<int, string|int>
      */
-    protected function getRepository()
+    protected function filterBulkIds(array $ids, string $action): array
     {
-        if (method_exists($this, 'repository')) {
-            return $this->repository();
-        }
-
-        // Common pattern: property name matches service name (e.g. $userRepository in UserService)
-        $reflect = new \ReflectionClass($this);
-        $serviceName = str_replace('Service', '', $reflect->getShortName());
-        $propName = lcfirst($serviceName).'Repository';
-
-        if (property_exists($this, $propName)) {
-            return $this->{$propName};
-        }
-
-        throw new \RuntimeException('Repository not found in '.get_class($this));
+        return $ids;
     }
+
+    /**
+     * Get the model class for the event.
+     */
+    abstract protected function getModelClass(): string;
+
+    /**
+     * Helper to get the repository instance.
+     * Services using this trait must provide this method.
+     */
+    abstract protected function getRepository();
 }

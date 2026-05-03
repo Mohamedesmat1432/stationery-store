@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ShieldCheck, Pencil, Trash2 } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
@@ -11,19 +12,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import * as rolesRoutes from '@/routes/admin/roles/index';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Roles & Permissions', href: '/admin/roles' },
+            { title: 'Roles & Permissions', href: rolesRoutes.index.url() },
         ],
     },
 });
 
+// Types are automatically generated via spatie/laravel-typescript-transformer
+type Role = Modules.Identity.Data.RoleData & { id: string };
+
 const props = defineProps<{
     roles: {
-        data: any[];
+        data: Role[];
         links: any[];
         current_page: number;
         last_page: number;
@@ -37,7 +42,7 @@ const props = defineProps<{
 }>();
 
 const { searchQuery, applyFilters } = useResourceFilters(props.filters.filter, {
-    baseUrl: '/admin/roles',
+    baseUrl: rolesRoutes.index.url(),
 });
 
 const formatRoleName = (name: string) => {
@@ -46,6 +51,10 @@ const formatRoleName = (name: string) => {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 };
+
+const selectableRoles = computed(() => {
+    return props.roles.data.filter((r) => !r.is_protected);
+});
 
 const {
     selectedIds,
@@ -59,10 +68,10 @@ const {
     restoreItem,
     forceDeleteItem,
     confirmState,
-} = useBulkActions(() => props.roles.data, {
+} = useBulkActions(() => selectableRoles.value, {
     entityName: 'roles',
-    bulkActionUrl: '/admin/roles/bulk-action',
-    resourceUrl: '/admin/roles',
+    bulkActionUrl: rolesRoutes.bulkAction.url(),
+    resourceUrl: rolesRoutes.index.url(),
 });
 </script>
 
@@ -77,7 +86,7 @@ const {
                 :icon="ShieldCheck"
                 :selected-count="selectedIds.length"
                 :can-create="can('create_roles')"
-                create-url="/admin/roles/create"
+                :create-url="rolesRoutes.create.url()"
                 create-label="Create Role"
                 :can-delete="can('delete_roles')"
                 @bulk-delete="bulkAction('delete')"
@@ -121,7 +130,7 @@ const {
                             <tr
                                 v-for="role in roles.data"
                                 :key="role.id"
-                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                                class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
@@ -136,7 +145,7 @@ const {
                                 <td class="px-6 py-4 font-medium">
                                     <Badge
                                         :variant="
-                                            role.name === 'admin'
+                                            role.is_protected
                                                 ? 'destructive'
                                                 : 'default'
                                         "
@@ -161,13 +170,13 @@ const {
                                         as-child
                                     >
                                         <Link
-                                            :href="`/admin/roles/${role.id}/edit`"
+                                            :href="rolesRoutes.edit.url(role.id)"
                                         >
                                             <Pencil class="h-4 w-4" />
                                         </Link>
                                     </Button>
                                     <Button
-                                        v-if="can('delete_roles')"
+                                        v-if="can('delete_roles') && !role.is_protected"
                                         variant="destructive"
                                         size="icon"
                                         class="h-8 w-8"

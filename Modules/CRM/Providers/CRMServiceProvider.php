@@ -4,9 +4,11 @@ namespace Modules\CRM\Providers;
 
 use App\Models\Customer;
 use App\Models\CustomerGroup;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\CRM\Listeners\FlushCRMCacheListener;
 use Modules\CRM\Observers\CustomerGroupObserver;
 use Modules\CRM\Observers\CustomerObserver;
 use Modules\CRM\Policies\CustomerGroupPolicy;
@@ -15,6 +17,7 @@ use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
 use Modules\CRM\Repositories\Eloquent\CustomerGroupRepository;
 use Modules\CRM\Repositories\Eloquent\CustomerRepository;
+use Modules\Shared\Events\BulkOperationCompleted;
 
 class CRMServiceProvider extends ServiceProvider
 {
@@ -41,6 +44,7 @@ class CRMServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
         $this->registerObservers();
+        $this->registerEvents();
         $this->registerRoutes();
     }
 
@@ -60,6 +64,15 @@ class CRMServiceProvider extends ServiceProvider
     {
         Customer::observe(CustomerObserver::class);
         CustomerGroup::observe(CustomerGroupObserver::class);
+    }
+
+    /**
+     * Register events and listeners.
+     */
+    protected function registerEvents(): void
+    {
+        // Bulk Operations → Flush Cache
+        Event::listen(BulkOperationCompleted::class, FlushCRMCacheListener::class);
     }
 
     /**

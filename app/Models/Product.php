@@ -71,10 +71,6 @@ class Product extends BaseModel implements HasMedia
 
         static::addGlobalScope(new ActiveScope);
 
-        static::saved(function ($product) {
-            $product->forgetRedisCache();
-            $product->forgetRedisCache('products:featured:*');
-        });
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -9,10 +9,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Modules\CRM\Enums\Gender;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Customer extends BaseModel
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['phone', 'customer_group_id', 'total_spent', 'orders_count'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'user_id',
@@ -38,6 +49,7 @@ class Customer extends BaseModel
             'birth_date' => 'date',
             'total_spent' => 'decimal:4',
             'metadata' => 'array',
+            'gender' => Gender::class,
         ];
     }
 

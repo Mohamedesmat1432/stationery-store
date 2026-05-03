@@ -33,6 +33,10 @@ class CustomerGroupPolicy
 
     public function delete(User $user, ?CustomerGroup $customerGroup = null): bool
     {
+        if ($customerGroup && $customerGroup->isProtected()) {
+            return false;
+        }
+
         return $user->hasPermissionTo(PermissionName::DELETE_CUSTOMER_GROUPS->value);
     }
 
@@ -43,6 +47,10 @@ class CustomerGroupPolicy
 
     public function forceDelete(User $user, ?CustomerGroup $customerGroup = null): bool
     {
+        if ($customerGroup && $customerGroup->isProtected()) {
+            return false;
+        }
+
         return $user->hasPermissionTo(PermissionName::FORCE_DELETE_CUSTOMER_GROUPS->value);
     }
 

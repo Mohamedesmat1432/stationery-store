@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, Deferred } from '@inertiajs/vue3';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     UserCircle,
     Pencil,
@@ -23,16 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import {
     Select,
     SelectContent,
@@ -42,19 +34,23 @@ import {
 } from '@/components/ui/select';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import * as customersRoutes from '@/routes/admin/customers/index';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Customers', href: '/admin/customers' },
+            { title: 'Customers', href: customersRoutes.index.url() },
         ],
     },
 });
 
+// Types are automatically generated via spatie/laravel-typescript-transformer
+type Customer = Modules.CRM.Data.CustomerData & { id: string };
+
 const props = defineProps<{
     customers: {
-        data: any[];
+        data: Customer[];
         links: any[];
         current_page: number;
         last_page: number;
@@ -67,12 +63,12 @@ const props = defineProps<{
             trash?: string;
         };
     };
-    available_groups: any[];
+    available_groups: Modules.CRM.Data.CustomerGroupData[];
 }>();
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
     useResourceFilters(props.filters.filter, {
-        baseUrl: '/admin/customers',
+        baseUrl: customersRoutes.index.url(),
     });
 
 const groupFilter = computed({
@@ -90,6 +86,10 @@ const formatCurrency = (value: number) => {
     }).format(value);
 };
 
+const selectableCustomers = computed(() => {
+    return props.customers.data.filter((c) => !c.is_protected);
+});
+
 const {
     selectedIds,
     isAllSelected,
@@ -102,10 +102,10 @@ const {
     restoreItem,
     forceDeleteItem,
     confirmState,
-} = useBulkActions(() => props.customers.data, {
+} = useBulkActions(() => selectableCustomers.value, {
     entityName: 'customers',
-    bulkActionUrl: '/admin/customers/bulk-action',
-    resourceUrl: '/admin/customers',
+    bulkActionUrl: customersRoutes.bulkAction.url(),
+    resourceUrl: customersRoutes.index.url(),
 });
 
 // Export/Import state
@@ -134,7 +134,7 @@ const allColumns = [
                 :selected-count="selectedIds.length"
                 :show-trashed="showTrashed"
                 :can-create="can('create_customers')"
-                create-url="/admin/customers/create"
+                :create-url="customersRoutes.create.url()"
                 create-label="Create Customer"
                 :can-delete="can('delete_customers')"
                 :can-restore="can('restore_customers')"
@@ -173,25 +173,30 @@ const allColumns = [
                 >
                     <template #filters>
                         <div class="flex min-w-[200px] items-center gap-2">
-                            <Select v-model="groupFilter">
-                                <SelectTrigger class="h-9">
-                                    <SelectValue
-                                        :placeholder="$t('Filter by Group')"
-                                    />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{{
-                                        $t('All Groups')
-                                    }}</SelectItem>
-                                    <SelectItem
-                                        v-for="group in available_groups"
-                                        :key="group.id"
-                                        :value="group.id"
-                                    >
-                                        {{ group.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Deferred data="available_groups">
+                                <template #fallback>
+                                    <Skeleton class="h-9 w-full" />
+                                </template>
+                                <Select v-model="groupFilter">
+                                    <SelectTrigger class="h-9">
+                                        <SelectValue
+                                            :placeholder="$t('Filter by Group')"
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">{{
+                                            $t('All Groups')
+                                        }}</SelectItem>
+                                        <SelectItem
+                                            v-for="group in available_groups"
+                                            :key="group.id!"
+                                            :value="group.id"
+                                        >
+                                            {{ group.name }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </Deferred>
                         </div>
                     </template>
                 </ResourceFilterBar>
@@ -238,7 +243,7 @@ const allColumns = [
                             <tr
                                 v-for="customer in customers.data"
                                 :key="customer.id"
-                                class="border-b border-sidebar-border transition-colors last:border-0 hover:bg-sidebar-accent/50"
+                                class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
@@ -288,7 +293,8 @@ const allColumns = [
                                 </td>
                                 <td class="px-6 py-4">
                                     <Badge
-                                        variant="outline"
+                                        variant="secondary"
+                                        class="text-foreground [a&]:hover:border-primary/40 [a&]:hover:bg-primary/5 [a&]:hover:text-primary transition-all duration-150"
                                         v-if="customer.group_name"
                                     >
                                         {{ customer.group_name }}
@@ -315,7 +321,7 @@ const allColumns = [
                                             as-child
                                         >
                                             <Link
-                                                :href="`/admin/customers/${customer.id}/edit`"
+                                                :href="customersRoutes.edit.url(customer.id)"
                                             >
                                                 <Pencil class="h-4 w-4" />
                                             </Link>
@@ -393,13 +399,13 @@ const allColumns = [
         title="Export Customers"
         description="Choose the columns you want to include in your customer export."
         :columns="allColumns"
-        export-url="/admin/customers/export"
+        :export-url="customersRoutes.exportMethod.url()"
     />
 
     <ResourceImportModal
         v-model:open="isImportModalOpen"
         title="Import Customers"
         description="Select an Excel or CSV file to import customers. The file should match the exported format."
-        import-url="/admin/customers/import"
+        :import-url="customersRoutes.importMethod.url()"
     />
 </template>

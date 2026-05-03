@@ -64,8 +64,10 @@ const switchLanguage = (code: string) => {
                 v-for="lang in languages"
                 :key="lang.code"
                 @click="switchLanguage(lang.code)"
-                class="flex cursor-pointer items-center justify-between py-2 transition-colors hover:bg-accent"
-                :class="{ 'bg-accent/50 font-semibold': currentLocale === lang.code }"
+                class="flex cursor-pointer items-center justify-between py-2 transition-colors duration-150"
+                :class="currentLocale === lang.code 
+                    ? 'bg-primary/15 text-primary font-bold' 
+                    : 'hover:bg-primary/8 hover:text-primary'"
             >
                 <span class="flex-1">{{ $t(lang.name) }}</span>
                 <Check

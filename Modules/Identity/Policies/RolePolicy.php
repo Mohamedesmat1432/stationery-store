@@ -35,18 +35,24 @@ class RolePolicy
         return $user->hasPermissionTo(PermissionName::CREATE_ROLES->value);
     }
 
+    /**
+     * Determine whether the user can update the model.
+     */
     public function update(User $user, ?Role $role = null): bool
     {
-        if ($role && $role->name === Role::ROLE_ADMIN) {
+        if ($role && $role->isProtected()) {
             return false;
         }
 
         return $user->hasPermissionTo(PermissionName::UPDATE_ROLES->value);
     }
 
+    /**
+     * Determine whether the user can delete the model.
+     */
     public function delete(User $user, ?Role $role = null): bool
     {
-        if ($role && $role->name === Role::ROLE_ADMIN) {
+        if ($role && $role->isProtected()) {
             return false;
         }
 

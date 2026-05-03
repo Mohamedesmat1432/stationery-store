@@ -25,28 +25,35 @@ class UserController extends Controller
         protected UserService $userService
     ) {}
 
+    /**
+     * Display a listing of the users.
+     */
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', User::class);
 
-        $users = $this->userService->getUsersPaginated();
-
         return Inertia::render('Admin/Users/Index', [
-            'users' => UserData::collect($users),
+            'users' => $this->userService->getUsersPaginated($request->all()),
             'filters' => $request->only(['filter']),
-            'available_roles' => IdentityCacheService::getAvailableRoles(),
+            'available_roles' => Inertia::defer(fn () => IdentityCacheService::getAvailableRoles()),
         ]);
     }
 
+    /**
+     * Show the form for creating a new user.
+     */
     public function create(): Response
     {
         Gate::authorize('create', User::class);
 
         return Inertia::render('Admin/Users/Create', [
-            'available_roles' => IdentityCacheService::getAvailableRoles(),
+            'available_roles' => Inertia::defer(fn () => IdentityCacheService::getAvailableRoles()),
         ]);
     }
 
+    /**
+     * Store a newly created user in storage.
+     */
     public function store(UserData $data): RedirectResponse
     {
         Gate::authorize('create', User::class);
@@ -56,16 +63,32 @@ class UserController extends Controller
         return to_route('admin.users.index')->with('success', __('User created successfully.'));
     }
 
+    /**
+     * Display the specified user.
+     */
+    public function show(User $user): RedirectResponse
+    {
+        Gate::authorize('view', $user);
+
+        return to_route('admin.users.edit', $user);
+    }
+
+    /**
+     * Show the form for editing the specified user.
+     */
     public function edit(User $user): Response
     {
         Gate::authorize('update', $user);
 
         return Inertia::render('Admin/Users/Edit', [
-            'user' => UserData::fromModel($user)->toArray(),
-            'available_roles' => IdentityCacheService::getAvailableRoles(),
+            'user' => UserData::fromUser($user->loadMissing('roles')),
+            'available_roles' => Inertia::defer(fn () => IdentityCacheService::getAvailableRoles()),
         ]);
     }
 
+    /**
+     * Update the specified user in storage.
+     */
     public function update(UserData $data, User $user): RedirectResponse
     {
         Gate::authorize('update', $user);
@@ -75,6 +98,9 @@ class UserController extends Controller
         return to_route('admin.users.index')->with('success', __('User updated successfully.'));
     }
 
+    /**
+     * Remove the specified user from storage.
+     */
     public function destroy(User $user): RedirectResponse
     {
         Gate::authorize('delete', $user);
@@ -84,21 +110,33 @@ class UserController extends Controller
         return to_route('admin.users.index')->with('success', __('User deleted successfully.'));
     }
 
+    /**
+     * Restore the specified user from storage.
+     */
     public function restore($id): RedirectResponse
     {
         return $this->performRestore($id, User::class, 'userService', 'restoreUser');
     }
 
+    /**
+     * Permanently delete the specified user from storage.
+     */
     public function forceDelete($id): RedirectResponse
     {
         return $this->performForceDelete($id, User::class, 'userService', 'forceDeleteUser');
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    /**
+     * Handle bulk actions for users.
+     */
+    public function bulkAction(Request $request): RedirectResponse
     {
         return $this->performBulkAction($request, User::class, 'userService');
     }
 
+    /**
+     * Export users to a file.
+     */
     public function export(ExportUsersData $data): BinaryFileResponse
     {
         Gate::authorize('export', User::class);
@@ -106,6 +144,9 @@ class UserController extends Controller
         return $this->userService->exportUsers($data->columns, $data->format);
     }
 
+    /**
+     * Import users from a file.
+     */
     public function import(ImportUsersData $data): RedirectResponse
     {
         Gate::authorize('import', User::class);

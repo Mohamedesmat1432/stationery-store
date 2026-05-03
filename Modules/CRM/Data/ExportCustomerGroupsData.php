@@ -5,12 +5,16 @@ namespace Modules\CRM\Data;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class ExportCustomerGroupsData extends Data
 {
     public function __construct(
-        /** @var array<string> */
+        /** @var array<int, string> */
         public array $columns,
+
+        /** @var string */
         public string $format,
     ) {}
 

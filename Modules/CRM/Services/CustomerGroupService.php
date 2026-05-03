@@ -3,58 +3,112 @@
 namespace Modules\CRM\Services;
 
 use App\Models\CustomerGroup;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Excel;
 use Modules\CRM\Data\CustomerGroupData;
 use Modules\CRM\Exports\CustomerGroupsExport;
 use Modules\CRM\Imports\CustomerGroupsImport;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
+use Modules\Shared\Events\BulkOperationCompleted;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\ProtectsSystemResources;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerGroupService
 {
-    use HandlesBulkOperations;
+    use HandlesBulkOperations, ProtectsSystemResources {
+        ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
+    }
 
     public function __construct(
         protected CustomerGroupRepositoryInterface $customerGroupRepository
     ) {}
 
-    public function getCustomerGroupsPaginated(int $perPage = 15): LengthAwarePaginator
+    protected function getRepository(): CustomerGroupRepositoryInterface
     {
-        return $this->customerGroupRepository->paginate($perPage);
+        return $this->customerGroupRepository;
     }
 
+    /**
+     * Check if a customer group is protected.
+     */
+    public function isProtected(Model|CustomerGroup $model): bool
+    {
+        return $model->isProtected();
+    }
+
+    /**
+     * Get the model class for this service.
+     */
+    protected function getModelClass(): string
+    {
+        return CustomerGroup::class;
+    }
+
+    /**
+     * Get paginated customer groups.
+     */
+    public function getCustomerGroupsPaginated(array $params = [], int $perPage = 15): array
+    {
+        return CRMCacheService::rememberCustomerGroups(
+            $params,
+            $perPage,
+            fn () => $this->customerGroupRepository->paginate($perPage)
+        );
+    }
+
+    /**
+     * Create a new customer group.
+     */
     public function createCustomerGroup(CustomerGroupData $data): CustomerGroup
     {
-        /** @var CustomerGroup $group */
-        $group = $this->customerGroupRepository->create($data->toArray());
-
-        return $group;
+        return DB::transaction(function () use ($data) {
+            return $this->customerGroupRepository->create($data->toArray());
+        });
     }
 
+    /**
+     * Update an existing customer group.
+     */
     public function updateCustomerGroup(CustomerGroup $group, CustomerGroupData $data): CustomerGroup
     {
-        /** @var CustomerGroup $updatedGroup */
-        $updatedGroup = $this->customerGroupRepository->update($group, $data->toArray());
-
-        return $updatedGroup;
+        return DB::transaction(function () use ($group, $data) {
+            return $this->customerGroupRepository->update($group, $data->toArray());
+        });
     }
 
+    /**
+     * Delete a customer group if not protected.
+     */
     public function deleteCustomerGroup(CustomerGroup $group): bool
     {
-        return $this->customerGroupRepository->delete($group);
+        if ($this->isProtected($group)) {
+            return false;
+        }
+
+        return DB::transaction(fn () => $this->customerGroupRepository->delete($group));
     }
 
+    /**
+     * Restore a soft-deleted customer group.
+     */
     public function restoreCustomerGroup(CustomerGroup $group): bool
     {
-        return $this->customerGroupRepository->restore($group);
+        return DB::transaction(fn () => $this->customerGroupRepository->restore($group));
     }
 
+    /**
+     * Permanently delete a customer group.
+     */
     public function forceDeleteCustomerGroup(CustomerGroup $group): bool
     {
-        return $this->customerGroupRepository->forceDelete($group);
+        if ($this->isProtected($group)) {
+            return false;
+        }
+
+        return DB::transaction(fn () => $this->customerGroupRepository->forceDelete($group));
     }
 
     public function getAllActive(): array
@@ -76,6 +130,8 @@ class CustomerGroupService
 
     public function importCustomerGroups(UploadedFile $file): void
     {
-        \Maatwebsite\Excel\Facades\Excel::import(new CustomerGroupsImport, $file);
+        CustomerGroup::withoutEvents(fn () => \Maatwebsite\Excel\Facades\Excel::import(new CustomerGroupsImport, $file));
+
+        event(new BulkOperationCompleted(CustomerGroup::class, 'import'));
     }
 }

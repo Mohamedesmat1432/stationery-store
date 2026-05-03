@@ -21,6 +21,13 @@ class CustomerGroupSeeder extends Seeder
                 'sort_order' => 1,
             ],
             [
+                'name' => 'Retail',
+                'slug' => 'retail',
+                'description' => 'Standard retail customers',
+                'discount_percentage' => 0,
+                'sort_order' => 2,
+            ],
+            [
                 'name' => 'VIP',
                 'slug' => 'vip',
                 'description' => 'High-value customers',

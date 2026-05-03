@@ -8,11 +8,17 @@ use Modules\CRM\Services\CRMCacheService;
 class CustomerGroupObserver
 {
     /**
+     * Set to true to ensure cache is cleared AFTER the database transaction commits.
+     */
+    public bool $afterCommit = true;
+
+    /**
      * Handle the CustomerGroup "saved" event.
      */
     public function saved(CustomerGroup $customerGroup): void
     {
         CRMCacheService::flushCustomerGroupCaches();
+        CRMCacheService::flushCustomerCaches();
     }
 
     /**
@@ -21,6 +27,7 @@ class CustomerGroupObserver
     public function deleted(CustomerGroup $customerGroup): void
     {
         CRMCacheService::flushCustomerGroupCaches();
+        CRMCacheService::flushCustomerCaches();
     }
 
     /**
@@ -29,6 +36,7 @@ class CustomerGroupObserver
     public function restored(CustomerGroup $customerGroup): void
     {
         CRMCacheService::flushCustomerGroupCaches();
+        CRMCacheService::flushCustomerCaches();
     }
 
     /**
@@ -37,5 +45,6 @@ class CustomerGroupObserver
     public function forceDeleted(CustomerGroup $customerGroup): void
     {
         CRMCacheService::flushCustomerGroupCaches();
+        CRMCacheService::flushCustomerCaches();
     }
 }

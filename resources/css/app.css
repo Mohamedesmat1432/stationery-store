@@ -90,7 +90,7 @@
 }
 
 :root {
-    --background: hsl(0 0% 100%);
+    --background: hsl(0 0% 98%);
     --foreground: hsl(0 0% 3.9%);
     --card: hsl(0 0% 100%);
     --card-foreground: hsl(0 0% 3.9%);
@@ -98,7 +98,7 @@
     --popover-foreground: hsl(0 0% 3.9%);
     --primary: hsl(0 0% 9%);
     --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 92.1%);
+    --secondary: hsl(0 0% 94.1%);
     --secondary-foreground: hsl(0 0% 9%);
     --muted: hsl(0 0% 96.1%);
     --muted-foreground: hsl(0 0% 45.1%);
@@ -106,7 +106,7 @@
     --accent-foreground: hsl(0 0% 9%);
     --destructive: hsl(0 84.2% 60.2%);
     --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 92.8%);
+    --border: hsl(0 0% 91%);
     --input: hsl(0 0% 89.8%);
     --ring: hsl(0 0% 3.9%);
     --chart-1: hsl(12 76% 61%);
@@ -115,7 +115,7 @@
     --chart-4: hsl(43 74% 66%);
     --chart-5: hsl(27 87% 67%);
     --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
+    --sidebar-background: hsl(0 0% 97%);
     --sidebar-foreground: hsl(240 5.3% 26.1%);
     --sidebar-primary: hsl(0 0% 10%);
     --sidebar-primary-foreground: hsl(0 0% 98%);
@@ -167,6 +167,15 @@
         @apply border-border outline-ring/50;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground transition-colors duration-200;
+    }
+
+    /* Ensure primary foreground is always visible based on contrast */
+    .text-primary-foreground {
+        color: white !important;
+    }
+
+    .table-row-themed {
+        @apply border-b border-sidebar-border transition-colors duration-150 last:border-0 hover:bg-primary/8 hover:text-primary;
     }
 }

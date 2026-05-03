@@ -1,12 +1,13 @@
+import { formatLabel } from '@/lib/format';
 import type { InertiaForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 
-export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: string]: any }>, availablePermissions: string[]) {
+export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: string]: any }>, availablePermissions: MaybeRefOrGetter<string[]>) {
     // Group permissions by the entity name (e.g. view_users -> users)
     const groupedPermissions = computed(() => {
         const groups: Record<string, string[]> = {};
         
-        availablePermissions.forEach(permission => {
+        (toValue(availablePermissions) || []).forEach(permission => {
             const parts = permission.split('_');
             let module = 'system';
 
@@ -26,9 +27,7 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
         return groups;
     });
 
-    const formatName = (str: string) => {
-        return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    };
+    const formatName = (str: string) => formatLabel(str);
 
     const formatPermissionLabel = (permission: string) => {
         const parts = permission.split('_');

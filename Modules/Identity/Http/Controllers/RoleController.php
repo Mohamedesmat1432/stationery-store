@@ -27,7 +27,7 @@ class RoleController extends Controller
         Gate::authorize('viewAny', Role::class);
 
         return Inertia::render('Admin/Roles/Index', [
-            'roles' => RoleData::collect($this->roleService->getRolesPaginated()),
+            'roles' => $this->roleService->getRolesPaginated($request->all()),
             'filters' => $request->only(['filter']),
         ]);
     }
@@ -37,7 +37,7 @@ class RoleController extends Controller
         Gate::authorize('create', Role::class);
 
         return Inertia::render('Admin/Roles/Create', [
-            'available_permissions' => IdentityCacheService::getAvailablePermissions(),
+            'available_permissions' => Inertia::defer(fn () => IdentityCacheService::getAvailablePermissions()),
         ]);
     }
 
@@ -50,13 +50,20 @@ class RoleController extends Controller
         return to_route('admin.roles.index')->with('success', __('Role created successfully.'));
     }
 
+    public function show(Role $role): RedirectResponse
+    {
+        Gate::authorize('view', $role);
+
+        return to_route('admin.roles.edit', $role);
+    }
+
     public function edit(Role $role): Response
     {
         Gate::authorize('update', $role);
 
         return Inertia::render('Admin/Roles/Edit', [
-            'role' => RoleData::fromModel($role),
-            'available_permissions' => IdentityCacheService::getAvailablePermissions(),
+            'role' => RoleData::fromRole($role->loadMissing('permissions')),
+            'available_permissions' => Inertia::defer(fn () => IdentityCacheService::getAvailablePermissions()),
         ]);
     }
 
@@ -78,7 +85,7 @@ class RoleController extends Controller
         return to_route('admin.roles.index')->with('success', __('Role deleted successfully.'));
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkAction(Request $request): RedirectResponse
     {
         return $this->performBulkAction($request, Role::class, 'roleService');
     }

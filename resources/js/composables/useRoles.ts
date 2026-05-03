@@ -1,9 +1,8 @@
+import { formatLabel } from '@/lib/format';
 import type { InertiaForm } from '@inertiajs/vue3';
 
 export function useRoles(form: InertiaForm<{ roles: string[]; [key: string]: any }>) {
-    const formatRoleName = (str: string) => {
-        return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    };
+    const formatRoleName = (str: string) => formatLabel(str);
 
     const toggleRole = (role: string) => {
         const index = form.roles.indexOf(role);

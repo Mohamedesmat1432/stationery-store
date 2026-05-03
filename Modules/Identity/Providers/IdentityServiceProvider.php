@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Modules\Identity\Enums\RoleName;
+use Modules\Identity\Listeners\FlushIdentityCacheListener;
 use Modules\Identity\Listeners\FlushUserPermissionCache;
 use Modules\Identity\Observers\PermissionObserver;
 use Modules\Identity\Observers\RoleObserver;
@@ -19,6 +21,7 @@ use Modules\Identity\Repositories\Contracts\RoleRepositoryInterface;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Identity\Repositories\Eloquent\RoleRepository;
 use Modules\Identity\Repositories\Eloquent\UserRepository;
+use Modules\Shared\Events\BulkOperationCompleted;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -54,7 +57,7 @@ class IdentityServiceProvider extends ServiceProvider
 
         // Grant 'admin' role full access to everything
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('admin') ? true : null;
+            return $user->hasRole(RoleName::ADMIN->value) ? true : null;
         });
     }
 
@@ -87,6 +90,9 @@ class IdentityServiceProvider extends ServiceProvider
         Event::listen(RoleDetachedEvent::class, FlushUserPermissionCache::class);
         Event::listen(PermissionAttachedEvent::class, FlushUserPermissionCache::class);
         Event::listen(PermissionDetachedEvent::class, FlushUserPermissionCache::class);
+
+        // Bulk Operations → Flush Cache
+        Event::listen(BulkOperationCompleted::class, FlushIdentityCacheListener::class);
     }
 
     /**
@@ -97,6 +103,6 @@ class IdentityServiceProvider extends ServiceProvider
         Route::middleware(['web', 'auth', 'verified'])
             ->prefix('admin')
             ->as('admin.')
-            ->group(__DIR__ . '/../Routes/web.php');
+            ->group(__DIR__.'/../Routes/web.php');
     }
 }

@@ -3,18 +3,22 @@
 namespace Modules\CRM\Observers;
 
 use App\Models\Customer;
-use Modules\Identity\Services\IdentityCacheService;
+use Modules\CRM\Services\CRMCacheService;
 
 class CustomerObserver
 {
+    /**
+     * Set to true to ensure cache is cleared AFTER the database transaction commits.
+     */
+    public bool $afterCommit = true;
+
     /**
      * Handle the Customer "saved" event.
      */
     public function saved(Customer $customer): void
     {
-        if ($customer->user_id) {
-            IdentityCacheService::flushUserCache($customer->user_id);
-        }
+        CRMCacheService::flushCustomerCaches();
+        CRMCacheService::flushCustomerGroupCaches();
     }
 
     /**
@@ -22,9 +26,8 @@ class CustomerObserver
      */
     public function deleted(Customer $customer): void
     {
-        if ($customer->user_id) {
-            IdentityCacheService::flushUserCache($customer->user_id);
-        }
+        CRMCacheService::flushCustomerCaches();
+        CRMCacheService::flushCustomerGroupCaches();
     }
 
     /**
@@ -32,18 +35,16 @@ class CustomerObserver
      */
     public function restored(Customer $customer): void
     {
-        if ($customer->user_id) {
-            IdentityCacheService::flushUserCache($customer->user_id);
-        }
+        CRMCacheService::flushCustomerCaches();
+        CRMCacheService::flushCustomerGroupCaches();
     }
 
     /**
-     * Handle the Customer "forceDeleted" event.
+     * Handle the Customer "force deleted" event.
      */
     public function forceDeleted(Customer $customer): void
     {
-        if ($customer->user_id) {
-            IdentityCacheService::flushUserCache($customer->user_id);
-        }
+        CRMCacheService::flushCustomerCaches();
+        CRMCacheService::flushCustomerGroupCaches();
     }
 }

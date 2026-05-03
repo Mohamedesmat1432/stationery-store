@@ -16,13 +16,13 @@ use Modules\Identity\Http\Controllers\UserController;
 */
 
 // Roles
-Route::post('roles/bulk-action', [RoleController::class, 'bulkDestroy'])->name('roles.bulk-action');
-Route::resource('roles', RoleController::class)->except(['show']);
+Route::post('roles/bulk-action', [RoleController::class, 'bulkAction'])->name('roles.bulk-action');
+Route::resource('roles', RoleController::class);
 
 // Users
-Route::post('users/bulk-action', [UserController::class, 'bulkDestroy'])->name('users.bulk-action');
+Route::post('users/bulk-action', [UserController::class, 'bulkAction'])->name('users.bulk-action');
 Route::get('users/export', [UserController::class, 'export'])->name('users.export');
 Route::post('users/import', [UserController::class, 'import'])->name('users.import');
 Route::post('users/{user}/restore', [UserController::class, 'restore'])->name('users.restore')->withTrashed();
 Route::delete('users/{user}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete')->withTrashed();
-Route::resource('users', UserController::class)->except(['show']);
+Route::resource('users', UserController::class);

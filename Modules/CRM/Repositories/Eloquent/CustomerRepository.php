@@ -12,11 +12,17 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface
 {
+    /**
+     * Get the model class for this repository.
+     */
     protected function getModelClass(): string
     {
         return Customer::class;
     }
 
+    /**
+     * Get paginated customers with filtering.
+     */
     public function paginate(int $perPage = 15): LengthAwarePaginator
     {
         return QueryBuilder::for(Customer::class)
@@ -24,24 +30,26 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('group', 'customer_group_id'),
-                AllowedFilter::callback('trash', function ($query, $value) {
-                    if ($value === 'only') {
-                        $query->onlyTrashed();
-                    } elseif ($value === 'with') {
-                        $query->withTrashed();
-                    }
-                }),
+                AllowedFilter::trashed('trash'),
             ])
+            ->allowedIncludes(...['user', 'group', 'addresses', 'orders'])
+            ->allowedSorts(...['name', 'email', 'total_spent', 'orders_count', 'created_at'])
             ->defaultSort('-id')
             ->paginate($perPage)
             ->withQueryString();
     }
 
+    /**
+     * Find a customer by ID.
+     */
     public function findById(string $id): Customer
     {
         return Customer::with(['user', 'group', 'addresses'])->findOrFail($id);
     }
 
+    /**
+     * Get the query for exporting customers.
+     */
     public function getExportQuery(): Builder
     {
         return Customer::query()->with(['user', 'group']);

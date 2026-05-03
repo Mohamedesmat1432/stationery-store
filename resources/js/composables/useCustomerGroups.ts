@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/vue3';
+import { store, update } from '@/actions/Modules/CRM/Http/Controllers/CustomerGroupController';
 
-export function useCustomerGroups(initialData?: any) {
+export function useCustomerGroups(initialData?: Modules.CRM.Data.CustomerGroupData) {
     const form = useForm({
         name: initialData?.name ?? '',
         slug: initialData?.slug ?? '',
@@ -19,9 +20,9 @@ export function useCustomerGroups(initialData?: any) {
 
     const submit = (id?: string) => {
         if (id) {
-            form.put(`/admin/customer-groups/${id}`);
+            form.put(update.url(id));
         } else {
-            form.post('/admin/customer-groups');
+            form.post(store.url());
         }
     };
 

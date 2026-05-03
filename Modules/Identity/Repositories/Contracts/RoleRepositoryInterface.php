@@ -13,5 +13,24 @@ interface RoleRepositoryInterface extends RepositoryInterface
      */
     public function paginate(int $perPage = 15): LengthAwarePaginator;
 
+    /**
+     * Sync permissions to a role.
+     *
+     * @param  array<string>  $permissions
+     */
     public function syncPermissions(Role $role, array $permissions): void;
+
+    /**
+     * Get all role names available in the system.
+     *
+     * @return array<string>
+     */
+    public function getAvailableNames(): array;
+
+    /**
+     * Get permissions for a specific role ID.
+     *
+     * @return array<string>
+     */
+    public function getPermissions(string $roleId): array;
 }

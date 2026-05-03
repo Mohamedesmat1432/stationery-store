@@ -9,6 +9,11 @@ use Spatie\Permission\PermissionRegistrar;
 class RoleObserver
 {
     /**
+     * Handle the events immediately for zero-delay cache invalidation.
+     */
+    public bool $afterCommit = false;
+
+    /**
      * Handle the Role "saved" event.
      * Flush caches when role data is created or updated.
      */
@@ -35,7 +40,5 @@ class RoleObserver
     protected function flushCaches(): void
     {
         IdentityCacheService::flushRoleCaches();
-        IdentityCacheService::flushUserCaches();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
