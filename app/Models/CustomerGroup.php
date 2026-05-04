@@ -31,6 +31,11 @@ class CustomerGroup extends BaseModel
     ];
 
     /**
+     * Protected slugs that cannot be deleted or modified.
+     */
+    protected const PROTECTED_SLUGS = ['retail', 'general'];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -76,11 +81,6 @@ class CustomerGroup extends BaseModel
                 ->orWhere('slug', 'like', "%{$search}%");
         });
     }
-
-    /**
-     * Protected slugs that cannot be deleted or modified.
-     */
-    protected const PROTECTED_SLUGS = ['retail', 'general'];
 
     /**
      * Check if the customer group is protected from deletion/modification.

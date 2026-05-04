@@ -13,7 +13,7 @@ import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
-    user: User;
+    user: User | null;
 };
 
 const handleLogout = () => {

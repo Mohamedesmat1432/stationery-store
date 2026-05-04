@@ -176,7 +176,7 @@ const formatCurrency = (amount: number) => {
                                         }}
                                     </Badge>
                                 </td>
-                                <td class="space-x-2 px-6 py-4 text-end">
+                                <td class="flex items-center gap-2 px-6 py-4 text-end">
                                     <template v-if="!product.deleted_at">
                                         <Button
                                             v-if="can('update_products')"

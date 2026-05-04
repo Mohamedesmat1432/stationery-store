@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 interface Props {
     searchPlaceholder?: string;
-    showTrashed?: boolean;
+    canShowTrashed?: boolean;
 }
 
 const modelSearch = defineModel<string>('search');
@@ -13,7 +13,7 @@ const modelTrashed = defineModel<boolean>('trashed');
 
 withDefaults(defineProps<Props>(), {
     searchPlaceholder: 'Search...',
-    showTrashed: false,
+    canShowTrashed: false,
 });
 
 const emit = defineEmits(['search']);
@@ -34,7 +34,7 @@ const handleSearch = (val: string) => {
 
         <slot name="filters"></slot>
 
-        <div class="ms-auto flex items-center gap-2 px-3">
+        <div v-if="canShowTrashed" class="ms-auto flex items-center gap-2 px-3">
             <Checkbox
                 id="show-trashed"
                 :model-value="modelTrashed"

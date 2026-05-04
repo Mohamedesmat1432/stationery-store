@@ -338,5 +338,13 @@
     "Apply": "تطبيق",
     "Secondary": "ثانوي",
     "Primary Action": "الإجراء الأساسي",
-    "Update segment details and discount rules.": "تحديث تفاصيل الشريحة وقواعد الخصم."
+    "Update segment details and discount rules.": "تحديث تفاصيل الشريحة وقواعد الخصم.",
+    "Edit Customer": "تعديل العميل",
+    "Update customer profile and group assignments.": "تحديث الملف الشخصي للعميل وتعيينات المجموعة.",
+    "User account cannot be changed after creation.": "لا يمكن تغيير حساب المستخدم بعد الإنشاء.",
+    "Expand All": "توسيع الكل",
+    "Collapse All": "طي الكل",
+    "RoleFormDescription": "قم بتكوين مستويات الوصول لهذا الدور عبر موديولات النظام المختلفة.",
+    "View All": "عرض الكل",
+    "Age": "العمر"
 }

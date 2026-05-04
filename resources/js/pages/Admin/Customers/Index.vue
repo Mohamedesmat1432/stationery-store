@@ -71,7 +71,7 @@ const props = withDefaults(
 );
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
-    useResourceFilters(props.filters.filter, {
+    useResourceFilters(() => props.filters?.filter, {
         baseUrl: customersRoutes.index.url(),
     });
 
@@ -91,7 +91,7 @@ const formatCurrency = (value: number) => {
 };
 
 const selectableCustomers = computed(() => {
-    return props.customers.data.filter((c) => !c.is_protected);
+    return props.customers?.data?.filter((c) => !c.is_protected) ?? [];
 });
 
 const {
@@ -121,6 +121,7 @@ const isImportModalOpen = ref(false);
 const allColumns = [
     { id: 'name', label: 'Name' },
     { id: 'email', label: 'Email' },
+    { id: 'age', label: 'Age' },
     { id: 'group', label: 'Group' },
     { id: 'total_spent', label: 'Total Spent' },
     { id: 'orders_count', label: 'Orders Count' },
@@ -137,7 +138,7 @@ const allColumns = [
                 title="Customers"
                 description="View and manage your customer base."
                 :icon="UserCircle"
-                :selected-count="selectedIds.length"
+                :selected-count="selectedIds?.length ?? 0"
                 :show-trashed="showTrashed"
                 :can-create="can('create_customers')"
                 :create-url="customersRoutes.create.url()"
@@ -173,6 +174,7 @@ const allColumns = [
                 <ResourceFilterBar
                     v-model:search="searchQuery"
                     v-model:trashed="showTrashed"
+                    can-show-trashed
                     search-placeholder="Search by name, email, phone..."
                     @search="applyFilters"
                     @update:trashed="applyFilters"
@@ -184,7 +186,7 @@ const allColumns = [
                                     <Skeleton class="h-9 w-full" />
                                 </template>
                                 <Select v-model="groupFilter">
-                                    <SelectTrigger class="h-9">
+                                    <SelectTrigger class="h-9" :aria-label="$t('Filter by Group')">
                                         <SelectValue
                                             :placeholder="$t('Filter by Group')"
                                         />
@@ -232,6 +234,9 @@ const allColumns = [
                                     {{ $t('Contact') }}
                                 </th>
                                 <th class="px-6 py-3 text-start font-medium">
+                                    {{ $t('Age') }}
+                                </th>
+                                <th class="px-6 py-3 text-start font-medium">
                                     {{ $t('Group') }}
                                 </th>
                                 <th class="px-6 py-3 text-start font-medium">
@@ -247,12 +252,13 @@ const allColumns = [
                         </thead>
                         <tbody>
                             <tr
-                                v-for="customer in customers.data"
+                                v-for="customer in customers?.data ?? []"
                                 :key="customer.id"
                                 class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
+                                        v-if="selectableCustomers.some(c => c.id === customer.id)"
                                         :model-value="
                                             selectedIds.includes(customer.id)
                                         "
@@ -298,6 +304,9 @@ const allColumns = [
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
+                                    {{ customer.age ?? '-' }}
+                                </td>
+                                <td class="px-6 py-4">
                                     <Badge
                                         variant="secondary"
                                         class="text-foreground [a&]:hover:border-primary/40 [a&]:hover:bg-primary/5 [a&]:hover:text-primary transition-all duration-150"
@@ -317,7 +326,7 @@ const allColumns = [
                                 <td class="px-6 py-4 text-start font-medium">
                                     {{ formatCurrency(customer.total_spent) }}
                                 </td>
-                                <td class="space-x-2 px-6 py-4 text-start">
+                                <td class="flex items-center gap-2 px-6 py-4 text-start">
                                     <template v-if="!customer.deleted_at">
                                         <Button
                                             v-if="can('update_customers')"
@@ -368,7 +377,7 @@ const allColumns = [
                                     </template>
                                 </td>
                             </tr>
-                            <tr v-if="customers.data.length === 0">
+                            <tr v-if="(customers?.data?.length ?? 0) === 0">
                                 <td
                                     colspan="7"
                                     class="px-6 py-8 text-center text-muted-foreground"
@@ -381,9 +390,9 @@ const allColumns = [
                 </div>
 
                 <ResourcePagination
-                    :links="customers.links"
-                    :total="customers.total"
-                    :count="customers.data.length"
+                    :links="customers?.links ?? []"
+                    :total="customers?.total ?? 0"
+                    :count="customers?.data?.length ?? 0"
                     resource-name="customers"
                 />
             </CardContent>

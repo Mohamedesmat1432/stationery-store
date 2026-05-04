@@ -14,7 +14,7 @@ use Modules\Identity\Data\UserData;
 use Modules\Identity\Exports\UsersExport;
 use Modules\Identity\Imports\UsersImport;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
-use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -51,9 +51,6 @@ class UserService
         );
     }
 
-    /**
-     * Create a new user with roles.
-     */
     public function createUser(UserData $data): User
     {
         return DB::transaction(function () use ($data) {
@@ -65,6 +62,8 @@ class UserService
             ]);
 
             $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles));
+
+            ResourceChanged::dispatch(User::class, 'created', [$user->id]);
 
             return $user;
         });
@@ -81,7 +80,7 @@ class UserService
                 'email' => $data->email,
             ];
 
-            if ($data->password !== null && $data->password !== '') {
+            if (filled($data->password)) {
                 $updateData['password'] = Hash::make($data->password);
             }
 
@@ -89,6 +88,8 @@ class UserService
             $user = $this->userRepository->update($user, $updateData);
 
             $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles, $user));
+
+            ResourceChanged::dispatch(User::class, 'updated', [$user->id]);
 
             return $user;
         });
@@ -103,7 +104,13 @@ class UserService
             return false;
         }
 
-        return $this->userRepository->delete($user);
+        $result = $this->userRepository->delete($user);
+
+        if ($result) {
+            ResourceChanged::dispatch(User::class, 'deleted', [$user->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -111,7 +118,13 @@ class UserService
      */
     public function restoreUser(User $user): bool
     {
-        return $this->userRepository->restore($user);
+        $result = $this->userRepository->restore($user);
+
+        if ($result) {
+            ResourceChanged::dispatch(User::class, 'restored', [$user->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -123,7 +136,13 @@ class UserService
             return false;
         }
 
-        return $this->userRepository->forceDelete($user);
+        $result = $this->userRepository->forceDelete($user);
+
+        if ($result) {
+            ResourceChanged::dispatch(User::class, 'force_deleted', [$user->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -175,6 +194,6 @@ class UserService
     {
         User::withoutEvents(fn () => Excel::import(new UsersImport, $file));
 
-        event(new BulkOperationCompleted(User::class, 'import'));
+        ResourceChanged::dispatch(User::class, 'imported');
     }
 }

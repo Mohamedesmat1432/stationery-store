@@ -8,19 +8,14 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Modules\CRM\Listeners\FlushCRMCacheListener;
-use Modules\CRM\Listeners\InvalidateCustomerCache;
-use Modules\CRM\Listeners\InvalidateCustomerGroupCache;
-use Modules\CRM\Observers\CustomerGroupObserver;
-use Modules\CRM\Observers\CustomerObserver;
+use Modules\CRM\Listeners\SyncCRMCache;
 use Modules\CRM\Policies\CustomerGroupPolicy;
 use Modules\CRM\Policies\CustomerPolicy;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
 use Modules\CRM\Repositories\Eloquent\CustomerGroupRepository;
 use Modules\CRM\Repositories\Eloquent\CustomerRepository;
-use Modules\Shared\Events\BulkOperationCompleted;
-use Modules\Shared\Events\CacheInvalidationRequested;
+use Modules\Shared\Events\ResourceChanged;
 
 class CRMServiceProvider extends ServiceProvider
 {
@@ -46,7 +41,6 @@ class CRMServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
-        $this->registerObservers();
         $this->registerEvents();
         $this->registerRoutes();
     }
@@ -61,25 +55,12 @@ class CRMServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the module's model observers.
-     */
-    protected function registerObservers(): void
-    {
-        Customer::observe(CustomerObserver::class);
-        CustomerGroup::observe(CustomerGroupObserver::class);
-    }
-
-    /**
      * Register events and listeners.
      */
     protected function registerEvents(): void
     {
-        // Model changes → Request cache invalidation (observers dispatch, listeners handle)
-        Event::listen(CacheInvalidationRequested::class, InvalidateCustomerCache::class);
-        Event::listen(CacheInvalidationRequested::class, InvalidateCustomerGroupCache::class);
-
-        // Bulk Operations → Flush Cache
-        Event::listen(BulkOperationCompleted::class, FlushCRMCacheListener::class);
+        // Unify all resource changes (single, bulk, import) to trigger cache sync
+        Event::listen(ResourceChanged::class, SyncCRMCache::class);
     }
 
     /**

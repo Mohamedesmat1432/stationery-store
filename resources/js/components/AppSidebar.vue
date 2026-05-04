@@ -30,7 +30,7 @@ import type { Auth } from '@/types/auth';
 
 const page = usePage();
 const permissions = computed<string[]>(
-    () => (page.props.auth as Auth).permissions || [],
+    () => (page.props.auth as Auth)?.permissions || [],
 );
 const hasPermission = (permission: string) =>
     permissions.value.includes(permission);

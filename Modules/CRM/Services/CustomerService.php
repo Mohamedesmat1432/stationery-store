@@ -9,7 +9,7 @@ use Modules\CRM\Data\CustomerData;
 use Modules\CRM\Exports\CustomersExport;
 use Modules\CRM\Imports\CustomersImport;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
-use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -38,12 +38,13 @@ class CustomerService
         );
     }
 
-    /**
-     * Create a new customer.
-     */
     public function createCustomer(CustomerData $data): Customer
     {
-        return $this->customerRepository->create($data->toArray());
+        $customer = $this->customerRepository->create($data->toArray());
+
+        ResourceChanged::dispatch(Customer::class, 'created', [$customer->id]);
+
+        return $customer;
     }
 
     /**
@@ -58,7 +59,11 @@ class CustomerService
             ])
             ->toArray();
 
-        return $this->customerRepository->update($customer, $updateData);
+        $customer = $this->customerRepository->update($customer, $updateData);
+
+        ResourceChanged::dispatch(Customer::class, 'updated', [$customer->id]);
+
+        return $customer;
     }
 
     /**
@@ -66,7 +71,13 @@ class CustomerService
      */
     public function deleteCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->delete($customer);
+        $result = $this->customerRepository->delete($customer);
+
+        if ($result) {
+            ResourceChanged::dispatch(Customer::class, 'deleted', [$customer->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -74,7 +85,13 @@ class CustomerService
      */
     public function restoreCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->restore($customer);
+        $result = $this->customerRepository->restore($customer);
+
+        if ($result) {
+            ResourceChanged::dispatch(Customer::class, 'restored', [$customer->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -82,7 +99,13 @@ class CustomerService
      */
     public function forceDeleteCustomer(Customer $customer): bool
     {
-        return $this->customerRepository->forceDelete($customer);
+        $result = $this->customerRepository->forceDelete($customer);
+
+        if ($result) {
+            ResourceChanged::dispatch(Customer::class, 'force_deleted', [$customer->id]);
+        }
+
+        return $result;
     }
 
     public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse
@@ -101,7 +124,7 @@ class CustomerService
     {
         Customer::withoutEvents(fn () => Excel::import(new CustomersImport, $file));
 
-        event(new BulkOperationCompleted(Customer::class, 'import'));
+        ResourceChanged::dispatch(Customer::class, 'imported');
     }
 
     protected function getModelClass(): string

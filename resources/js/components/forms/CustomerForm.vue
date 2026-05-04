@@ -64,10 +64,10 @@ defineEmits(['submit']);
                         </Label>
                         <Deferred data="available_users">
                             <template #fallback>
-                                <Skeleton class="h-10 w-full" />
+                                <Skeleton id="user_id" as="button" type="button" class="h-10 w-full cursor-wait" />
                             </template>
-                            <Select v-model="form.user_id!" :disabled="isEdit" :required="!isEdit">
-                                <SelectTrigger>
+                            <Select v-model="form.user_id!" name="user_id" :disabled="isEdit" :required="!isEdit">
+                                <SelectTrigger id="user_id" :aria-label="$t('User Account')">
                                     <SelectValue :placeholder="$t('Select User')" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -90,6 +90,8 @@ defineEmits(['submit']);
                         <Label for="phone">{{ $t('Phone Number') }}</Label>
                         <Input
                             id="phone"
+                            name="phone"
+                            autocomplete="tel"
                             v-model="form.phone!"
                             placeholder="e.g. +1234567890"
                             :disabled="form.processing"
@@ -100,10 +102,10 @@ defineEmits(['submit']);
                         <Label for="customer_group_id">{{ $t('Customer Group') }}</Label>
                         <Deferred data="available_groups">
                             <template #fallback>
-                                <Skeleton class="h-10 w-full" />
+                                <Skeleton id="customer_group_id" as="button" type="button" class="h-10 w-full cursor-wait" />
                             </template>
-                            <Select v-model="form.customer_group_id!">
-                                <SelectTrigger>
+                            <Select v-model="form.customer_group_id!" name="customer_group_id">
+                                <SelectTrigger id="customer_group_id" :aria-label="$t('Customer Group')">
                                     <SelectValue :placeholder="$t('Select Group')" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -122,6 +124,8 @@ defineEmits(['submit']);
                         <Label for="company_name">{{ $t('Company Name') }}</Label>
                         <Input
                             id="company_name"
+                            name="company_name"
+                            autocomplete="organization"
                             v-model="form.company_name!"
                             placeholder="e.g. Acme Corp"
                             :disabled="form.processing"
@@ -132,6 +136,7 @@ defineEmits(['submit']);
                         <Label for="tax_number">{{ $t('Tax Number') }}</Label>
                         <Input
                             id="tax_number"
+                            name="tax_number"
                             v-model="form.tax_number!"
                             placeholder="e.g. TAX-123"
                             :disabled="form.processing"
@@ -142,6 +147,8 @@ defineEmits(['submit']);
                         <Label for="birth_date">{{ $t('Birth Date') }}</Label>
                         <Input
                             id="birth_date"
+                            name="birth_date"
+                            autocomplete="bday"
                             type="date"
                             v-model="form.birth_date!"
                             :disabled="form.processing"
@@ -150,8 +157,8 @@ defineEmits(['submit']);
                     </div>
                     <div class="space-y-2">
                         <Label for="gender">{{ $t('Gender') }}</Label>
-                        <Select v-model="form.gender!">
-                            <SelectTrigger>
+                        <Select v-model="form.gender!" name="gender" autocomplete="sex">
+                            <SelectTrigger id="gender" :aria-label="$t('Gender')">
                                 <SelectValue :placeholder="$t('Select Gender')" />
                             </SelectTrigger>
                             <SelectContent>

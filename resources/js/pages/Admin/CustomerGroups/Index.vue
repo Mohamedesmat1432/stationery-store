@@ -45,14 +45,14 @@ const props = defineProps<{
 }>();
 
 const { searchQuery, showTrashed, applyFilters } = useResourceFilters(
-    props.filters.filter,
+    () => props.filters?.filter,
     {
         baseUrl: customerGroupsRoutes.index.url(),
     },
 );
 
 const selectableGroups = computed(() => {
-    return props.groups.data.filter((g) => !g.is_protected);
+    return props.groups?.data?.filter((g) => !g.is_protected) ?? [];
 });
 
 const {
@@ -97,7 +97,7 @@ const allColumns = [
                 title="Customer Groups"
                 description="Manage customer segments and group-level discounts."
                 :icon="Users"
-                :selected-count="selectedIds.length"
+                :selected-count="selectedIds?.length ?? 0"
                 :show-trashed="showTrashed"
                 :can-create="can('create_customer_groups')"
                 :create-url="customerGroupsRoutes.create.url()"
@@ -133,6 +133,7 @@ const allColumns = [
                 <ResourceFilterBar
                     v-model:search="searchQuery"
                     v-model:trashed="showTrashed"
+                    can-show-trashed
                     search-placeholder="Search groups..."
                     @search="applyFilters"
                     @update:trashed="applyFilters"
@@ -178,12 +179,13 @@ const allColumns = [
                         </thead>
                         <tbody>
                             <tr
-                                v-for="group in groups.data"
+                                v-for="group in groups?.data ?? []"
                                 :key="group.id"
                                 class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
+                                        v-if="selectableGroups.some(g => g.id === group.id)"
                                         :model-value="
                                             selectedIds.includes(group.id)
                                         "
@@ -225,7 +227,7 @@ const allColumns = [
                                         }}
                                     </Badge>
                                 </td>
-                                <td class="space-x-2 px-6 py-4 text-start">
+                                <td class="flex items-center gap-2 px-6 py-4 text-start">
                                     <template v-if="!group.deleted_at">
                                         <Button
                                             v-if="can('update_customer_groups')"
@@ -280,7 +282,7 @@ const allColumns = [
                                     </template>
                                 </td>
                             </tr>
-                            <tr v-if="groups.data.length === 0">
+                            <tr v-if="(groups?.data?.length ?? 0) === 0">
                                 <td
                                     colspan="7"
                                     class="px-6 py-8 text-center text-muted-foreground"
@@ -293,9 +295,9 @@ const allColumns = [
                 </div>
 
                 <ResourcePagination
-                    :links="groups.links"
-                    :total="groups.total"
-                    :count="groups.data.length"
+                    :links="groups?.links ?? []"
+                    :total="groups?.total ?? 0"
+                    :count="groups?.data?.length ?? 0"
                     resource-name="customer groups"
                 />
             </CardContent>

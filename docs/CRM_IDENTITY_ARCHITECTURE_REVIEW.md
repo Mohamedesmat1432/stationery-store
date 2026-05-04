@@ -141,11 +141,8 @@ CRMServiceProvider
 ├── binds CustomerRepositoryInterface → CustomerRepository
 ├── binds CustomerGroupRepositoryInterface → CustomerGroupRepository
 ├── registers policies (CustomerPolicy, CustomerGroupPolicy)
-├── registers observers (CustomerObserver, CustomerGroupObserver)
 ├── registers events:
-│   ├── CacheInvalidationRequested → InvalidateCustomerCache
-│   ├── CacheInvalidationRequested → InvalidateCustomerGroupCache
-│   └── BulkOperationCompleted → FlushCRMCacheListener
+│   └── ResourceChanged → SyncCRMCache
 └── registers routes (admin.*)
 
 CustomerController
@@ -173,14 +170,10 @@ IdentityServiceProvider
 ├── binds UserRepositoryInterface → UserRepository
 ├── binds RoleRepositoryInterface → RoleRepository
 ├── registers policies (UserPolicy, RolePolicy)
-├── registers observers (UserObserver, RoleObserver, PermissionObserver)
 ├── registers events:
-│   ├── CacheInvalidationRequested → InvalidateUserCache
-│   ├── CacheInvalidationRequested → InvalidateRoleCache
-│   ├── CacheInvalidationRequested → InvalidatePermissionCache
-│   ├── RoleAttached/Detached → FlushUserPermissionCache
-│   ├── PermissionAttached/Detached → FlushUserPermissionCache
-│   └── BulkOperationCompleted → FlushIdentityCacheListener
+│   ├── ResourceChanged → SyncIdentityCache
+│   ├── RoleAttached/Detached → SyncIdentityCache
+│   └── PermissionAttached/Detached → SyncIdentityCache
 ├── Gate::before() grants admin superpowers
 └── registers routes (admin.*)
 
@@ -342,47 +335,46 @@ UserService
 ### New Event-Driven Cache Invalidation Architecture
 
 ```
-┌─────────────────┐     saved/deleted/restored/forceDeleted     ┌─────────────────┐
-│  Model Observer │ ──────────────────────────────────────────► │  Event Dispatch │
-│  ($afterCommit) │                                           │  (after tx)     │
+┌─────────────────┐     created/updated/deleted/imported        ┌─────────────────┐
+│  Service Layer  │ ──────────────────────────────────────────► │  Event Dispatch │
+│                 │                                           │  (ResourceChgd) │
 └─────────────────┘                                           └────────┬────────┘
                                                                        │
                                                                        ▼
                                                             ┌─────────────────────┐
-                                                            │ CacheInvalidation   │
-                                                            │ Requested($tag,     │
-                                                            │ $specificKey)       │
+                                                            │ ResourceChanged     │
+                                                            │ ($modelClass,       │
+                                                            │ $action, $ids)      │
                                                             └──────────┬──────────┘
                                                                        │
                                           ┌────────────────────────────┼────────────────────────────┐
                                           │                            │                            │
                                           ▼                            ▼                            ▼
                               ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
-                              │InvalidateCustomer│       │InvalidateCustomer│       │InvalidateUser    │
-                              │Cache             │       │GroupCache        │       │Cache             │
-                              │(CRM)             │       │(CRM)             │       │(Identity)        │
+                              │ SyncCRMCache     │       │ SyncCRMCache     │       │ SyncIdentityCache│
+                              │ (CRM)            │       │ (CRM)            │       │ (Identity)       │
                               └────────┬─────────┘       └────────┬─────────┘       └────────┬─────────┘
                                        │                            │                            │
                                        ▼                            ▼                            ▼
                               ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
                               │CRMCacheService:: │       │CRMCacheService:: │       │IdentityCacheSvc::│
-                              │flushCustomerCaches│      │flushGroupCaches  │       │flushUserCache    │
+                              │flushCustomerCache│       │flushGroupCache   │       │flushUserCache    │
                               └──────────────────┘       └──────────────────┘       └──────────────────┘
 ```
 
 ### Bulk Operation Flow
 
 ```
-┌─────────────────┐     bulkDelete/bulkRestore/bulkForceDelete    ┌─────────────────┐
-│  Service        │ ─────────────────────────────────────────────► │ BulkOperation   │
-│  (HandlesBulk)  │                                              │ Completed         │
+┌─────────────────┐     bulk_deleted/bulk_restored/etc            ┌─────────────────┐
+│  Service        │ ─────────────────────────────────────────────► │ ResourceChanged │
+│  (HandlesBulk)  │                                              │ (bulk action)   │
 └─────────────────┘                                              └────────┬────────┘
                                                                           │
                                                                           ▼
                                                                ┌─────────────────────┐
-                                                               │ FlushCRMCacheListener│
-                                                               │ FlushIdentityCache   │
-                                                               │ Listener             │
+                                                               │ SyncCRMCache        │
+                                                               │ SyncIdentityCache   │
+                                                               │                      │
                                                                └──────────┬──────────┘
                                                                           │
                                                                           ▼
@@ -401,7 +393,7 @@ User::syncRoles() / Role::syncPermissions()
 Spatie dispatches: RoleAttached/Detached, PermissionAttached/Detached
          │
          ▼
-FlushUserPermissionCache listener
+SyncIdentityCache listener
          │
          ├──► IdentityCacheService::flushUserCache($userId)
          └──► PermissionRegistrar::forgetCachedPermissions()
@@ -451,16 +443,15 @@ Invalidation: incrementTagVersion('users') → all old keys become stale
 
 ### Cache Invalidation Matrix
 
-| Trigger | Observer | Event | Listener | Action |
-|---------|----------|-------|----------|--------|
-| Customer saved | `CustomerObserver` | `CacheInvalidationRequested` | `InvalidateCustomerCache` | `flushCustomerCaches()` |
-| CustomerGroup saved | `CustomerGroupObserver` | `CacheInvalidationRequested` | `InvalidateCustomerGroupCache` | `flushCustomerGroupCaches()` |
-| User saved | `UserObserver` | `CacheInvalidationRequested` | `InvalidateUserCache` | `flushUserCache($id)` |
-| Role saved | `RoleObserver` | `CacheInvalidationRequested` | `InvalidateRoleCache` | `flushRoleCaches()` |
-| Permission saved | `PermissionObserver` | `CacheInvalidationRequested` | `InvalidatePermissionCache` | `flushPermissionCaches()` |
-| Bulk operation | — | `BulkOperationCompleted` | `FlushCRMCacheListener` | Flush all CRM tags |
-| Bulk operation | — | `BulkOperationCompleted` | `FlushIdentityCacheListener` | Flush all Identity tags |
-| Role attach/detach | — | Spatie events | `FlushUserPermissionCache` | Flush user + Spatie cache |
+| Trigger | Event | Listener | Action |
+|---------|-------|----------|--------|
+| Customer saved | `ResourceChanged` | `SyncCRMCache` | `flushCustomerCaches()` |
+| CustomerGroup saved | `ResourceChanged` | `SyncCRMCache` | `flushCustomerGroupCaches()` |
+| User saved | `ResourceChanged` | `SyncIdentityCache` | `flushUserCache($id)` |
+| Role saved | `ResourceChanged` | `SyncIdentityCache` | `flushRoleCaches()` |
+| Permission saved | `ResourceChanged` | `SyncIdentityCache` | `flushPermissionCaches()` |
+| Bulk operation | `ResourceChanged` | `SyncCRMCache` / `SyncIdentityCache` | Flush related tags |
+| Role attach/detach | Spatie events | `SyncIdentityCache` | Flush user + Spatie cache |
 
 ---
 
@@ -471,18 +462,17 @@ Invalidation: incrementTagVersion('users') → all old keys become stale
 ```
 Create:
   Request → CustomerData validation → CustomerService::createCustomer()
-  → CustomerRepository::create() → ModelObserver::saved()
-  → CacheInvalidationRequested::dispatch('customers')
-  → InvalidateCustomerCache → flushCustomerCaches()
+  → CustomerRepository::create() → ResourceChanged::dispatch('created')
+  → SyncCRMCache → flushCustomerCaches()
 
 Update:
   Request → CustomerData validation → CustomerService::updateCustomer()
   → collect()->only() filtering → CustomerRepository::update()
-  → ModelObserver::saved() → Cache invalidation
+  → ResourceChanged::dispatch('updated') → Cache invalidation
 
 Delete (soft):
   Gate::authorize('delete') → CustomerService::deleteCustomer()
-  → CustomerRepository::delete() → ModelObserver::deleted()
+  → CustomerRepository::delete() → ResourceChanged::dispatch('deleted')
   → Cache invalidation
 
 Restore:
@@ -497,8 +487,8 @@ Force Delete:
 
 Bulk Delete:
   HandlesBulkActions::performBulkAction() → CustomerService::bulkDelete()
-  → BaseRepository::bulkDelete() (withoutEvents) → BulkOperationCompleted
-  → FlushCRMCacheListener → flush both tags
+  → BaseRepository::bulkDelete() → ResourceChanged::dispatch('bulk_deleted')
+  → SyncCRMCache → flush related tags
 ```
 
 ### User Lifecycle
@@ -507,18 +497,17 @@ Bulk Delete:
 Create:
   Request → UserData validation → UserService::createUser()
   → DB::transaction() → UserRepository::create() + syncRoles()
-  → ModelObserver::saved() → CacheInvalidationRequested::dispatch('users', $id)
-  → InvalidateUserCache → flushUserCache($id)
+  → ResourceChanged::dispatch('created') → SyncIdentityCache → flushUserCache($id)
 
 Update:
   Request → UserData validation → UserService::updateUser()
-  → DB::transaction() → update + syncRoles(filterAssignableRoles())
-  → ModelObserver::saved() → Cache invalidation
+  → DB::transaction() → update + syncRoles()
+  → ResourceChanged::dispatch('updated') → Cache invalidation
 
 Delete:
   Gate::authorize('delete') + isProtected check → UserService::deleteUser()
   → returns false if protected → Controller shows error
-  → OR deletes → Observer → Cache invalidation
+  → OR deletes → ResourceChanged::dispatch('deleted') → Cache invalidation
 ```
 
 ---
@@ -701,8 +690,8 @@ All index pages follow identical structure:
 
 | # | Severity | Finding | Fix | Files Changed |
 |---|----------|---------|-----|---------------|
-| 1 | 🔴 Critical | Observers directly coupled to cache services | Created `CacheInvalidationRequested` event + 5 listeners. Observers now dispatch events only. | 11 new/modified files |
-| 2 | 🟠 High | Dual cache invalidation paths (observers + bulk events) | Unified through event system. Single path for all invalidation. | All observers, providers |
+| 1 | 🔴 Critical | Implicit Model Observers for Cache Invalidation | Replaced with centralized Service-driven `ResourceChanged` event architecture. | 15+ files |
+| 2 | 🟠 High | Fragmented Cache Listeners | Consolidated into `SyncCRMCache` and `SyncIdentityCache`. | 5 files |
 | 3 | 🟠 High | Dead tests referencing old `BaseModel` cache (`resetFlushedTags`, `flushRedisTag`) | Rewrote tests to match current `BaseCacheService` versioned cache architecture | 2 test files |
 | 4 | 🟡 Medium | `getAvailablePermissions()` not cached despite being deferred prop | Wrapped in `rememberDirect()` with `TAG_PERMISSIONS` | `IdentityCacheService.php` |
 | 5 | 🟡 Medium | `Roles/Index.vue` duplicates `formatRoleName()` logic | Replaced inline function with `useRoles()` composable | `Roles/Index.vue` |
@@ -731,20 +720,17 @@ All index pages follow identical structure:
 
 ### Files Created
 
-1. `Modules/Shared/Events/CacheInvalidationRequested.php` — Central cache invalidation event
-2. `Modules/CRM/Listeners/InvalidateCustomerCache.php` — Customer cache listener
-3. `Modules/CRM/Listeners/InvalidateCustomerGroupCache.php` — CustomerGroup cache listener
-4. `Modules/Identity/Listeners/InvalidateUserCache.php` — User cache listener
-5. `Modules/Identity/Listeners/InvalidateRoleCache.php` — Role cache listener
-6. `Modules/Identity/Listeners/InvalidatePermissionCache.php` — Permission cache listener
+1. `Modules/Shared/Events/ResourceChanged.php` — Central resource change event
+2. `Modules/CRM/Listeners/SyncCRMCache.php` — Consolidated CRM cache listener
+3. `Modules/Identity/Listeners/SyncIdentityCache.php` — Consolidated Identity cache listener
 
 ### Files Modified
 
-1. `Modules/CRM/Observers/CustomerObserver.php` — Dispatches event instead of direct flush
-2. `Modules/CRM/Observers/CustomerGroupObserver.php` — Dispatches event instead of direct flush
-3. `Modules/Identity/Observers/UserObserver.php` — Dispatches event instead of direct flush
-4. `Modules/Identity/Observers/RoleObserver.php` — Dispatches event instead of direct flush
-5. `Modules/Identity/Observers/PermissionObserver.php` — Dispatches event instead of direct flush
+1. `Modules/CRM/Observers/CustomerObserver.php` — REMOVED (logic moved to Service)
+2. `Modules/CRM/Observers/CustomerGroupObserver.php` — REMOVED (logic moved to Service)
+3. `Modules/Identity/Observers/UserObserver.php` — REMOVED (logic moved to Service)
+4. `Modules/Identity/Observers/RoleObserver.php` — REMOVED (logic moved to Service)
+5. `Modules/Identity/Observers/PermissionObserver.php` — REMOVED (logic moved to Service)
 6. `Modules/CRM/Providers/CRMServiceProvider.php` — Registers new listeners
 7. `Modules/Identity/Providers/IdentityServiceProvider.php` — Registers new listeners
 8. `Modules/Identity/Http/Controllers/RoleController.php` — Protected role check

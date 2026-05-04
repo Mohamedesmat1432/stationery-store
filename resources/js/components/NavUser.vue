@@ -13,11 +13,12 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import type { Auth } from '@/types/auth';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 
 const page = usePage();
-const user = computed(() => page.props.auth.user);
+const user = computed(() => (page.props.auth as Auth)?.user);
 const { isMobile, state } = useSidebar();
 </script>
 
@@ -31,7 +32,7 @@ const { isMobile, state } = useSidebar();
                         class="transition-all duration-150 data-[state=open]:bg-primary/15 data-[state=open]:text-primary"
                         data-test="sidebar-menu-button"
                     >
-                        <UserInfo :user="user!" />
+                        <UserInfo :user="user" />
                         <ChevronsUpDown class="ms-auto size-4" />
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
@@ -49,7 +50,7 @@ const { isMobile, state } = useSidebar();
                     :align="page.props.locale === 'ar' ? 'start' : 'end'"
                     :side-offset="4"
                 >
-                    <UserMenuContent :user="user!" />
+                    <UserMenuContent :user="user" />
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarMenuItem>

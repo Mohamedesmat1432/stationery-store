@@ -63,7 +63,7 @@ abstract class BaseCacheService
         $paramKey = md5(serialize($stableParams));
         $fullKey = self::getVersionedKey($tag, "paginated:p{$perPage}:{$paramKey}");
 
-        return Cache::remember($fullKey, $ttl, function () use ($callback, $transform) {
+        return Cache::remember($fullKey, $ttl, function () use ($callback, $transform, $perPage) {
             $paginator = $callback();
 
             if ($transform && $paginator instanceof LengthAwarePaginator) {
@@ -72,9 +72,24 @@ abstract class BaseCacheService
                 );
             }
 
-            return $paginator instanceof Arrayable
-                ? $paginator->toArray()
-                : (array) $paginator;
+            if ($paginator instanceof Arrayable) {
+                return $paginator->toArray();
+            }
+
+            if (is_null($paginator)) {
+                return [
+                    'data' => [],
+                    'links' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'from' => 0,
+                    'to' => 0,
+                    'total' => 0,
+                    'per_page' => $perPage,
+                ];
+            }
+
+            return (array) $paginator;
         });
     }
 
@@ -107,7 +122,7 @@ abstract class BaseCacheService
         }
     }
 
-    protected static function incrementTagVersion(string $tag): void
+    public static function incrementTagVersion(string $tag): void
     {
         unset(self::$versionCache[$tag]);
         $versionKey = "version:{$tag}";

@@ -118,6 +118,14 @@ class Customer extends BaseModel
         });
     }
 
+    /**
+     * Get the customer's age based on birth_date.
+     */
+    public function getAgeAttribute(): ?int
+    {
+        return $this->birth_date ? $this->birth_date->age : null;
+    }
+
     public function updateTotalSpent(): void
     {
         $stats = $this->orders()

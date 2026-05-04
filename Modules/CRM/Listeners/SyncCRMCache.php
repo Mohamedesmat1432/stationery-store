@@ -1,18 +1,20 @@
 <?php
 
+// Refreshed to trigger IDE indexing
+
 namespace Modules\CRM\Listeners;
 
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use Modules\CRM\Services\CRMCacheService;
-use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\ResourceChanged;
 
-class FlushCRMCacheListener
+class SyncCRMCache
 {
     /**
-     * Handle the event.
+     * Handle the resource changed event.
      */
-    public function handle(BulkOperationCompleted $event): void
+    public function handle(ResourceChanged $event): void
     {
         if (in_array($event->modelClass, [Customer::class, CustomerGroup::class])) {
             CRMCacheService::flushCustomerCaches();

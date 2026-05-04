@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { computed, reactive, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 import { useSelection } from '@/composables/useSelection';
 import type { Auth } from '@/types';
@@ -51,8 +51,14 @@ export function useBulkActions<T extends { id: string | number }>(
     itemsSource: MaybeRefOrGetter<T[]>,
     config: BulkActionsConfig,
 ) {
-    const { selectedIds, isAllSelected, isIndeterminate, toggleAll, toggleItem, clearSelection } =
-        useSelection(itemsSource);
+    const {
+        selectedIds,
+        isAllSelected,
+        isIndeterminate,
+        toggleAll,
+        toggleItem,
+        clearSelection,
+    } = useSelection(() => (itemsSource ? toValue(itemsSource) : []));
 
     const confirmState = reactive<ConfirmState>({
         isOpen: false,

@@ -10,22 +10,14 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\Identity\Enums\RoleName;
-use Modules\Identity\Listeners\FlushIdentityCacheListener;
-use Modules\Identity\Listeners\FlushUserPermissionCache;
-use Modules\Identity\Listeners\InvalidatePermissionCache;
-use Modules\Identity\Listeners\InvalidateRoleCache;
-use Modules\Identity\Listeners\InvalidateUserCache;
-use Modules\Identity\Observers\PermissionObserver;
-use Modules\Identity\Observers\RoleObserver;
-use Modules\Identity\Observers\UserObserver;
+use Modules\Identity\Listeners\SyncIdentityCache;
 use Modules\Identity\Policies\RolePolicy;
 use Modules\Identity\Policies\UserPolicy;
 use Modules\Identity\Repositories\Contracts\RoleRepositoryInterface;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Identity\Repositories\Eloquent\RoleRepository;
 use Modules\Identity\Repositories\Eloquent\UserRepository;
-use Modules\Shared\Events\BulkOperationCompleted;
-use Modules\Shared\Events\CacheInvalidationRequested;
+use Modules\Shared\Events\ResourceChanged;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -55,7 +47,6 @@ class IdentityServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
-        $this->registerObservers();
         $this->registerEvents();
         $this->registerRoutes();
 
@@ -75,33 +66,18 @@ class IdentityServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register model observers.
-     */
-    protected function registerObservers(): void
-    {
-        User::observe(UserObserver::class);
-        Role::observe(RoleObserver::class);
-        Permission::observe(PermissionObserver::class);
-    }
-
-    /**
      * Register events and listeners.
      */
     protected function registerEvents(): void
     {
-        // Model changes → Request cache invalidation (observers dispatch, listeners handle)
-        Event::listen(CacheInvalidationRequested::class, InvalidateUserCache::class);
-        Event::listen(CacheInvalidationRequested::class, InvalidateRoleCache::class);
-        Event::listen(CacheInvalidationRequested::class, InvalidatePermissionCache::class);
+        // Unify all resource changes (single, bulk, import) to trigger cache sync
+        Event::listen(ResourceChanged::class, SyncIdentityCache::class);
 
-        // Access Control → Flush Cache on Role/Permission attach/detach
-        Event::listen(RoleAttachedEvent::class, FlushUserPermissionCache::class);
-        Event::listen(RoleDetachedEvent::class, FlushUserPermissionCache::class);
-        Event::listen(PermissionAttachedEvent::class, FlushUserPermissionCache::class);
-        Event::listen(PermissionDetachedEvent::class, FlushUserPermissionCache::class);
-
-        // Bulk Operations → Flush Cache
-        Event::listen(BulkOperationCompleted::class, FlushIdentityCacheListener::class);
+        // Access Control → Flush Cache on Role/Permission attach/detach (Spatie events)
+        Event::listen(RoleAttachedEvent::class, SyncIdentityCache::class);
+        Event::listen(RoleDetachedEvent::class, SyncIdentityCache::class);
+        Event::listen(PermissionAttachedEvent::class, SyncIdentityCache::class);
+        Event::listen(PermissionDetachedEvent::class, SyncIdentityCache::class);
     }
 
     /**

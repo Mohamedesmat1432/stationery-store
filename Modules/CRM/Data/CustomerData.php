@@ -60,6 +60,7 @@ class CustomerData extends Data
     ) {
         $this->total_spent = 0.0;
         $this->orders_count = 0;
+        $this->age = null;
     }
 
     #[Computed]
@@ -67,6 +68,9 @@ class CustomerData extends Data
 
     #[Computed]
     public int $orders_count;
+
+    #[Computed]
+    public ?int $age;
 
     public static function fromCustomer(Customer $customer): self
     {
@@ -76,9 +80,7 @@ class CustomerData extends Data
             name: $customer->user?->name,
             email: $customer->user?->email,
             phone: $customer->phone,
-            birth_date: $customer->birth_date instanceof Carbon
-            ? $customer->birth_date->toDateString()
-            : (is_string($customer->birth_date) ? $customer->birth_date : null),
+            birth_date: $customer->birth_date instanceof \DateTimeInterface ? $customer->birth_date->format("Y-m-d") : null,
             gender: $customer->gender instanceof Gender ? $customer->gender : Gender::tryFrom((string) $customer->gender),
             tax_number: $customer->tax_number,
             company_name: $customer->company_name,
@@ -90,6 +92,7 @@ class CustomerData extends Data
 
         $data->total_spent = (float) $customer->total_spent;
         $data->orders_count = (int) $customer->orders_count;
+        $data->age = $customer->age;
         $data->is_protected = false; // Customers are not protected by default
 
         return $data;

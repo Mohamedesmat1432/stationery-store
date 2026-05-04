@@ -48,14 +48,14 @@ const props = withDefaults(
     },
 );
 
-const { searchQuery, applyFilters } = useResourceFilters(props.filters.filter, {
+const { searchQuery, applyFilters } = useResourceFilters(() => props.filters?.filter, {
     baseUrl: rolesRoutes.index.url(),
 });
 
 // formatRoleName is a standalone utility, no form needed
 
 const selectableRoles = computed(() => {
-    return props.roles.data.filter((r) => !r.is_protected);
+    return props.roles?.data?.filter((r) => !r.is_protected) ?? [];
 });
 
 const {
@@ -84,7 +84,7 @@ const {
                 title="Roles & Permissions"
                 description="Manage system roles and their associated permissions."
                 :icon="ShieldCheck"
-                :selected-count="selectedIds.length"
+                :selected-count="selectedIds?.length ?? 0"
                 :can-create="can('create_roles')"
                 :create-url="rolesRoutes.create.url()"
                 create-label="Create Role"
@@ -128,12 +128,13 @@ const {
                         </thead>
                         <tbody>
                             <tr
-                                v-for="role in roles.data"
+                                v-for="role in roles?.data ?? []"
                                 :key="role.id"
                                 class="table-row-themed"
                             >
                                 <td class="px-6 py-4">
                                     <Checkbox
+                                        v-if="selectableRoles.some(r => r.id === role.id)"
                                         :model-value="
                                             selectedIds.includes(role.id)
                                         "
@@ -161,7 +162,7 @@ const {
                                     }}
                                     {{ $t('Permissions') }}
                                 </td>
-                                <td class="space-x-2 px-6 py-4 text-start">
+                                <td class="flex items-center gap-2 px-6 py-4 text-start">
                                     <Button
                                         v-if="can('update_roles')"
                                         variant="outline"
@@ -186,7 +187,7 @@ const {
                                     </Button>
                                 </td>
                             </tr>
-                            <tr v-if="roles.data.length === 0">
+                            <tr v-if="(roles?.data?.length ?? 0) === 0">
                                 <td
                                     colspan="4"
                                     class="px-6 py-8 text-center text-muted-foreground"
@@ -199,9 +200,9 @@ const {
                 </div>
 
                 <ResourcePagination
-                    :links="roles.links"
-                    :total="roles.total"
-                    :count="roles.data.length"
+                    :links="roles?.links ?? []"
+                    :total="roles?.total ?? 0"
+                    :count="roles?.data?.length ?? 0"
                     resource-name="roles"
                 />
             </CardContent>

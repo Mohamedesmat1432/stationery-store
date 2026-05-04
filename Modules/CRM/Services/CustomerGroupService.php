@@ -10,7 +10,7 @@ use Modules\CRM\Data\CustomerGroupData;
 use Modules\CRM\Exports\CustomerGroupsExport;
 use Modules\CRM\Imports\CustomerGroupsImport;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
-use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -58,12 +58,13 @@ class CustomerGroupService
         );
     }
 
-    /**
-     * Create a new customer group.
-     */
     public function createCustomerGroup(CustomerGroupData $data): CustomerGroup
     {
-        return $this->customerGroupRepository->create($data->toArray());
+        $group = $this->customerGroupRepository->create($data->toArray());
+
+        ResourceChanged::dispatch(CustomerGroup::class, 'created', [$group->id]);
+
+        return $group;
     }
 
     /**
@@ -75,7 +76,11 @@ class CustomerGroupService
             ->only(['name', 'slug', 'description', 'discount_percentage', 'is_active', 'sort_order'])
             ->toArray();
 
-        return $this->customerGroupRepository->update($group, $updateData);
+        $group = $this->customerGroupRepository->update($group, $updateData);
+
+        ResourceChanged::dispatch(CustomerGroup::class, 'updated', [$group->id]);
+
+        return $group;
     }
 
     /**
@@ -87,7 +92,13 @@ class CustomerGroupService
             return false;
         }
 
-        return $this->customerGroupRepository->delete($group);
+        $result = $this->customerGroupRepository->delete($group);
+
+        if ($result) {
+            ResourceChanged::dispatch(CustomerGroup::class, 'deleted', [$group->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -95,7 +106,13 @@ class CustomerGroupService
      */
     public function restoreCustomerGroup(CustomerGroup $group): bool
     {
-        return $this->customerGroupRepository->restore($group);
+        $result = $this->customerGroupRepository->restore($group);
+
+        if ($result) {
+            ResourceChanged::dispatch(CustomerGroup::class, 'restored', [$group->id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -107,7 +124,13 @@ class CustomerGroupService
             return false;
         }
 
-        return $this->customerGroupRepository->forceDelete($group);
+        $result = $this->customerGroupRepository->forceDelete($group);
+
+        if ($result) {
+            ResourceChanged::dispatch(CustomerGroup::class, 'force_deleted', [$group->id]);
+        }
+
+        return $result;
     }
 
     public function getAllActive(): array
@@ -131,6 +154,6 @@ class CustomerGroupService
     {
         CustomerGroup::withoutEvents(fn () => Excel::import(new CustomerGroupsImport, $file));
 
-        event(new BulkOperationCompleted(CustomerGroup::class, 'import'));
+        ResourceChanged::dispatch(CustomerGroup::class, 'imported');
     }
 }

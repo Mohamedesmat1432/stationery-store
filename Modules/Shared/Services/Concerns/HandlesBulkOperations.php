@@ -2,7 +2,7 @@
 
 namespace Modules\Shared\Services\Concerns;
 
-use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\ResourceChanged;
 
 /**
  * Trait HandlesBulkOperations
@@ -27,7 +27,7 @@ trait HandlesBulkOperations
 
         $result = $this->getRepository()->bulkDelete($ids);
         if ($result) {
-            event(new BulkOperationCompleted($this->getModelClass(), 'delete', $ids));
+            event(new ResourceChanged($this->getModelClass(), 'bulk_deleted', $ids));
         }
 
         return $result;
@@ -48,7 +48,7 @@ trait HandlesBulkOperations
 
         $result = $this->getRepository()->bulkRestore($ids);
         if ($result) {
-            event(new BulkOperationCompleted($this->getModelClass(), 'restore', $ids));
+            event(new ResourceChanged($this->getModelClass(), 'bulk_restored', $ids));
         }
 
         return $result;
@@ -69,7 +69,7 @@ trait HandlesBulkOperations
 
         $result = $this->getRepository()->bulkForceDelete($ids);
         if ($result) {
-            event(new BulkOperationCompleted($this->getModelClass(), 'forceDelete', $ids));
+            event(new ResourceChanged($this->getModelClass(), 'bulk_force_deleted', $ids));
         }
 
         return $result;

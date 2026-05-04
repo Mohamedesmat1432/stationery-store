@@ -70,7 +70,7 @@ const props = withDefaults(
 );
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
-    useResourceFilters(props.filters.filter, {
+    useResourceFilters(() => props.filters?.filter, {
         baseUrl: usersRoutes.index.url(),
     });
 
@@ -85,7 +85,7 @@ const roleFilter = computed({
 const formatRoleName = (name: string) => formatLabel(name);
 
 const selectableUsers = computed(() => {
-    return props.users.data.filter((u) => !u.is_protected);
+    return props.users?.data?.filter((u) => !u.is_protected) ?? [];
 });
 
 const {
@@ -129,7 +129,7 @@ const allColumns = [
                 title="Users Management"
                 description="Manage user accounts and their assigned roles."
                 :icon="Users"
-                :selected-count="selectedIds.length"
+                :selected-count="selectedIds?.length ?? 0"
                 :show-trashed="showTrashed"
                 :can-create="can('create_users')"
                 :create-url="usersRoutes.create.url()"
@@ -165,6 +165,7 @@ const allColumns = [
                 <ResourceFilterBar
                     v-model:search="searchQuery"
                     v-model:trashed="showTrashed"
+                    can-show-trashed
                     search-placeholder="Search by name or email..."
                     @search="applyFilters"
                     @update:trashed="applyFilters"
@@ -176,7 +177,7 @@ const allColumns = [
                                     <Skeleton class="h-9 w-full" />
                                 </template>
                                 <Select v-model="roleFilter">
-                                    <SelectTrigger class="h-9">
+                                    <SelectTrigger class="h-9" :aria-label="$t('Filter by Role')">
                                         <SelectValue
                                             :placeholder="$t('Filter by Role')"
                                         />
@@ -232,8 +233,8 @@ const allColumns = [
                             </tr>
                         </thead>
                         <tbody>
-                            <tr
-                                v-for="user in users.data"
+                             <tr
+                                v-for="user in users?.data ?? []"
                                 :key="user.id"
                                 class="table-row-themed"
                             >
@@ -281,7 +282,7 @@ const allColumns = [
                                         >
                                     </div>
                                 </td>
-                                <td class="space-x-2 px-6 py-4 text-start">
+                                <td class="flex items-center gap-2 px-6 py-4 text-start">
                                     <template v-if="!user.deleted_at">
                                         <Button
                                             v-if="can('update_users')"
@@ -340,7 +341,7 @@ const allColumns = [
                                     </template>
                                 </td>
                             </tr>
-                            <tr v-if="users.data.length === 0">
+                            <tr v-if="(users?.data?.length ?? 0) === 0">
                                 <td
                                     colspan="5"
                                     class="px-6 py-8 text-center text-muted-foreground"
@@ -353,9 +354,9 @@ const allColumns = [
                 </div>
 
                 <ResourcePagination
-                    :links="users.links"
-                    :total="users.total"
-                    :count="users.data.length"
+                    :links="users?.links ?? []"
+                    :total="users?.total ?? 0"
+                    :count="users?.data?.length ?? 0"
                     resource-name="users"
                 />
             </CardContent>

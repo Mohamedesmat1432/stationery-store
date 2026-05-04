@@ -56,7 +56,8 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                             <span class="text-destructive">*</span></Label
                         >
                         <Input
-                            id="name"   
+                            id="name"
+                            name="name"
                             v-model="form.name!"
                             @input="onNameInput"
                             :placeholder="$t('e.g. VIP Customers')"
@@ -70,6 +71,7 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                         >
                         <Input
                             id="slug"
+                            name="slug"
                             v-model="form.slug!"
                             :placeholder="$t('e.g. vip-customers')"
                             :disabled="form.processing"
@@ -85,6 +87,7 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                     >
                     <Input
                         id="discount"
+                        name="discount_percentage"
                         type="number"
                         step="0.01"
                         v-model="form.discount_percentage!"
@@ -97,6 +100,7 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                     <Label for="description">{{ $t('Description') }}</Label>
                     <Textarea
                         id="description"
+                        name="description"
                         v-model="form.description!"
                         :placeholder="$t('Describe this group...')"
                         :disabled="form.processing"
@@ -107,6 +111,7 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                 <div class="flex items-center space-x-2">
                     <Checkbox
                         id="is_active"
+                        name="is_active"
                         :model-value="form.is_active"
                         @update:model-value="onIsActiveChange"
                     />

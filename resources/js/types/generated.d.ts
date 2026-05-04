@@ -112,6 +112,7 @@ declare namespace Modules {
                 deleted_at: string | null;
                 total_spent: number;
                 orders_count: number;
+                age: number | null;
             };
             export type CustomerGroupData = {
                 is_protected: boolean;

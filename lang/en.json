@@ -338,5 +338,13 @@
     "Apply": "Apply",
     "Secondary": "Secondary",
     "Primary Action": "Primary Action",
-    "Update segment details and discount rules.": "Update segment details and discount rules."
+    "Update segment details and discount rules.": "Update segment details and discount rules.",
+    "Edit Customer": "Edit Customer",
+    "Update customer profile and group assignments.": "Update customer profile and group assignments.",
+    "User account cannot be changed after creation.": "User account cannot be changed after creation.",
+    "Expand All": "Expand All",
+    "Collapse All": "Collapse All",
+    "RoleFormDescription": "Configure the access levels for this role across different system modules.",
+    "View All": "View All",
+    "Age": "Age"
 }

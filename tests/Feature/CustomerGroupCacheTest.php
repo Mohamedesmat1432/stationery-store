@@ -1,42 +1,69 @@
 <?php
 
-use App\Models\Customer;
 use App\Models\CustomerGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Modules\CRM\Data\CustomerGroupData;
 use Modules\CRM\Services\CRMCacheService;
+use Modules\CRM\Services\CustomerGroupService;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    // Clear cache before each test to ensure clean state
     Cache::flush();
+    CRMCacheService::clearVersionCache();
 });
 
-test('customer group saved event flushes related caches', function () {
-    $group = CustomerGroup::factory()->create();
+test('customer group created via service flushes related caches', function () {
+    $service = resolve(CustomerGroupService::class);
 
-    // Prime the cache
-    CRMCacheService::rememberCustomerGroups([], 15, fn () => CustomerGroup::paginate(15));
+    // Initial version
+    $initialVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
 
-    // Update the group — this should invalidate the cache via observer → event → listener
-    $group->update(['name' => 'Updated Name']);
+    // Create via service
+    $service->createCustomerGroup(CustomerGroupData::from([
+        'name' => 'New Group',
+        'slug' => 'new-group',
+        'discount_percentage' => 10.0,
+        'is_active' => true,
+    ]));
 
-    // Cache should be invalidated — next read won't hit stale data
-    // We verify by checking the version key was incremented
-    $versionKey = 'version:customer_groups';
-    expect(Cache::has($versionKey))->toBeTrue();
+    // Version should be incremented
+    $newVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
+    expect($newVersion)->toBeGreaterThan($initialVersion);
 });
 
-test('customer group deleted event flushes related caches', function () {
+test('customer group updated via service flushes related caches', function () {
+    $service = resolve(CustomerGroupService::class);
     $group = CustomerGroup::factory()->create();
-    $customer = Customer::factory()->create(['customer_group_id' => $group->id]);
 
-    // Prime the cache
-    CRMCacheService::rememberCustomerGroups([], 15, fn () => CustomerGroup::paginate(15));
+    // Prime and get version
+    $initialVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
 
-    $group->delete();
+    // Update via service
+    $service->updateCustomerGroup($group, CustomerGroupData::from([
+        'name' => 'Updated Name',
+        'slug' => $group->slug,
+        'discount_percentage' => $group->discount_percentage,
+        'is_active' => true,
+    ]));
 
-    // Verify the customer was soft-deleted along with cache invalidation
-    expect($group->fresh())->toBeNull();
+    // Version should be incremented
+    $newVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
+    expect($newVersion)->toBeGreaterThan($initialVersion);
+});
+
+test('customer group deleted via service flushes related caches', function () {
+    $service = resolve(CustomerGroupService::class);
+    $group = CustomerGroup::factory()->create(['slug' => 'not-protected']);
+
+    // Prime and get version
+    $initialVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
+
+    $service->deleteCustomerGroup($group);
+
+    // Version should be incremented
+    $newVersion = CRMCacheService::getTagVersion(CRMCacheService::TAG_CUSTOMER_GROUPS);
+    expect($newVersion)->toBeGreaterThan($initialVersion);
+    expect(CustomerGroup::find($group->id))->toBeNull();
 });

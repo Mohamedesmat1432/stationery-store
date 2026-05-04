@@ -60,6 +60,8 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                         </Label>
                         <Input
                             id="name"
+                            name="name"
+                            autocomplete="name"
                             v-model="form.name!"
                             :placeholder="$t('John Doe')"
                             :disabled="form.processing"
@@ -73,6 +75,8 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                         </Label>
                         <Input
                             id="email"
+                            name="email"
+                            autocomplete="email"
                             type="email"
                             v-model="form.email!"
                             placeholder="john@example.com"
@@ -92,6 +96,8 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                     </Label>
                     <Input
                         id="password"
+                        name="password"
+                        :autocomplete="isEdit ? 'new-password' : 'password'"
                         type="password"
                         v-model="form.password!"
                         placeholder="••••••••"
@@ -123,6 +129,7 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                             >
                                 <Checkbox
                                     :id="'role-' + role"
+                                    name="roles[]"
                                     :model-value="form.roles.includes(role)"
                                     @update:model-value="toggleRole(role)"
                                 />
