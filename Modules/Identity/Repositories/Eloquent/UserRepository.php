@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
@@ -91,7 +92,7 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
     {
         return User::with('roles')
             ->whereDoesntHave('customer')
-            ->when($includeUserId, fn ($query) => $query->orWhere('id', $includeUserId))
+            ->when($includeUserId, fn ($query) => $query->where(fn ($q) => $q->where('id', $includeUserId)))
             ->get();
     }
 
@@ -116,14 +117,16 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
      */
     public function getProtectedIds(array $ids): array
     {
-        $currentUser = auth()->user();
+        $currentUser = Auth::user();
 
         if (! $currentUser) {
             return [];
         }
 
+        // Eager-load roles to prevent N+1 during protection check
         return User::whereIn('id', $ids)
-            ->get()
+            ->with('roles')
+            ->cursor()
             ->filter(fn (User $user) => $user->isProtectedBy($currentUser))
             ->pluck('id')
             ->toArray();

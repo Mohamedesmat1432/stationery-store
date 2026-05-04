@@ -3,44 +3,35 @@
 namespace Modules\Identity\Observers;
 
 use App\Models\User;
-use Modules\Identity\Services\IdentityCacheService;
+use Modules\Shared\Events\CacheInvalidationRequested;
 
 class UserObserver
 {
     /**
-     * Set to true to ensure cache is cleared AFTER the database transaction commits.
+     * Set to true to ensure events are dispatched AFTER the database transaction commits.
      */
     public bool $afterCommit = true;
 
     /**
-     * Handle the User "saved" event.
+     * Request cache invalidation for the specific user on any state change.
      */
     public function saved(User $user): void
     {
-        IdentityCacheService::flushUserCaches();
+        CacheInvalidationRequested::dispatch('users', $user->id);
     }
 
-    /**
-     * Handle the User "deleted" event.
-     */
     public function deleted(User $user): void
     {
-        IdentityCacheService::flushUserCaches();
+        CacheInvalidationRequested::dispatch('users', $user->id);
     }
 
-    /**
-     * Handle the User "restored" event.
-     */
     public function restored(User $user): void
     {
-        IdentityCacheService::flushUserCaches();
+        CacheInvalidationRequested::dispatch('users', $user->id);
     }
 
-    /**
-     * Handle the User "forceDeleted" event.
-     */
     public function forceDeleted(User $user): void
     {
-        IdentityCacheService::flushUserCaches();
+        CacheInvalidationRequested::dispatch('users', $user->id);
     }
 }

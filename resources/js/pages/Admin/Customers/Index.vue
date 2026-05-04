@@ -1,30 +1,28 @@
 <script setup lang="ts">
-import { Head, Link, router, Deferred } from '@inertiajs/vue3';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Deferred, Head, Link } from '@inertiajs/vue3';
 import {
-    UserCircle,
+    Building2,
+    Download,
+    Mail,
     Pencil,
-    Trash2,
+    Phone,
     RotateCcw,
     Trash,
-    Building2,
-    Mail,
-    Phone,
-    Download,
+    Trash2,
     Upload,
+    UserCircle,
 } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-
 import {
     Select,
     SelectContent,
@@ -32,6 +30,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
 import * as customersRoutes from '@/routes/admin/customers/index';
@@ -48,23 +47,28 @@ defineOptions({
 // Types are automatically generated via spatie/laravel-typescript-transformer
 type Customer = Modules.CRM.Data.CustomerData & { id: string };
 
-const props = defineProps<{
-    customers: {
-        data: Customer[];
-        links: any[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
-    filters: {
-        filter?: {
-            search?: string;
-            group?: string;
-            trash?: string;
+const props = withDefaults(
+    defineProps<{
+        customers: {
+            data: Customer[];
+            links: any[];
+            current_page: number;
+            last_page: number;
+            total: number;
         };
-    };
-    available_groups: Modules.CRM.Data.CustomerGroupData[];
-}>();
+        filters: {
+            filter?: {
+                search?: string;
+                group?: string;
+                trash?: string;
+            };
+        };
+        available_groups?: Modules.CRM.Data.CustomerGroupData[];
+    }>(),
+    {
+        available_groups: () => [],
+    },
+);
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
     useResourceFilters(props.filters.filter, {
@@ -104,8 +108,10 @@ const {
     confirmState,
 } = useBulkActions(() => selectableCustomers.value, {
     entityName: 'customers',
-    bulkActionUrl: customersRoutes.bulkAction.url(),
-    resourceUrl: customersRoutes.index.url(),
+    bulkActionRoute: customersRoutes.bulkAction,
+    destroyRoute: (id) => customersRoutes.destroy(String(id)),
+    restoreRoute: (id) => customersRoutes.restore(String(id)),
+    forceDeleteRoute: (id) => customersRoutes.forceDelete(String(id)),
 });
 
 // Export/Import state
@@ -172,7 +178,7 @@ const allColumns = [
                     @update:trashed="applyFilters"
                 >
                     <template #filters>
-                        <div class="flex min-w-[200px] items-center gap-2">
+                        <div class="flex min-w-50 items-center gap-2">
                             <Deferred data="available_groups">
                                 <template #fallback>
                                     <Skeleton class="h-9 w-full" />
@@ -188,7 +194,7 @@ const allColumns = [
                                             $t('All Groups')
                                         }}</SelectItem>
                                         <SelectItem
-                                            v-for="group in available_groups"
+                                            v-for="group in available_groups ?? []"
                                             :key="group.id!"
                                             :value="group.id"
                                         >

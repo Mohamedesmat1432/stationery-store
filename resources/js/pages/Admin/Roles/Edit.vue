@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, useForm, router, usePage, Deferred } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ShieldCheck, Save, ArrowLeft, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -16,27 +16,33 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useBulkActions } from '@/composables/useBulkActions';
 import { usePermissions } from '@/composables/usePermissions';
+import * as rolesRoutes from '@/routes/admin/roles/index';
 
 defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Roles & Permissions', href: '/admin/roles' },
+            { title: 'Roles & Permissions', href: rolesRoutes.index.url() },
             { title: 'Edit Role', href: '#' },
         ],
     },
 });
 
-const props = defineProps<{
-    role: {
-        id: string;
-        name: string;
-        permissions: string[];
-    };
-    available_permissions: string[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        role: {
+            id: string;
+            name: string;
+            permissions: string[];
+        };
+        available_permissions?: Record<string, string[]>;
+    }>(),
+    {
+        available_permissions: () => ({}),
+    },
+);
 
 const form = useForm({
     id: props.role.id,
@@ -50,16 +56,17 @@ const {
     formatPermissionLabel,
     togglePermission,
     toggleModule,
-} = usePermissions(form, () => props.available_permissions);
+} = usePermissions(form, () => props.available_permissions ?? {});
 
 const submit = () => {
-    form.put(`/admin/roles/${props.role.id}`);
+    form.put(rolesRoutes.update.url(props.role.id));
 };
 
-const pagePermissions = computed<string[]>(
-    () => (usePage().props.auth as any).permissions || [],
-);
-const can = (permission: string) => pagePermissions.value.includes(permission);
+const { can } = useBulkActions(() => [], {
+    entityName: 'roles',
+    bulkActionRoute: rolesRoutes.bulkAction,
+    destroyRoute: (id: string | number) => rolesRoutes.destroy(String(id)),
+});
 
 // Delete confirmation via ConfirmDialog
 const showDeleteConfirm = ref(false);
@@ -71,7 +78,7 @@ const confirmDelete = () => {
 
 const handleDeleteConfirm = () => {
     deleteLoading.value = true;
-    router.delete(`/admin/roles/${props.role.id}`, {
+    router.delete(rolesRoutes.destroy.url(props.role.id), {
         onFinish: () => {
             deleteLoading.value = false;
             showDeleteConfirm.value = false;
@@ -104,7 +111,7 @@ const handleDeleteConfirm = () => {
                     </div>
                     <Button variant="outline" as-child type="button">
                         <Link
-                            href="/admin/roles"
+                            :href="rolesRoutes.index.url()"
                             class="flex items-center gap-2"
                         >
                             <ArrowLeft class="h-4 w-4" /> {{ $t('Back') }}
@@ -147,89 +154,62 @@ const handleDeleteConfirm = () => {
                         <div
                             class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
                         >
-                            <Deferred data="available_permissions">
-                                <template #fallback>
-                                    <div
-                                        v-for="i in 6"
-                                        :key="i"
-                                        class="space-y-4 rounded-lg border border-sidebar-border bg-sidebar p-4"
-                                    >
-                                        <div
-                                            class="flex items-center justify-between border-b border-sidebar-border pb-2"
-                                        >
-                                            <Skeleton class="h-5 w-24" />
-                                            <Skeleton class="h-6 w-16" />
-                                        </div>
-                                        <div class="space-y-3">
-                                            <div
-                                                v-for="j in 4"
-                                                :key="j"
-                                                class="flex items-center space-x-2"
-                                            >
-                                                <Skeleton class="h-4 w-4" />
-                                                <Skeleton class="h-4 w-32" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-
+                            <div
+                                v-for="(
+                                    permissions, moduleName
+                                ) in groupedPermissions"
+                                :key="moduleName"
+                                class="space-y-4 rounded-lg border border-sidebar-border bg-sidebar p-4"
+                            >
                                 <div
-                                    v-for="(
-                                        permissions, moduleName
-                                    ) in groupedPermissions"
-                                    :key="moduleName"
-                                    class="space-y-4 rounded-lg border border-sidebar-border bg-sidebar p-4"
+                                    class="flex items-center justify-between border-b border-sidebar-border pb-2"
                                 >
-                                    <div
-                                        class="flex items-center justify-between border-b border-sidebar-border pb-2"
+                                    <Label
+                                        class="text-base font-semibold capitalize"
+                                        >{{ formatName(moduleName as string) }}</Label
                                     >
-                                        <Label
-                                            class="text-base font-semibold capitalize"
-                                            >{{ formatName(moduleName) }}</Label
-                                        >
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            class="h-6 px-2 text-xs"
-                                            @click="toggleModule(permissions)"
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-6 px-2 text-xs"
+                                        @click="toggleModule(permissions)"
+                                        :disabled="form.processing"
+                                    >
+                                        {{ $t('Toggle All') }}
+                                    </Button>
+                                </div>
+                                <div class="space-y-3">
+                                    <div
+                                        v-for="permission in permissions"
+                                        :key="permission"
+                                        class="flex items-center space-x-2"
+                                    >
+                                        <Checkbox
+                                            :id="permission"
+                                            :model-value="
+                                                form.permissions.includes(
+                                                    permission,
+                                                )
+                                            "
+                                            @update:model-value="
+                                                togglePermission(permission)
+                                            "
                                             :disabled="form.processing"
+                                        />
+                                        <label
+                                            :for="permission"
+                                            class="cursor-pointer text-sm leading-none font-medium text-muted-foreground transition-colors peer-disabled:cursor-not-allowed peer-disabled:opacity-70 hover:text-foreground"
                                         >
-                                            {{ $t('Toggle All') }}
-                                        </Button>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div
-                                            v-for="permission in permissions"
-                                            :key="permission"
-                                            class="flex items-center space-x-2"
-                                        >
-                                            <Checkbox
-                                                :id="permission"
-                                                :model-value="
-                                                    form.permissions.includes(
-                                                        permission,
-                                                    )
-                                                "
-                                                @update:model-value="
-                                                    togglePermission(permission)
-                                                "
-                                                :disabled="form.processing"
-                                            />
-                                            <label
-                                                :for="permission"
-                                                class="cursor-pointer text-sm leading-none font-medium text-muted-foreground transition-colors peer-disabled:cursor-not-allowed peer-disabled:opacity-70 hover:text-foreground"
-                                            >
-                                                {{
-                                                    formatPermissionLabel(
-                                                        permission,
-                                                    )
-                                                }}
-                                            </label>
-                                        </div>
+                                            {{
+                                                formatPermissionLabel(
+                                                    permission,
+                                                )
+                                            }}
+                                        </label>
                                     </div>
                                 </div>
-                            </Deferred>
+                            </div>
                         </div>
                     </div>
                 </CardContent>

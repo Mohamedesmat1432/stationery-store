@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -20,7 +21,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'vue-sonner';
 
 const props = defineProps<{
     open: boolean;
@@ -107,7 +107,7 @@ const submitExport = () => {
         @update:open="emit('update:open', $event)"
         :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'"
     >
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-106.25">
             <DialogHeader class="text-start">
                 <DialogTitle>{{ $t(title) }}</DialogTitle>
                 <DialogDescription v-if="description">

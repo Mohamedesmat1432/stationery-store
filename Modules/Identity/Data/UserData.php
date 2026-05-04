@@ -3,6 +3,7 @@
 namespace Modules\Identity\Data;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Spatie\LaravelData\Attributes\Computed;
@@ -13,7 +14,6 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 class UserData extends Data
 {
-    /** @var string|null */
     #[Computed]
     public bool $is_protected;
 
@@ -51,7 +51,7 @@ class UserData extends Data
             deleted_at: $user->deleted_at?->toDateTimeString(),
         );
 
-        $data->is_protected = $user->isProtectedBy(auth()->user());
+        $data->is_protected = $user->isProtectedBy(Auth::user());
 
         return $data;
     }
@@ -61,8 +61,7 @@ class UserData extends Data
      */
     public static function rules(?ValidationContext $context = null): array
     {
-        $user = request()->route('user');
-        $userId = $user instanceof User ? $user->id : $user;
+        $userId = request()->route('user')?->id;
         $isUpdate = $userId !== null;
 
         return [

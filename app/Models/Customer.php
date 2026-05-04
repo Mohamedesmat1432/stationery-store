@@ -20,7 +20,7 @@ class Customer extends BaseModel
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['phone', 'customer_group_id', 'total_spent', 'orders_count'])
+            ->logOnly(['phone', 'customer_group_id'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
@@ -120,14 +120,15 @@ class Customer extends BaseModel
 
     public function updateTotalSpent(): void
     {
-        $total = $this->orders()
+        $stats = $this->orders()
             ->where('status', OrderStatus::DELIVERED->value)
             ->where('payment_status', PaymentStatus::PAID->value)
-            ->sum('grand_total');
+            ->selectRaw('COALESCE(SUM(grand_total), 0) as total_spent, COUNT(*) as orders_count')
+            ->first();
 
         $this->update([
-            'total_spent' => $total,
-            'orders_count' => $this->orders()->count(),
+            'total_spent' => $stats?->total_spent ?? 0,
+            'orders_count' => $stats?->orders_count ?? 0,
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace Modules\Identity\Services;
 
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Modules\Identity\Data\RoleData;
 use Modules\Identity\Data\UserData;
 use Modules\Identity\Enums\PermissionName;
@@ -28,7 +29,7 @@ class IdentityCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_USERS,
             "user_permissions:{$userId}",
-            fn () => app(UserRepositoryInterface::class)->getPermissions($userId)
+            fn () => resolve(UserRepositoryInterface::class)->getPermissions($userId)
         );
     }
 
@@ -37,7 +38,7 @@ class IdentityCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_USERS,
             "user_roles:{$userId}",
-            fn () => app(UserRepositoryInterface::class)->getRoles($userId)
+            fn () => resolve(UserRepositoryInterface::class)->getRoles($userId)
         );
     }
 
@@ -72,10 +73,16 @@ class IdentityCacheService extends BaseCacheService
 
     /**
      * Flush cache for a specific user.
+     * Also flushes the paginated user list since the user data changed.
      */
     public static function flushUserCache(string $userId): void
     {
-        // Currently flushes all user tags as more specific invalidation is pending implementation
+        // Flush specific user keys
+        Cache::forget(self::getVersionedKey(self::TAG_USERS, "direct:user_permissions:{$userId}"));
+        Cache::forget(self::getVersionedKey(self::TAG_USERS, "direct:user_roles:{$userId}"));
+        Cache::forget(self::getVersionedKey(self::TAG_USERS, "direct:available_for_customer:{$userId}"));
+
+        // Also flush paginated lists since user data may affect filters
         self::flushUserCaches();
     }
 
@@ -86,7 +93,7 @@ class IdentityCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_USERS,
             $key,
-            fn () => app(UserRepositoryInterface::class)->getAvailableForCustomer($includeUserId),
+            fn () => resolve(UserRepositoryInterface::class)->getAvailableForCustomer($includeUserId),
             fn ($collection) => UserData::collect($collection)->toArray()
         );
     }
@@ -98,7 +105,7 @@ class IdentityCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_ROLES,
             'available_roles',
-            fn () => app(RoleRepositoryInterface::class)->getAvailableNames()
+            fn () => resolve(RoleRepositoryInterface::class)->getAvailableNames()
         );
     }
 
@@ -107,7 +114,7 @@ class IdentityCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_ROLES,
             "role_permissions:{$roleId}",
-            fn () => app(RoleRepositoryInterface::class)->getPermissions($roleId)
+            fn () => resolve(RoleRepositoryInterface::class)->getPermissions($roleId)
         );
     }
 
@@ -137,8 +144,26 @@ class IdentityCacheService extends BaseCacheService
     {
         return self::rememberDirect(
             self::TAG_PERMISSIONS,
-            'available_permissions',
-            fn () => PermissionName::values()
+            'available_permissions_grouped',
+            function (): array {
+                $permissions = PermissionName::values();
+                $grouped = [];
+
+                foreach ($permissions as $permission) {
+                    $parts = explode('_', $permission);
+                    $action = $parts[0];
+                    $module = count($parts) > 2 && $action === 'force' && $parts[1] === 'delete'
+                        ? implode('_', array_slice($parts, 2))
+                        : implode('_', array_slice($parts, 1));
+
+                    $grouped[$module] ??= [];
+                    $grouped[$module][] = $permission;
+                }
+
+                ksort($grouped);
+
+                return $grouped;
+            }
         );
     }
 

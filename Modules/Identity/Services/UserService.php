@@ -4,6 +4,7 @@ namespace Modules\Identity\Services;
 
 use App\Models\Role;
 use App\Models\User;
+use Auth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +27,7 @@ class UserService
 
     public function __construct(
         protected UserRepositoryInterface $userRepository
-    ) {
-    }
+    ) {}
 
     protected function getRepository(): UserRepositoryInterface
     {
@@ -47,7 +47,7 @@ class UserService
         return IdentityCacheService::rememberUsers(
             $params,
             $perPage,
-            fn() => $this->userRepository->paginate($perPage)
+            fn () => $this->userRepository->paginate($perPage)
         );
     }
 
@@ -64,12 +64,7 @@ class UserService
                 'password' => Hash::make($data->password),
             ]);
 
-            $roles = $data->roles;
-            if (auth()->check() && !auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-                $roles = array_diff($roles, [Role::ROLE_ADMIN]);
-            }
-
-            $this->userRepository->syncRoles($user, $roles);
+            $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles));
 
             return $user;
         });
@@ -86,23 +81,14 @@ class UserService
                 'email' => $data->email,
             ];
 
-            if ($data->password) {
+            if ($data->password !== null && $data->password !== '') {
                 $updateData['password'] = Hash::make($data->password);
             }
 
             /** @var User $user */
             $user = $this->userRepository->update($user, $updateData);
 
-            $roles = $data->roles;
-            if (auth()->check() && !auth()->user()->hasRole(Role::ROLE_ADMIN)) {
-                $roles = array_diff($roles, [Role::ROLE_ADMIN]);
-
-                if ($user->hasRole(Role::ROLE_ADMIN)) {
-                    $roles[] = Role::ROLE_ADMIN;
-                }
-            }
-
-            $this->userRepository->syncRoles($user, $roles);
+            $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles, $user));
 
             return $user;
         });
@@ -117,7 +103,7 @@ class UserService
             return false;
         }
 
-        return DB::transaction(fn() => $this->userRepository->delete($user));
+        return $this->userRepository->delete($user);
     }
 
     /**
@@ -125,7 +111,7 @@ class UserService
      */
     public function restoreUser(User $user): bool
     {
-        return DB::transaction(fn() => $this->userRepository->restore($user));
+        return $this->userRepository->restore($user);
     }
 
     /**
@@ -137,7 +123,7 @@ class UserService
             return false;
         }
 
-        return DB::transaction(fn() => $this->userRepository->forceDelete($user));
+        return $this->userRepository->forceDelete($user);
     }
 
     /**
@@ -145,7 +131,27 @@ class UserService
      */
     public function isProtected(Model|User $model): bool
     {
-        return $model->isProtectedBy(auth()->user());
+        return $model->isProtectedBy(Auth::user());
+    }
+
+    /**
+     * Filter roles to ensure non-admins cannot assign/remove admin role.
+     */
+    protected function filterAssignableRoles(array $roles, ?User $existingUser = null): array
+    {
+        $currentUser = Auth::user();
+
+        if (! $currentUser || $currentUser->hasRole(Role::ROLE_ADMIN)) {
+            return $roles;
+        }
+
+        $roles = array_diff($roles, [Role::ROLE_ADMIN]);
+
+        if ($existingUser && $existingUser->hasRole(Role::ROLE_ADMIN)) {
+            $roles[] = Role::ROLE_ADMIN;
+        }
+
+        return array_values(array_unique($roles));
     }
 
     public function getAvailableForCustomer(?string $includeUserId = null)
@@ -160,14 +166,14 @@ class UserService
 
         return Excel::download(
             new UsersExport($this->userRepository->getExportQuery(), $columns),
-            'users.' . $extension,
+            'users.'.$extension,
             $format
         );
     }
 
     public function importUsers(UploadedFile $file): void
     {
-        User::withoutEvents(fn() => Excel::import(new UsersImport, $file));
+        User::withoutEvents(fn () => Excel::import(new UsersImport, $file));
 
         event(new BulkOperationCompleted(User::class, 'import'));
     }

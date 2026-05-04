@@ -5,7 +5,8 @@
 export function formatLabel(str: string): string {
     if (!str) return '';
     return str
-        .split(/[_-]/)
+        .split(/[_-]+/)
+        .filter((word) => word.length > 0)
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 }

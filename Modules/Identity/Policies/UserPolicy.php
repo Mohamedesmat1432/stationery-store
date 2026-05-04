@@ -40,9 +40,9 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        // Users can update themselves (profile), otherwise need UPDATE_USERS permission
+        // Users can update themselves if they have UPDATE_USERS permission
         if ($user->id === $model->id) {
-            return true;
+            return $user->hasPermissionTo(PermissionName::UPDATE_USERS->value);
         }
 
         // Only admins can update other admins
@@ -70,6 +70,10 @@ class UserPolicy
      */
     public function restore(User $user, ?User $model = null): bool
     {
+        if ($model && $model->isProtectedBy($user)) {
+            return false;
+        }
+
         return $user->hasPermissionTo(PermissionName::RESTORE_USERS->value);
     }
 

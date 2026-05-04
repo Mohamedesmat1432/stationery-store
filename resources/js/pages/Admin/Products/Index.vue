@@ -58,8 +58,10 @@ const {
     confirmState,
 } = useBulkActions(() => props.products.data, {
     entityName: 'products',
-    bulkActionUrl: '/admin/products/bulk-action',
-    resourceUrl: '/admin/products',
+    bulkActionRoute: (() => ({ url: '/admin/products/bulk-action' })) as any,
+    destroyRoute: (id: string | number) => ({ url: `/admin/products/${id}` }),
+    restoreRoute: (id: string | number) => ({ url: `/admin/products/${id}/restore` }),
+    forceDeleteRoute: (id: string | number) => ({ url: `/admin/products/${id}/force-delete` }),
 });
 
 const formatCurrency = (amount: number) => {

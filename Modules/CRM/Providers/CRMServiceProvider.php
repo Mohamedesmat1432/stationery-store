@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Modules\CRM\Listeners\FlushCRMCacheListener;
+use Modules\CRM\Listeners\InvalidateCustomerCache;
+use Modules\CRM\Listeners\InvalidateCustomerGroupCache;
 use Modules\CRM\Observers\CustomerGroupObserver;
 use Modules\CRM\Observers\CustomerObserver;
 use Modules\CRM\Policies\CustomerGroupPolicy;
@@ -18,6 +20,7 @@ use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
 use Modules\CRM\Repositories\Eloquent\CustomerGroupRepository;
 use Modules\CRM\Repositories\Eloquent\CustomerRepository;
 use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\CacheInvalidationRequested;
 
 class CRMServiceProvider extends ServiceProvider
 {
@@ -71,6 +74,10 @@ class CRMServiceProvider extends ServiceProvider
      */
     protected function registerEvents(): void
     {
+        // Model changes → Request cache invalidation (observers dispatch, listeners handle)
+        Event::listen(CacheInvalidationRequested::class, InvalidateCustomerCache::class);
+        Event::listen(CacheInvalidationRequested::class, InvalidateCustomerGroupCache::class);
+
         // Bulk Operations → Flush Cache
         Event::listen(BulkOperationCompleted::class, FlushCRMCacheListener::class);
     }

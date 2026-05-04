@@ -80,7 +80,11 @@ class RoleController extends Controller
     {
         Gate::authorize('delete', $role);
 
-        $this->roleService->deleteRole($role);
+        $deleted = $this->roleService->deleteRole($role);
+
+        if (! $deleted) {
+            return back()->with('error', __('This role is protected and cannot be deleted.'));
+        }
 
         return to_route('admin.roles.index')->with('success', __('Role deleted successfully.'));
     }

@@ -49,7 +49,7 @@ class CRMCacheService extends BaseCacheService
         return self::rememberDirect(
             self::TAG_CUSTOMER_GROUPS,
             'active_list',
-            fn () => app(CustomerGroupRepositoryInterface::class)->allActive(),
+            fn () => resolve(CustomerGroupRepositoryInterface::class)->allActive(),
             fn ($collection) => CustomerGroupData::collect($collection)->toArray()
         );
     }

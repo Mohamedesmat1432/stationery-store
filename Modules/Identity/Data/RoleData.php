@@ -41,9 +41,7 @@ class RoleData extends Data
 
     public static function rules(?ValidationContext $context = null): array
     {
-        // Extract ID for uniqueness check if it exists in the payload or route
-        $role = request()->route('role');
-        $roleId = $role instanceof Role ? $role->id : $role;
+        $roleId = request()->route('role')?->id;
 
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($roleId)],

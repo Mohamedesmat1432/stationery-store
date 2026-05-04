@@ -5,7 +5,6 @@ namespace Modules\CRM\Services;
 use App\Models\CustomerGroup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Excel;
 use Modules\CRM\Data\CustomerGroupData;
 use Modules\CRM\Exports\CustomerGroupsExport;
@@ -64,9 +63,7 @@ class CustomerGroupService
      */
     public function createCustomerGroup(CustomerGroupData $data): CustomerGroup
     {
-        return DB::transaction(function () use ($data) {
-            return $this->customerGroupRepository->create($data->toArray());
-        });
+        return $this->customerGroupRepository->create($data->toArray());
     }
 
     /**
@@ -74,9 +71,11 @@ class CustomerGroupService
      */
     public function updateCustomerGroup(CustomerGroup $group, CustomerGroupData $data): CustomerGroup
     {
-        return DB::transaction(function () use ($group, $data) {
-            return $this->customerGroupRepository->update($group, $data->toArray());
-        });
+        $updateData = collect($data->toArray())
+            ->only(['name', 'slug', 'description', 'discount_percentage', 'is_active', 'sort_order'])
+            ->toArray();
+
+        return $this->customerGroupRepository->update($group, $updateData);
     }
 
     /**
@@ -88,7 +87,7 @@ class CustomerGroupService
             return false;
         }
 
-        return DB::transaction(fn () => $this->customerGroupRepository->delete($group));
+        return $this->customerGroupRepository->delete($group);
     }
 
     /**
@@ -96,7 +95,7 @@ class CustomerGroupService
      */
     public function restoreCustomerGroup(CustomerGroup $group): bool
     {
-        return DB::transaction(fn () => $this->customerGroupRepository->restore($group));
+        return $this->customerGroupRepository->restore($group);
     }
 
     /**
@@ -108,7 +107,7 @@ class CustomerGroupService
             return false;
         }
 
-        return DB::transaction(fn () => $this->customerGroupRepository->forceDelete($group));
+        return $this->customerGroupRepository->forceDelete($group);
     }
 
     public function getAllActive(): array
@@ -121,7 +120,7 @@ class CustomerGroupService
         $format = $formatKey === 'csv' ? Excel::CSV : Excel::XLSX;
         $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
+        return Excel::download(
             new CustomerGroupsExport($this->customerGroupRepository->getExportQuery(), $columns),
             'customer-groups.'.$extension,
             $format
@@ -130,7 +129,7 @@ class CustomerGroupService
 
     public function importCustomerGroups(UploadedFile $file): void
     {
-        CustomerGroup::withoutEvents(fn () => \Maatwebsite\Excel\Facades\Excel::import(new CustomerGroupsImport, $file));
+        CustomerGroup::withoutEvents(fn () => Excel::import(new CustomerGroupsImport, $file));
 
         event(new BulkOperationCompleted(CustomerGroup::class, 'import'));
     }

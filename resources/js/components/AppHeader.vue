@@ -255,9 +255,9 @@ const rightNavItems: NavItem[] = [
                                     class="size-8 overflow-hidden rounded-full"
                                 >
                                     <AvatarImage
-                                        v-if="auth.user.avatar"
-                                        :src="auth.user.avatar"
-                                        :alt="auth.user.name"
+                                        v-if="auth.user?.avatar"
+                                        :src="auth.user?.avatar"
+                                        :alt="auth.user?.name"
                                     />
                                     <AvatarFallback
                                         class="rounded-lg bg-primary/10 font-bold text-primary"
@@ -271,7 +271,7 @@ const rightNavItems: NavItem[] = [
                             align="start"
                             class="w-56"
                         >
-                            <UserMenuContent :user="auth.user" />
+                            <UserMenuContent :user="auth.user!" />
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

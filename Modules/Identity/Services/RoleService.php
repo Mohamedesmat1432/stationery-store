@@ -77,9 +77,7 @@ class RoleService
             return false;
         }
 
-        $result = $this->roleRepository->delete($role);
-
-        return $result;
+        return $this->roleRepository->delete($role);
     }
 
     /**

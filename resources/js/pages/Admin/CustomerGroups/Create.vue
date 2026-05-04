@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import { index } from '@/actions/Modules/CRM/Http/Controllers/CustomerGroupController';
-import { Button } from '@/components/ui/button';
+import { index, create } from '@/actions/Modules/CRM/Http/Controllers/CustomerGroupController';
 import CustomerGroupForm from '@/components/forms/CustomerGroupForm.vue';
+import { Button } from '@/components/ui/button';
 import { useCustomerGroups } from '@/composables/useCustomerGroups';
 
 defineOptions({
@@ -11,20 +11,24 @@ defineOptions({
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
             { title: 'Customer Groups', href: index.url() },
-            { title: 'Create Group', href: '#' },
+            { title: 'Create Group', href: create.url() },
         ],
     },
 });
 
-const { form, updateSlug, submit } = useCustomerGroups();
+const { form, submit } = useCustomerGroups();
 const handleSubmit = () => submit();
+
+const onUpdateIsActive = (val: boolean) => {
+    form.is_active = val;
+};
 </script>
 
 <template>
     <Head :title="$t('Create Customer Group')" />
 
     <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-x-auto p-4">
-        <CustomerGroupForm :form="form" @submit="handleSubmit" @update:slug="updateSlug">
+        <CustomerGroupForm :form="form" @submit="handleSubmit" @update:is_active="onUpdateIsActive">
             <template #header-actions>
                 <Button variant="outline" as-child type="button">
                     <Link :href="index.url()" class="flex items-center gap-2">

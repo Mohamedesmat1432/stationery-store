@@ -2,8 +2,8 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
 import { index } from '@/actions/Modules/CRM/Http/Controllers/CustomerGroupController';
-import { Button } from '@/components/ui/button';
 import CustomerGroupForm from '@/components/forms/CustomerGroupForm.vue';
+import { Button } from '@/components/ui/button';
 import { useCustomerGroups } from '@/composables/useCustomerGroups';
 
 defineOptions({
@@ -22,13 +22,17 @@ const props = defineProps<{
 
 const { form, submit } = useCustomerGroups(props.group);
 const handleSubmit = () => submit(props.group.id!);
+
+const onUpdateIsActive = (val: boolean) => {
+    form.is_active = val;
+};
 </script>
 
 <template>
     <Head :title="$t('Edit Customer Group')" />
 
     <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-x-auto p-4">
-        <CustomerGroupForm is-edit :form="form" @submit="handleSubmit">
+        <CustomerGroupForm is-edit :form="form" @submit="handleSubmit" @update:is_active="onUpdateIsActive">
             <template #header-actions>
                 <Button variant="outline" as-child type="button">
                     <Link :href="index.url()" class="flex items-center gap-2">

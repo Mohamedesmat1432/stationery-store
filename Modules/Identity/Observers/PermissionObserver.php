@@ -3,45 +3,26 @@
 namespace Modules\Identity\Observers;
 
 use App\Models\Permission;
-use Modules\Identity\Services\IdentityCacheService;
-use Spatie\Permission\PermissionRegistrar;
+use Modules\Shared\Events\CacheInvalidationRequested;
 
 class PermissionObserver
 {
     /**
-     * Handle the events immediately for zero-delay cache invalidation.
+     * Set to true to ensure events are dispatched AFTER the database transaction commits.
+     * Prevents stale cache if transaction rolls back.
      */
-    public bool $afterCommit = false;
+    public bool $afterCommit = true;
 
     /**
-     * Handle the Permission "saved" event.
-     * Flush caches when permission is created or updated.
+     * Request cache invalidation on any permission state change.
      */
     public function saved(Permission $permission): void
     {
-        $this->flushCaches();
+        CacheInvalidationRequested::dispatch('permissions');
     }
 
-    /**
-     * Handle the Permission "deleted" event.
-     * Flush caches when permission is deleted.
-     */
     public function deleted(Permission $permission): void
     {
-        $this->flushCaches();
-    }
-
-    /**
-     * Flush all related caches on permission changes.
-     *
-     * Permission changes cascade to roles and users, so all three
-     * cache groups must be invalidated along with Spatie's internal cache.
-     */
-    protected function flushCaches(): void
-    {
-        IdentityCacheService::flushPermissionCaches();
-        IdentityCacheService::flushRoleCaches();
-        IdentityCacheService::flushUserCaches();
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        CacheInvalidationRequested::dispatch('permissions');
     }
 }

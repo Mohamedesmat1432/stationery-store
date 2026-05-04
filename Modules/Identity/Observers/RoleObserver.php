@@ -3,42 +3,26 @@
 namespace Modules\Identity\Observers;
 
 use App\Models\Role;
-use Modules\Identity\Services\IdentityCacheService;
-use Spatie\Permission\PermissionRegistrar;
+use Modules\Shared\Events\CacheInvalidationRequested;
 
 class RoleObserver
 {
     /**
-     * Handle the events immediately for zero-delay cache invalidation.
+     * Set to true to ensure events are dispatched AFTER the database transaction commits.
+     * Prevents stale cache if transaction rolls back.
      */
-    public bool $afterCommit = false;
+    public bool $afterCommit = true;
 
     /**
-     * Handle the Role "saved" event.
-     * Flush caches when role data is created or updated.
+     * Request cache invalidation on any role state change.
      */
     public function saved(Role $role): void
     {
-        $this->flushCaches();
+        CacheInvalidationRequested::dispatch('roles');
     }
 
-    /**
-     * Handle the Role "deleted" event.
-     * Flush caches when role is deleted.
-     */
     public function deleted(Role $role): void
     {
-        $this->flushCaches();
-    }
-
-    /**
-     * Flush all related caches on role changes.
-     *
-     * Uses CacheService (Cache::tags) for application-level caches
-     * and Spatie's PermissionRegistrar for the permission package cache.
-     */
-    protected function flushCaches(): void
-    {
-        IdentityCacheService::flushRoleCaches();
+        CacheInvalidationRequested::dispatch('roles');
     }
 }

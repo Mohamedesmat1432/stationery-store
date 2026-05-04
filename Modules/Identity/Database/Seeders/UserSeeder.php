@@ -49,6 +49,6 @@ class UserSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-        $user->assignRole('user');
+        $user->assignRole('customer');
     }
 }

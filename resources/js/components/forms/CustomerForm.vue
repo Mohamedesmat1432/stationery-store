@@ -22,12 +22,18 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
-defineProps<{
-    form: any;
-    available_groups: Modules.CRM.Data.CustomerGroupData[];
-    available_users: Modules.Identity.Data.UserData[];
-    isEdit?: boolean;
-}>();
+withDefaults(
+    defineProps<{
+        form: any;
+        available_groups?: Modules.CRM.Data.CustomerGroupData[];
+        available_users?: Modules.Identity.Data.UserData[];
+        isEdit?: boolean;
+    }>(),
+    {
+        available_groups: () => [],
+        available_users: () => [],
+    },
+);
 
 defineEmits(['submit']);
 </script>
@@ -60,13 +66,13 @@ defineEmits(['submit']);
                             <template #fallback>
                                 <Skeleton class="h-10 w-full" />
                             </template>
-                            <Select v-model="form.user_id" :disabled="isEdit" :required="!isEdit">
+                            <Select v-model="form.user_id!" :disabled="isEdit" :required="!isEdit">
                                 <SelectTrigger>
                                     <SelectValue :placeholder="$t('Select User')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
-                                        v-for="user in available_users"
+                                        v-for="user in available_users ?? []"
                                         :key="user.id!"
                                         :value="user.id"
                                     >
@@ -84,7 +90,7 @@ defineEmits(['submit']);
                         <Label for="phone">{{ $t('Phone Number') }}</Label>
                         <Input
                             id="phone"
-                            v-model="form.phone"
+                            v-model="form.phone!"
                             placeholder="e.g. +1234567890"
                             :disabled="form.processing"
                         />
@@ -96,13 +102,13 @@ defineEmits(['submit']);
                             <template #fallback>
                                 <Skeleton class="h-10 w-full" />
                             </template>
-                            <Select v-model="form.customer_group_id">
+                            <Select v-model="form.customer_group_id!">
                                 <SelectTrigger>
                                     <SelectValue :placeholder="$t('Select Group')" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
-                                        v-for="group in available_groups"
+                                        v-for="group in available_groups ?? []"
                                         :key="group.id!"
                                         :value="group.id"
                                         >{{ group.name }}</SelectItem
@@ -116,7 +122,7 @@ defineEmits(['submit']);
                         <Label for="company_name">{{ $t('Company Name') }}</Label>
                         <Input
                             id="company_name"
-                            v-model="form.company_name"
+                            v-model="form.company_name!"
                             placeholder="e.g. Acme Corp"
                             :disabled="form.processing"
                         />
@@ -126,7 +132,7 @@ defineEmits(['submit']);
                         <Label for="tax_number">{{ $t('Tax Number') }}</Label>
                         <Input
                             id="tax_number"
-                            v-model="form.tax_number"
+                            v-model="form.tax_number!"
                             placeholder="e.g. TAX-123"
                             :disabled="form.processing"
                         />
@@ -137,14 +143,14 @@ defineEmits(['submit']);
                         <Input
                             id="birth_date"
                             type="date"
-                            v-model="form.birth_date"
+                            v-model="form.birth_date!"
                             :disabled="form.processing"
                         />
                         <InputError :message="form.errors.birth_date" />
                     </div>
                     <div class="space-y-2">
                         <Label for="gender">{{ $t('Gender') }}</Label>
-                        <Select v-model="form.gender">
+                        <Select v-model="form.gender!">
                             <SelectTrigger>
                                 <SelectValue :placeholder="$t('Select Gender')" />
                             </SelectTrigger>

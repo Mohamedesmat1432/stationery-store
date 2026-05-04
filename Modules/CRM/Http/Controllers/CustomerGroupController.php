@@ -102,7 +102,11 @@ class CustomerGroupController extends Controller
     {
         Gate::authorize('delete', $customerGroup);
 
-        $this->customerGroupService->deleteCustomerGroup($customerGroup);
+        $deleted = $this->customerGroupService->deleteCustomerGroup($customerGroup);
+
+        if (! $deleted) {
+            return back()->with('error', __('This customer group is protected and cannot be deleted.'));
+        }
 
         return to_route('admin.customer-groups.index')
             ->with('success', __('Customer group deleted successfully.'));

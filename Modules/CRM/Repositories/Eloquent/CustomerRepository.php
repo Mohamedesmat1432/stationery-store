@@ -33,7 +33,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
                 AllowedFilter::trashed('trash'),
             ])
             ->allowedIncludes(...['user', 'group', 'addresses', 'orders'])
-            ->allowedSorts(...['name', 'email', 'total_spent', 'orders_count', 'created_at'])
+            ->allowedSorts(...['total_spent', 'orders_count', 'created_at'])
             ->defaultSort('-id')
             ->paginate($perPage)
             ->withQueryString();

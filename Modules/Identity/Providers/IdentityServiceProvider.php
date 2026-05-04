@@ -12,6 +12,9 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Identity\Enums\RoleName;
 use Modules\Identity\Listeners\FlushIdentityCacheListener;
 use Modules\Identity\Listeners\FlushUserPermissionCache;
+use Modules\Identity\Listeners\InvalidatePermissionCache;
+use Modules\Identity\Listeners\InvalidateRoleCache;
+use Modules\Identity\Listeners\InvalidateUserCache;
 use Modules\Identity\Observers\PermissionObserver;
 use Modules\Identity\Observers\RoleObserver;
 use Modules\Identity\Observers\UserObserver;
@@ -22,6 +25,7 @@ use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Identity\Repositories\Eloquent\RoleRepository;
 use Modules\Identity\Repositories\Eloquent\UserRepository;
 use Modules\Shared\Events\BulkOperationCompleted;
+use Modules\Shared\Events\CacheInvalidationRequested;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -85,7 +89,12 @@ class IdentityServiceProvider extends ServiceProvider
      */
     protected function registerEvents(): void
     {
-        // Access Control → Flush Redis Cache on Role/Permission changes
+        // Model changes → Request cache invalidation (observers dispatch, listeners handle)
+        Event::listen(CacheInvalidationRequested::class, InvalidateUserCache::class);
+        Event::listen(CacheInvalidationRequested::class, InvalidateRoleCache::class);
+        Event::listen(CacheInvalidationRequested::class, InvalidatePermissionCache::class);
+
+        // Access Control → Flush Cache on Role/Permission attach/detach
         Event::listen(RoleAttachedEvent::class, FlushUserPermissionCache::class);
         Event::listen(RoleDetachedEvent::class, FlushUserPermissionCache::class);
         Event::listen(PermissionAttachedEvent::class, FlushUserPermissionCache::class);

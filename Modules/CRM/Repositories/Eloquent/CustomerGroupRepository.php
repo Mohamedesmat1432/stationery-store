@@ -34,6 +34,7 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::trashed('trash'),
             ])
+            ->allowedSorts(...['name', 'sort_order', 'discount_percentage', 'created_at'])
             ->defaultSort('sort_order', '-id')
             ->paginate($perPage)
             ->withQueryString();
@@ -72,7 +73,7 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
     public function getProtectedIds(array $ids): array
     {
         return CustomerGroup::whereIn('id', $ids)
-            ->get()
+            ->cursor()
             ->filter(fn (CustomerGroup $group) => $group->isProtected())
             ->pluck('id')
             ->toArray();

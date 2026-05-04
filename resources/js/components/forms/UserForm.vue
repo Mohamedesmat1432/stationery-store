@@ -17,12 +17,17 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRoles } from '@/composables/useRoles';
 
-const props = defineProps<{
-    form: any;
-    available_roles: string[];
-    isEdit?: boolean;
-    userName?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        form: any;
+        available_roles?: string[];
+        isEdit?: boolean;
+        userName?: string;
+    }>(),
+    {
+        available_roles: () => [],
+    },
+);
 
 defineEmits(['submit']);
 
@@ -55,7 +60,7 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                         </Label>
                         <Input
                             id="name"
-                            v-model="form.name"
+                            v-model="form.name!"
                             :placeholder="$t('John Doe')"
                             :disabled="form.processing"
                         />
@@ -69,7 +74,7 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                         <Input
                             id="email"
                             type="email"
-                            v-model="form.email"
+                            v-model="form.email!"
                             placeholder="john@example.com"
                             :disabled="form.processing"
                         />
@@ -88,7 +93,7 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                     <Input
                         id="password"
                         type="password"
-                        v-model="form.password"
+                        v-model="form.password!"
                         placeholder="••••••••"
                         :disabled="form.processing"
                     />
@@ -112,7 +117,7 @@ const { formatRoleName, toggleRole } = useRoles(props.form);
                                 </div>
                             </template>
                             <div
-                                v-for="role in available_roles"
+                                v-for="role in available_roles ?? []"
                                 :key="role"
                                 class="flex items-center space-x-2 rounded-lg border border-sidebar-border p-4 transition-colors hover:bg-sidebar-accent/50"
                             >

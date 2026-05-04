@@ -105,7 +105,11 @@ class UserController extends Controller
     {
         Gate::authorize('delete', $user);
 
-        $this->userService->deleteUser($user);
+        $deleted = $this->userService->deleteUser($user);
+
+        if (! $deleted) {
+            return back()->with('error', __('This user is protected and cannot be deleted.'));
+        }
 
         return to_route('admin.users.index')->with('success', __('User deleted successfully.'));
     }
@@ -113,7 +117,7 @@ class UserController extends Controller
     /**
      * Restore the specified user from storage.
      */
-    public function restore($id): RedirectResponse
+    public function restore(string $id): RedirectResponse
     {
         return $this->performRestore($id, User::class, 'userService', 'restoreUser');
     }
@@ -121,7 +125,7 @@ class UserController extends Controller
     /**
      * Permanently delete the specified user from storage.
      */
-    public function forceDelete($id): RedirectResponse
+    public function forceDelete(string $id): RedirectResponse
     {
         return $this->performForceDelete($id, User::class, 'userService', 'forceDeleteUser');
     }

@@ -11,12 +11,8 @@ export function useCustomerGroups(initialData?: Modules.CRM.Data.CustomerGroupDa
         sort_order: initialData?.sort_order ?? 0,
     });
 
-    const updateSlug = () => {
-        form.slug = form.name
-            .toLowerCase()
-            .replace(/[^\w ]+/g, '')
-            .replace(/ +/g, '-');
-    };
+    // Slug is auto-generated on the backend via model observer.
+    // The frontend no longer duplicates this business logic.
 
     const submit = (id?: string) => {
         if (id) {
@@ -28,7 +24,6 @@ export function useCustomerGroups(initialData?: Modules.CRM.Data.CustomerGroupDa
 
     return {
         form,
-        updateSlug,
         submit,
     };
 }

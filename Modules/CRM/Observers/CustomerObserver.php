@@ -3,48 +3,35 @@
 namespace Modules\CRM\Observers;
 
 use App\Models\Customer;
-use Modules\CRM\Services\CRMCacheService;
+use Modules\Shared\Events\CacheInvalidationRequested;
 
 class CustomerObserver
 {
     /**
-     * Set to true to ensure cache is cleared AFTER the database transaction commits.
+     * Set to true to ensure events are dispatched AFTER the database transaction commits.
      */
     public bool $afterCommit = true;
 
     /**
-     * Handle the Customer "saved" event.
+     * Request cache invalidation on any customer state change.
      */
     public function saved(Customer $customer): void
     {
-        CRMCacheService::flushCustomerCaches();
-        CRMCacheService::flushCustomerGroupCaches();
+        CacheInvalidationRequested::dispatch('customers');
     }
 
-    /**
-     * Handle the Customer "deleted" event.
-     */
     public function deleted(Customer $customer): void
     {
-        CRMCacheService::flushCustomerCaches();
-        CRMCacheService::flushCustomerGroupCaches();
+        CacheInvalidationRequested::dispatch('customers');
     }
 
-    /**
-     * Handle the Customer "restored" event.
-     */
     public function restored(Customer $customer): void
     {
-        CRMCacheService::flushCustomerCaches();
-        CRMCacheService::flushCustomerGroupCaches();
+        CacheInvalidationRequested::dispatch('customers');
     }
 
-    /**
-     * Handle the Customer "force deleted" event.
-     */
     public function forceDeleted(Customer $customer): void
     {
-        CRMCacheService::flushCustomerCaches();
-        CRMCacheService::flushCustomerGroupCaches();
+        CacheInvalidationRequested::dispatch('customers');
     }
 }

@@ -20,10 +20,14 @@ defineProps<{
     isEdit?: boolean;
 }>();
 
-const emit = defineEmits(['submit', 'update:slug']);
+const emit = defineEmits(['submit', 'update:slug', 'update:is_active']);
 
 const onNameInput = () => {
     emit('update:slug');
+};
+
+const onIsActiveChange = (val: boolean | 'indeterminate') => {
+    emit('update:is_active', val === true);
 };
 </script>
 
@@ -52,8 +56,8 @@ const onNameInput = () => {
                             <span class="text-destructive">*</span></Label
                         >
                         <Input
-                            id="name"
-                            v-model="form.name"
+                            id="name"   
+                            v-model="form.name!"
                             @input="onNameInput"
                             :placeholder="$t('e.g. VIP Customers')"
                             :disabled="form.processing"
@@ -66,7 +70,7 @@ const onNameInput = () => {
                         >
                         <Input
                             id="slug"
-                            v-model="form.slug"
+                            v-model="form.slug!"
                             :placeholder="$t('e.g. vip-customers')"
                             :disabled="form.processing"
                         />
@@ -83,7 +87,7 @@ const onNameInput = () => {
                         id="discount"
                         type="number"
                         step="0.01"
-                        v-model="form.discount_percentage"
+                        v-model="form.discount_percentage!"
                         :disabled="form.processing"
                     />
                     <InputError :message="form.errors.discount_percentage" />
@@ -93,7 +97,7 @@ const onNameInput = () => {
                     <Label for="description">{{ $t('Description') }}</Label>
                     <Textarea
                         id="description"
-                        v-model="form.description"
+                        v-model="form.description!"
                         :placeholder="$t('Describe this group...')"
                         :disabled="form.processing"
                     />
@@ -104,7 +108,7 @@ const onNameInput = () => {
                     <Checkbox
                         id="is_active"
                         :model-value="form.is_active"
-                        @update:model-value="(val) => (form.is_active = !!val)"
+                        @update:model-value="onIsActiveChange"
                     />
                     <Label for="is_active">{{ $t('Active') }}</Label>
                 </div>

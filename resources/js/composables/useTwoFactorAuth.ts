@@ -18,17 +18,18 @@ export type UseTwoFactorAuthReturn = {
     fetchRecoveryCodes: () => Promise<void>;
 };
 
-const errors = ref<string[]>([]);
-const manualSetupKey = ref<string | null>(null);
-const qrCodeSvg = ref<string | null>(null);
-const recoveryCodesList = ref<string[]>([]);
-
-const hasSetupData = computed<boolean>(
-    () => qrCodeSvg.value !== null && manualSetupKey.value !== null,
-);
-
 export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const http = useHttp();
+
+    // State is now isolated per component instance (not module-level singleton)
+    const errors = ref<string[]>([]);
+    const manualSetupKey = ref<string | null>(null);
+    const qrCodeSvg = ref<string | null>(null);
+    const recoveryCodesList = ref<string[]>([]);
+
+    const hasSetupData = computed<boolean>(
+        () => qrCodeSvg.value !== null && manualSetupKey.value !== null,
+    );
 
     const fetchQrCode = async (): Promise<void> => {
         try {

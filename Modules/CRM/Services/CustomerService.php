@@ -4,7 +4,6 @@ namespace Modules\CRM\Services;
 
 use App\Models\Customer;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\CRM\Data\CustomerData;
 use Modules\CRM\Exports\CustomersExport;
@@ -44,9 +43,7 @@ class CustomerService
      */
     public function createCustomer(CustomerData $data): Customer
     {
-        return DB::transaction(function () use ($data) {
-            return $this->customerRepository->create($data->toArray());
-        });
+        return $this->customerRepository->create($data->toArray());
     }
 
     /**
@@ -54,9 +51,14 @@ class CustomerService
      */
     public function updateCustomer(Customer $customer, CustomerData $data): Customer
     {
-        return DB::transaction(function () use ($customer, $data) {
-            return $this->customerRepository->update($customer, $data->toArray());
-        });
+        $updateData = collect($data->toArray())
+            ->only([
+                'user_id', 'phone', 'birth_date', 'gender', 'tax_number',
+                'company_name', 'customer_group_id', 'metadata',
+            ])
+            ->toArray();
+
+        return $this->customerRepository->update($customer, $updateData);
     }
 
     /**
@@ -64,7 +66,7 @@ class CustomerService
      */
     public function deleteCustomer(Customer $customer): bool
     {
-        return DB::transaction(fn () => $this->customerRepository->delete($customer));
+        return $this->customerRepository->delete($customer);
     }
 
     /**
@@ -72,7 +74,7 @@ class CustomerService
      */
     public function restoreCustomer(Customer $customer): bool
     {
-        return DB::transaction(fn () => $this->customerRepository->restore($customer));
+        return $this->customerRepository->restore($customer);
     }
 
     /**
@@ -80,7 +82,7 @@ class CustomerService
      */
     public function forceDeleteCustomer(Customer $customer): bool
     {
-        return DB::transaction(fn () => $this->customerRepository->forceDelete($customer));
+        return $this->customerRepository->forceDelete($customer);
     }
 
     public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse

@@ -59,10 +59,7 @@ abstract class BaseRepository implements RepositoryInterface
     {
         return DB::transaction(
             fn () => $this->model::withoutEvents(
-                fn () => $this->model::whereIn('id', $ids)
-                    ->get()
-                    ->each(fn (Model $model) => $model->delete())
-                    ->isNotEmpty()
+                fn () => $this->model::destroy($ids) > 0
             )
         );
     }
@@ -73,9 +70,7 @@ abstract class BaseRepository implements RepositoryInterface
             fn () => $this->model::withoutEvents(
                 fn () => $this->model::onlyTrashed()
                     ->whereIn('id', $ids)
-                    ->get()
-                    ->each(fn (Model $model) => $model->restore())
-                    ->isNotEmpty()
+                    ->restore() > 0
             )
         );
     }
@@ -86,9 +81,7 @@ abstract class BaseRepository implements RepositoryInterface
             fn () => $this->model::withoutEvents(
                 fn () => $this->model::onlyTrashed()
                     ->whereIn('id', $ids)
-                    ->get()
-                    ->each(fn (Model $model) => $model->forceDelete())
-                    ->isNotEmpty()
+                    ->forceDelete() > 0
             )
         );
     }

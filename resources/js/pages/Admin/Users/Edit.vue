@@ -2,8 +2,8 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
 import { index } from '@/actions/Modules/Identity/Http/Controllers/UserController';
-import { Button } from '@/components/ui/button';
 import UserForm from '@/components/forms/UserForm.vue';
+import { Button } from '@/components/ui/button';
 import { useUsers } from '@/composables/useUsers';
 
 defineOptions({
@@ -16,10 +16,15 @@ defineOptions({
     },
 });
 
-const props = defineProps<{
-    user: Modules.Identity.Data.UserData;
-    available_roles: string[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        user: Modules.Identity.Data.UserData;
+        available_roles?: string[];
+    }>(),
+    {
+        available_roles: () => [],
+    },
+);
 
 const { form, submit } = useUsers(props.user);
 const handleSubmit = () => submit(props.user.id!);

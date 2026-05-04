@@ -2,8 +2,8 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
 import { index, create } from '@/actions/Modules/CRM/Http/Controllers/CustomerController';
-import { Button } from '@/components/ui/button';
 import CustomerForm from '@/components/forms/CustomerForm.vue';
+import { Button } from '@/components/ui/button';
 import { useCustomers } from '@/composables/useCustomers';
 
 defineOptions({
@@ -16,10 +16,16 @@ defineOptions({
     },
 });
 
-defineProps<{
-    available_groups: Modules.CRM.Data.CustomerGroupData[];
-    available_users: Modules.Identity.Data.UserData[];
-}>();
+withDefaults(
+    defineProps<{
+        available_groups?: Modules.CRM.Data.CustomerGroupData[];
+        available_users?: Modules.Identity.Data.UserData[];
+    }>(),
+    {
+        available_groups: () => [],
+        available_users: () => [],
+    },
+);
 
 const { form, submit } = useCustomers();
 const handleSubmit = () => submit();

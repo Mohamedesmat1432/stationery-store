@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import { formatRoleName } from '@/composables/useRoles';
 import * as rolesRoutes from '@/routes/admin/roles/index';
 
 defineOptions({
@@ -26,31 +27,32 @@ defineOptions({
 // Types are automatically generated via spatie/laravel-typescript-transformer
 type Role = Modules.Identity.Data.RoleData & { id: string };
 
-const props = defineProps<{
-    roles: {
-        data: Role[];
-        links: any[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
-    filters: {
-        filter?: {
-            search?: string;
+const props = withDefaults(
+    defineProps<{
+        roles: {
+            data: Role[];
+            links: any[];
+            current_page: number;
+            last_page: number;
+            total: number;
         };
-    };
-}>();
+        filters: {
+            filter?: {
+                search?: string;
+            };
+        };
+        available_roles?: string[];
+    }>(),
+    {
+        available_roles: () => [],
+    },
+);
 
 const { searchQuery, applyFilters } = useResourceFilters(props.filters.filter, {
     baseUrl: rolesRoutes.index.url(),
 });
 
-const formatRoleName = (name: string) => {
-    return name
-        .split('_')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-};
+// formatRoleName is a standalone utility, no form needed
 
 const selectableRoles = computed(() => {
     return props.roles.data.filter((r) => !r.is_protected);
@@ -65,13 +67,11 @@ const {
     can,
     bulkAction,
     deleteItem,
-    restoreItem,
-    forceDeleteItem,
     confirmState,
 } = useBulkActions(() => selectableRoles.value, {
     entityName: 'roles',
-    bulkActionUrl: rolesRoutes.bulkAction.url(),
-    resourceUrl: rolesRoutes.index.url(),
+    bulkActionRoute: rolesRoutes.bulkAction,
+    destroyRoute: (id: string | number) => rolesRoutes.destroy(String(id)),
 });
 </script>
 

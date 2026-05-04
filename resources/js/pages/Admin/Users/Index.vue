@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { formatLabel } from '@/lib/format';
-import { Head, Link, usePage, Deferred } from '@inertiajs/vue3';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Deferred, Head, Link } from '@inertiajs/vue3';
 import {
     Users,
     Pencil,
@@ -14,10 +12,10 @@ import {
 import { ref, computed } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,8 +28,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
+import { formatLabel } from '@/lib/format';
 import * as usersRoutes from '@/routes/admin/users/index';
 
 defineOptions({
@@ -46,23 +46,28 @@ defineOptions({
 // Types are automatically generated via spatie/laravel-typescript-transformer
 type User = Modules.Identity.Data.UserData & { id: string };
 
-const props = defineProps<{
-    users: {
-        data: User[];
-        links: any[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
-    filters: {
-        filter?: {
-            search?: string;
-            role?: string;
-            trash?: string;
+const props = withDefaults(
+    defineProps<{
+        users: {
+            data: User[];
+            links: any[];
+            current_page: number;
+            last_page: number;
+            total: number;
         };
-    };
-    available_roles: string[];
-}>();
+        filters: {
+            filter?: {
+                search?: string;
+                role?: string;
+                trash?: string;
+            };
+        };
+        available_roles?: string[];
+    }>(),
+    {
+        available_roles: () => [],
+    },
+);
 
 const { searchQuery, showTrashed, extraFilters, applyFilters } =
     useResourceFilters(props.filters.filter, {
@@ -97,8 +102,10 @@ const {
     confirmState,
 } = useBulkActions(() => selectableUsers.value, {
     entityName: 'users',
-    bulkActionUrl: usersRoutes.bulkAction.url(),
-    resourceUrl: usersRoutes.index.url(),
+    bulkActionRoute: usersRoutes.bulkAction,
+    destroyRoute: (id) => usersRoutes.destroy(String(id)),
+    restoreRoute: (id) => usersRoutes.restore(String(id)),
+    forceDeleteRoute: (id) => usersRoutes.forceDelete(String(id)),
 });
 
 // Export/Import state
@@ -163,7 +170,7 @@ const allColumns = [
                     @update:trashed="applyFilters"
                 >
                     <template #filters>
-                        <div class="flex min-w-[200px] items-center gap-2">
+                        <div class="flex min-w-50 items-center gap-2">
                             <Deferred data="available_roles">
                                 <template #fallback>
                                     <Skeleton class="h-9 w-full" />
@@ -179,7 +186,7 @@ const allColumns = [
                                             $t('All Roles')
                                         }}</SelectItem>
                                         <SelectItem
-                                            v-for="role in available_roles"
+                                            v-for="role in available_roles ?? []"
                                             :key="role"
                                             :value="role"
                                         >

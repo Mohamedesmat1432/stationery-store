@@ -39,7 +39,10 @@ abstract class BaseCacheService
 
         if (! $version) {
             $version = (string) (int) (microtime(true) * 10000);
-            Cache::forever($versionKey, $version);
+            // Use add() for atomic initialization to prevent race conditions
+            if (! Cache::add($versionKey, $version)) {
+                $version = Cache::get($versionKey);
+            }
         }
 
         return self::$versionCache[$tag] = (string) $version;
@@ -60,7 +63,7 @@ abstract class BaseCacheService
         $paramKey = md5(serialize($stableParams));
         $fullKey = self::getVersionedKey($tag, "paginated:p{$perPage}:{$paramKey}");
 
-        if (! Cache::has($fullKey)) {
+        return Cache::remember($fullKey, $ttl, function () use ($callback, $transform) {
             $paginator = $callback();
 
             if ($transform && $paginator instanceof LengthAwarePaginator) {
@@ -69,16 +72,10 @@ abstract class BaseCacheService
                 );
             }
 
-            $data = $paginator instanceof Arrayable
+            return $paginator instanceof Arrayable
                 ? $paginator->toArray()
                 : (array) $paginator;
-
-            Cache::put($fullKey, $data, $ttl);
-
-            return $data;
-        }
-
-        return Cache::get($fullKey);
+        });
     }
 
     /**
@@ -93,19 +90,11 @@ abstract class BaseCacheService
     ): mixed {
         $fullKey = self::getVersionedKey($tag, "direct:{$key}");
 
-        if (! Cache::has($fullKey)) {
+        return Cache::remember($fullKey, $ttl, function () use ($callback, $transform) {
             $result = $callback();
 
-            if ($transform) {
-                $result = $transform($result);
-            }
-
-            Cache::put($fullKey, $result, $ttl);
-
-            return $result;
-        }
-
-        return Cache::get($fullKey);
+            return $transform ? $transform($result) : $result;
+        });
     }
 
     protected static function flushTagsWithFallbacks(array $tags, array $keys = []): void

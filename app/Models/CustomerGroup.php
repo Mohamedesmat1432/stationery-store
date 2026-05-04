@@ -78,10 +78,15 @@ class CustomerGroup extends BaseModel
     }
 
     /**
+     * Protected slugs that cannot be deleted or modified.
+     */
+    protected const PROTECTED_SLUGS = ['retail', 'general'];
+
+    /**
      * Check if the customer group is protected from deletion/modification.
      */
     public function isProtected(): bool
     {
-        return in_array($this->slug, ['retail', 'general']);
+        return in_array($this->slug, self::PROTECTED_SLUGS, true);
     }
 }

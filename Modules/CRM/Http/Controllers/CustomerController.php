@@ -39,7 +39,6 @@ class CustomerController extends Controller
             'customers' => $this->customerService->getCustomersPaginated($request->all()),
             'filters' => $request->only(['filter']),
             'available_groups' => Inertia::defer(fn () => $this->customerGroupService->getAllActive()),
-            'available_users' => Inertia::defer(fn () => $this->userService->getAvailableForCustomer()),
         ]);
     }
 

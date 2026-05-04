@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Users, Pencil, Trash2, RotateCcw, Trash, Download, Upload } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { Download, Pencil, RotateCcw, Trash, Trash2, Upload, Users } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
+import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -69,8 +69,10 @@ const {
     confirmState,
 } = useBulkActions(() => selectableGroups.value, {
     entityName: 'customer groups',
-    bulkActionUrl: customerGroupsRoutes.bulkAction.url(),
-    resourceUrl: customerGroupsRoutes.index.url(),
+    bulkActionRoute: customerGroupsRoutes.bulkAction,
+    destroyRoute: (id) => customerGroupsRoutes.destroy(String(id)),
+    restoreRoute: (id) => customerGroupsRoutes.restore(String(id)),
+    forceDeleteRoute: (id) => customerGroupsRoutes.forceDelete(String(id)),
 });
 
 // Export/Import state

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Modules\Identity\Data\UserData;
 use Modules\Identity\Services\IdentityCacheService;
 
 class HandleInertiaRequests extends Middleware
@@ -43,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user,
+                'user' => $user ? UserData::fromUser($user) : null,
                 'roles' => fn () => $user ? IdentityCacheService::getUserRoles($user->id) : [],
                 'permissions' => fn () => $user ? IdentityCacheService::getUserPermissions($user->id) : [],
             ],

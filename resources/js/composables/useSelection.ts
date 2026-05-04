@@ -4,7 +4,7 @@ import type {MaybeRefOrGetter} from 'vue';
 export function useSelection<T extends { id: string | number }>(itemsSource: MaybeRefOrGetter<T[]>) {
     const selectedIds = ref<(string | number)[]>([]);
 
-    const items = computed(() => toValue(itemsSource));
+    const items = computed(() => toValue(itemsSource) ?? []);
 
     // Reset selection when source items change (e.g., pagination, search)
     watch(items, () => selectedIds.value = [], { deep: false });

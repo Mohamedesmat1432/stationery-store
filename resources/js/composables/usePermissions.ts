@@ -1,43 +1,38 @@
-import { formatLabel } from '@/lib/format';
 import type { InertiaForm } from '@inertiajs/vue3';
-import { computed, toValue, type MaybeRefOrGetter } from 'vue';
+import { computed, toValue } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
+import { formatLabel } from '@/lib/format';
 
-export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: string]: any }>, availablePermissions: MaybeRefOrGetter<string[]>) {
-    // Group permissions by the entity name (e.g. view_users -> users)
-    const groupedPermissions = computed(() => {
-        const groups: Record<string, string[]> = {};
-        
-        (toValue(availablePermissions) || []).forEach(permission => {
-            const parts = permission.split('_');
-            let module = 'system';
+export interface GroupedPermissions {
+    [module: string]: string[];
+}
 
-            if (permission.startsWith('force_delete_')) {
-                module = parts.slice(2).join('_');
-            } else {
-                module = parts.slice(1).join('_') || 'system';
-            }
-            
-            if (!groups[module]) {
-                groups[module] = [];
-            }
-
-            groups[module].push(permission);
-        });
-        
-        return groups;
+export function usePermissions(
+    form: InertiaForm<{ permissions: string[]; [key: string]: any }>,
+    availablePermissions: MaybeRefOrGetter<GroupedPermissions>,
+) {
+    // Permissions are now pre-grouped by the backend (IdentityCacheService).
+    // No frontend parsing of naming conventions needed.
+    const groupedPermissions = computed<GroupedPermissions>(() => {
+        return toValue(availablePermissions) || {};
     });
 
     const formatName = (str: string) => formatLabel(str);
 
     const formatPermissionLabel = (permission: string) => {
         const parts = permission.split('_');
-        let label = parts[0];
 
-        if (permission.startsWith('force_delete_')) {
-            label = 'force_delete';
+        // Extract the action portion (everything before the entity suffix)
+        // e.g. 'update_customers' -> 'update', 'force_delete_orders' -> 'force_delete'
+        let actionParts: string[];
+
+        if (parts.length >= 3 && parts[0] === 'force' && parts[1] === 'delete') {
+            actionParts = parts.slice(0, 2);
+        } else {
+            actionParts = parts.slice(0, 1);
         }
 
-        return formatName(label);
+        return formatName(actionParts.join('_'));
     };
 
     const togglePermission = (permission: string) => {
@@ -54,10 +49,8 @@ export function usePermissions(form: InertiaForm<{ permissions: string[]; [key: 
         const allChecked = modulePermissions.every(p => form.permissions.includes(p));
 
         if (allChecked) {
-            // Uncheck all in this module
             form.permissions = form.permissions.filter(p => !modulePermissions.includes(p));
         } else {
-            // Check all in this module (preventing duplicates)
             const toAdd = modulePermissions.filter(p => !form.permissions.includes(p));
             form.permissions = [...form.permissions, ...toAdd];
         }

@@ -1,30 +1,33 @@
 import { router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
-interface FilterState {
-    search?: string;
-    trash?: string;
-    [key: string]: any;
-}
-
 interface Options {
     baseUrl: string;
+    only?: string[];
     onFilter?: (filters: any) => void;
 }
 
 export function useResourceFilters(initialFilters: any, options: Options) {
+    const filtersRef = ref(initialFilters);
     const searchQuery = ref(initialFilters?.search || '');
     const showTrashed = ref(initialFilters?.trash === 'only');
-    
-    // Additional dynamic filters
+
     const extraFilters = ref<Record<string, any>>({});
-    
-    // Initialize extra filters from initial state, excluding search and trash
-    Object.keys(initialFilters || {}).forEach(key => {
-        if (key !== 'search' && key !== 'trash') {
-            extraFilters.value[key] = initialFilters[key];
-        }
-    });
+
+    const syncFilters = (source: any) => {
+        searchQuery.value = source?.search || '';
+        showTrashed.value = source?.trash === 'only';
+
+        const newExtra: Record<string, any> = {};
+        Object.keys(source || {}).forEach(key => {
+            if (key !== 'search' && key !== 'trash') {
+                newExtra[key] = source[key];
+            }
+        });
+        extraFilters.value = newExtra;
+    };
+
+    syncFilters(initialFilters);
 
     const applyFilters = () => {
         const filterData: Record<string, any> = {
@@ -33,16 +36,17 @@ export function useResourceFilters(initialFilters: any, options: Options) {
             ...extraFilters.value
         };
 
-        // Clean undefined values
         const cleanFilters = Object.fromEntries(
-            Object.entries(filterData).filter(([_, v]) => v !== undefined && v !== 'all')
+            Object.entries(filterData).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
         );
 
         router.get(options.baseUrl, {
             filter: cleanFilters,
+            page: 1,
         }, {
             preserveState: true,
             replace: true,
+            only: options.only,
         });
 
         if (options.onFilter) {
@@ -50,15 +54,8 @@ export function useResourceFilters(initialFilters: any, options: Options) {
         }
     };
 
-    watch(() => initialFilters, (newFilters) => {
-        searchQuery.value = newFilters?.search || '';
-        showTrashed.value = newFilters?.trash === 'only';
-        
-        Object.keys(newFilters || {}).forEach(key => {
-            if (key !== 'search' && key !== 'trash') {
-                extraFilters.value[key] = newFilters[key];
-            }
-        });
+    watch(filtersRef, (newFilters) => {
+        syncFilters(newFilters);
     }, { deep: true });
 
     return {
