@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\CRM\Http\Controllers\CustomerController;
-use Modules\CRM\Http\Controllers\CustomerGroupController;
+use Modules\CRM\Http\Controllers\Admin\CustomerController;
+use Modules\CRM\Http\Controllers\Admin\CustomerGroupController;
 
 /*
 |--------------------------------------------------------------------------

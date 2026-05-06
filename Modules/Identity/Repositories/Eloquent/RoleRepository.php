@@ -5,13 +5,15 @@ namespace Modules\Identity\Repositories\Eloquent;
 use App\Models\Role;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Identity\Repositories\Contracts\RoleRepositoryInterface;
+use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
 use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
 use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
 
 class RoleRepository extends BaseRepository implements ProtectsBulkResources, RoleRepositoryInterface
 {
+    use HandlesQueryBuilder;
+
     /**
      * Get the model class for this repository.
      */
@@ -23,16 +25,17 @@ class RoleRepository extends BaseRepository implements ProtectsBulkResources, Ro
     /**
      * Get paginated roles with filters and eager loading.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
-        return QueryBuilder::for(Role::class)
-            ->with('permissions')
-            ->allowedFilters(...[
+        return $this->applyQueryBuilder(
+            model: Role::class,
+            allowedFilters: [
                 AllowedFilter::scope('search'),
-            ])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ],
+            perPage: $perPage,
+            with: ['permissions'],
+            params: $params
+        );
     }
 
     /**
@@ -67,13 +70,11 @@ class RoleRepository extends BaseRepository implements ProtectsBulkResources, Ro
         return Role::with('permissions')->find($roleId)?->permissions->pluck('name')->toArray() ?? [];
     }
 
-    /**
-     * Get IDs from the given set that are protected.
-     */
     public function getProtectedIds(array $ids): array
     {
         return Role::whereIn('id', $ids)
-            ->where('name', Role::ROLE_ADMIN)
+            ->cursor()
+            ->filter(fn (Role $role) => $role->isProtected())
             ->pluck('id')
             ->toArray();
     }

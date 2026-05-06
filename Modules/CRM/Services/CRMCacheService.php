@@ -9,9 +9,9 @@ use Modules\Shared\Services\Cache\BaseCacheService;
 
 class CRMCacheService extends BaseCacheService
 {
-    public const TAG_CUSTOMERS = 'customers';
+    public const TAG_CUSTOMERS = 'crm:customers';
 
-    public const TAG_CUSTOMER_GROUPS = 'customer_groups';
+    public const TAG_CUSTOMER_GROUPS = 'crm:customer_groups';
 
     /**
      * Remember paginated customers in cache.

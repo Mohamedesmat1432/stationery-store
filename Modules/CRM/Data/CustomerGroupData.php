@@ -3,6 +3,7 @@
 namespace Modules\CRM\Data;
 
 use App\Models\CustomerGroup;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
@@ -38,9 +39,10 @@ class CustomerGroupData extends Data
         public int $sort_order = 0,
 
         /** @var int */
+        #[Computed]
         public int $customers_count = 0,
 
-        /** @var string|null */
+        #[Computed]
         public ?string $deleted_at = null,
     ) {}
 
@@ -55,17 +57,18 @@ class CustomerGroupData extends Data
             is_active: (bool) $group->is_active,
             sort_order: (int) $group->sort_order,
             customers_count: (int) ($group->customers_count ?? 0),
-            deleted_at: $group->deleted_at?->toDateTimeString(),
+            deleted_at: $group->deleted_at?->toIso8601String(),
         );
 
-        $data->is_protected = $group->isProtected();
+        $data->is_protected = $group->isProtected(Auth::user());
 
         return $data;
     }
 
     public static function rules(?ValidationContext $context = null): array
     {
-        $groupId = request()->route('customer_group')?->id;
+        $group = request()->route('customer_group');
+        $groupId = ($group instanceof CustomerGroup ? $group->id : $group) ?? request()->input('id');
 
         return [
             'name' => ['required', 'string', 'max:255'],

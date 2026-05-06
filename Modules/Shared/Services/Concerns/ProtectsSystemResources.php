@@ -28,7 +28,8 @@ trait ProtectsSystemResources
         } else {
             // Fallback for repositories not implementing the interface yet
             $modelClass = $this->getModelClass();
-            $protectedIds = $modelClass::whereIn('id', $ids)
+            $protectedIds = $modelClass::withTrashed()
+                ->whereIn('id', $ids)
                 ->get()
                 ->filter(fn (Model $model) => $this->isProtected($model))
                 ->pluck('id')

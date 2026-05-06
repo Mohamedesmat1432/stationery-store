@@ -15,11 +15,11 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Spatie\MediaLibrary\MediaCollections\Models\Media as SpatieMedia;
 
 class Product extends BaseModel implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, LogsActivity;
+    use HasFactory, InteractsWithMedia, LogsActivity, \Modules\Shared\Concerns\HasProtection;
 
     protected $fillable = [
         'name',
@@ -46,6 +46,15 @@ class Product extends BaseModel implements HasMedia
         'view_count',
         'metadata',
     ];
+
+    /**
+     * Determine if the product is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $user = null): bool
+    {
+        // Prevent deletion of products with active orders
+        return $this->wishlistItems()->exists(); // For now check wishlist as placeholder, or orders if available
+    }
 
     protected function casts(): array
     {
@@ -123,6 +132,16 @@ class Product extends BaseModel implements HasMedia
 
     public function currentPrice(): ?Price
     {
+        if ($this->relationLoaded('prices')) {
+            return $this->prices
+                ->where('type', 'base')
+                ->where('currency_id', config('app.currency_id'))
+                ->filter(fn ($price) => ($price->start_at === null || $price->start_at <= now()) &&
+                    ($price->end_at === null || $price->end_at >= now())
+                )
+                ->first();
+        }
+
         return $this->activePrices()
             ->where('type', 'base')
             ->where('currency_id', config('app.currency_id'))
@@ -275,7 +294,7 @@ class Product extends BaseModel implements HasMedia
             ->acceptsMimeTypes(['application/pdf', 'application/zip']);
     }
 
-    public function registerMediaConversions(?Media $media = null): void
+    public function registerMediaConversions(?SpatieMedia $media = null): void
     {
         $this->addMediaConversion('thumb')
             ->width(300)->height(300)->sharpen(10)->nonQueued();

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('discountables', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('discount_id')->constrained();
-            $table->morphs('discountable');
+            $table->ulidMorphs('discountable');
             $table->timestamps();
             $table->softDeletes();
 

@@ -13,7 +13,7 @@ interface CustomerGroupRepositoryInterface extends RepositoryInterface
     /**
      * Get paginated customer groups with filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator;
 
     /**
      * Get all active customer groups.

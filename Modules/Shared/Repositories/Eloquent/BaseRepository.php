@@ -18,7 +18,7 @@ abstract class BaseRepository implements RepositoryInterface
 
     abstract protected function getModelClass(): string;
 
-    public function paginate(int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
         return $this->model::orderBy('id', 'desc')->paginate($perPage);
     }
@@ -57,32 +57,39 @@ abstract class BaseRepository implements RepositoryInterface
 
     public function bulkDelete(array $ids): bool
     {
-        return DB::transaction(
-            fn () => $this->model::withoutEvents(
-                fn () => $this->model::destroy($ids) > 0
-            )
-        );
+        return $this->performBulkAction($ids, 'delete');
     }
 
     public function bulkRestore(array $ids): bool
     {
-        return DB::transaction(
-            fn () => $this->model::withoutEvents(
-                fn () => $this->model::onlyTrashed()
-                    ->whereIn('id', $ids)
-                    ->restore() > 0
-            )
-        );
+        return $this->performBulkAction($ids, 'restore', true);
     }
 
     public function bulkForceDelete(array $ids): bool
     {
-        return DB::transaction(
-            fn () => $this->model::withoutEvents(
-                fn () => $this->model::onlyTrashed()
-                    ->whereIn('id', $ids)
-                    ->forceDelete() > 0
-            )
-        );
+        return $this->performBulkAction($ids, 'forceDelete', true);
+    }
+
+    /**
+     * Perform a bulk action on models while ensuring model events are triggered.
+     * Uses lazy() for memory efficiency with large datasets.
+     */
+    protected function performBulkAction(array $ids, string $action, bool $onlyTrashed = false): bool
+    {
+        if (empty($ids)) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($ids, $action, $onlyTrashed) {
+            $query = $this->model::whereIn('id', $ids);
+
+            if ($onlyTrashed) {
+                $query->onlyTrashed();
+            }
+
+            $query->lazy()->each->{$action}();
+
+            return true;
+        });
     }
 }

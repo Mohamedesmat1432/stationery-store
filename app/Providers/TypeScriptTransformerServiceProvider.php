@@ -20,16 +20,23 @@ class TypeScriptTransformerServiceProvider extends BaseTypeScriptTransformerServ
             ->transformer(AttributedClassTransformer::class)
             ->transformer(EnumTransformer::class)
             ->transformer(DataClassTransformer::class)
-            ->transformDirectories(
-                app_path(),
-                base_path('Modules/Identity/Data'),
-                base_path('Modules/CRM/Data'),
-                base_path('Modules/CRM/Enums')
-            )
+            ->transformDirectories(...$this->getTransformDirectories())
             ->replaceType(UploadedFile::class, 'string')
             ->replaceType(Optional::class, 'any')
             ->outputDirectory(resource_path('js/types'))
             ->writer(new GlobalNamespaceWriter('generated.d.ts'))
             ->formatter(PrettierFormatter::class);
+    }
+
+    /**
+     * Get the directories that should be scanned for TypeScript transformation.
+     */
+    protected function getTransformDirectories(): array
+    {
+        return array_filter(array_merge(
+            [app_path()],
+            glob(base_path('Modules/*/Data')),
+            glob(base_path('Modules/*/Enums'))
+        ), 'is_dir');
     }
 }

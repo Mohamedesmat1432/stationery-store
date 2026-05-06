@@ -9,6 +9,9 @@ import {
     Shield,
     ShieldCheck,
     UserCircle,
+    FolderTree,
+    Tag,
+    Layers,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -25,6 +28,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import admin from '@/routes/admin';
 import type { NavItem } from '@/types';
 import type { Auth } from '@/types/auth';
 
@@ -47,11 +51,42 @@ const mainNavItems = computed<NavItem[]>(() => {
         });
     }
 
-    if (hasPermission('view_products')) {
+    if (
+        hasPermission('view_products') ||
+        hasPermission('view_categories') ||
+        hasPermission('view_brands')
+    ) {
+        const catalogItems: NavItem[] = [];
+
+        if (hasPermission('view_products')) {
+            catalogItems.push({
+                title: 'Products',
+                href: '/admin/products',
+                icon: Package,
+            });
+        }
+
+        if (hasPermission('view_categories')) {
+            catalogItems.push({
+                title: 'Categories',
+                href: admin.categories.index().url,
+                icon: FolderTree,
+            });
+        }
+
+        if (hasPermission('view_brands')) {
+            catalogItems.push({
+                title: 'Brands',
+                href: '/admin/brands',
+                icon: Tag,
+            });
+        }
+
         items.push({
-            title: 'Products',
-            href: '/admin/products',
-            icon: Package,
+            title: 'Catalog',
+            href: '#',
+            icon: Layers,
+            items: catalogItems,
         });
     }
 

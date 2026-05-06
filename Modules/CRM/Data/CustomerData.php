@@ -3,7 +3,7 @@
 namespace Modules\CRM\Data;
 
 use App\Models\Customer;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Modules\CRM\Enums\Gender;
 use Spatie\LaravelData\Attributes\Computed;
@@ -55,7 +55,7 @@ class CustomerData extends Data
         /** @var array<string, mixed>|Optional */
         public array|Optional $metadata = [],
 
-        /** @var string|null */
+        #[Computed]
         public ?string $deleted_at = null,
     ) {
         $this->total_spent = 0.0;
@@ -80,27 +80,28 @@ class CustomerData extends Data
             name: $customer->user?->name,
             email: $customer->user?->email,
             phone: $customer->phone,
-            birth_date: $customer->birth_date instanceof \DateTimeInterface ? $customer->birth_date->format("Y-m-d") : null,
+            birth_date: $customer->birth_date instanceof \DateTimeInterface ? $customer->birth_date->format('Y-m-d') : null,
             gender: $customer->gender instanceof Gender ? $customer->gender : Gender::tryFrom((string) $customer->gender),
             tax_number: $customer->tax_number,
             company_name: $customer->company_name,
             customer_group_id: $customer->customer_group_id,
             group_name: $customer->group?->name,
             metadata: $customer->metadata ?? [],
-            deleted_at: $customer->deleted_at?->toDateTimeString(),
+            deleted_at: $customer->deleted_at?->toIso8601String(),
         );
 
         $data->total_spent = (float) $customer->total_spent;
         $data->orders_count = (int) $customer->orders_count;
         $data->age = $customer->age;
-        $data->is_protected = false; // Customers are not protected by default
+        $data->is_protected = $customer->isProtected(Auth::user());
 
         return $data;
     }
 
     public static function rules(?ValidationContext $context = null): array
     {
-        $customerId = request()->route('customer')?->id;
+        $customer = request()->route('customer');
+        $customerId = ($customer instanceof Customer ? $customer->id : $customer) ?? request()->input('id');
 
         return [
             'user_id' => [

@@ -31,17 +31,17 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
 </script>
 
 <template>
-    <CardHeader class="flex flex-row items-center justify-between">
-        <div>
+    <CardHeader class="flex flex-col gap-4 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1">
             <CardTitle class="flex items-center gap-2 text-xl font-bold">
-                <component :is="icon" v-if="icon" class="h-6 w-6" />
-                {{ $t(title) }}
+                <component :is="icon" v-if="icon" class="h-6 w-6 shrink-0 text-primary" />
+                <span class="truncate">{{ $t(title) }}</span>
             </CardTitle>
-            <CardDescription v-if="description">{{
-                $t(description)
-            }}</CardDescription>
+            <CardDescription v-if="description" class="line-clamp-2 sm:line-clamp-none">
+                {{ $t(description) }}
+            </CardDescription>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <template v-if="selectedCount > 0">
                 <template v-if="!showTrashed">
                     <Button
@@ -51,12 +51,14 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
                         class="flex items-center gap-2"
                         @click="$emit('bulk-delete')"
                     >
-                        <Trash2 class="h-4 w-4" />
-                        {{
-                            $t('Delete Selected ({count})', {
-                                count: selectedCount,
-                            })
-                        }}
+                        <Trash2 class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                $t('Delete Selected ({count})', {
+                                    count: selectedCount,
+                                })
+                            }}
+                        </span>
                     </Button>
                 </template>
                 <template v-else>
@@ -67,12 +69,14 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
                         class="flex items-center gap-2"
                         @click="$emit('bulk-restore')"
                     >
-                        <RotateCcw class="h-4 w-4" />
-                        {{
-                            $t('Restore Selected ({count})', {
-                                count: selectedCount,
-                            })
-                        }}
+                        <RotateCcw class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                $t('Restore Selected ({count})', {
+                                    count: selectedCount,
+                                })
+                            }}
+                        </span>
                     </Button>
                     <Button
                         :disabled="!canForceDelete"
@@ -81,32 +85,38 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
                         class="flex items-center gap-2"
                         @click="$emit('bulk-force-delete')"
                     >
-                        <Trash class="h-4 w-4" />
-                        {{
-                            $t('Force Delete Selected ({count})', {
-                                count: selectedCount,
-                            })
-                        }}
+                        <Trash class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                $t('Force Delete Selected ({count})', {
+                                    count: selectedCount,
+                                })
+                            }}
+                        </span>
                     </Button>
                 </template>
             </template>
 
-            <slot name="actions"></slot>
+            <div class="flex flex-wrap items-center gap-2">
+                <slot name="actions"></slot>
 
-            <Button
-                v-if="createUrl && canCreate"
-                as-child
-                class="flex items-center gap-2"
-            >
-                <Link :href="createUrl">
-                    <Plus class="h-4 w-4" />
-                    {{
-                        createLabel
-                            ? $t(createLabel)
-                            : $t('Create {title}', { title: $t(title) })
-                    }}
-                </Link>
-            </Button>
+                <Button
+                    v-if="createUrl && canCreate"
+                    as-child
+                    class="flex items-center gap-2"
+                >
+                    <Link :href="createUrl">
+                        <Plus class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                createLabel
+                                    ? $t(createLabel)
+                                    : $t('Create {title}', { title: $t(title) })
+                            }}
+                        </span>
+                    </Link>
+                </Button>
+            </div>
         </div>
     </CardHeader>
 </template>

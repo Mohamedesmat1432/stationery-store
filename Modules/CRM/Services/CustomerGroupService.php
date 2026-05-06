@@ -12,12 +12,14 @@ use Modules\CRM\Imports\CustomerGroupsImport;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\HandlesResourceOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
+use Modules\Shared\Services\Logging\ModuleLogger;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerGroupService
 {
-    use HandlesBulkOperations, ProtectsSystemResources {
+    use HandlesBulkOperations, HandlesResourceOperations, ModuleLogger, ProtectsSystemResources {
         ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
     }
 
@@ -88,17 +90,7 @@ class CustomerGroupService
      */
     public function deleteCustomerGroup(CustomerGroup $group): bool
     {
-        if ($this->isProtected($group)) {
-            return false;
-        }
-
-        $result = $this->customerGroupRepository->delete($group);
-
-        if ($result) {
-            ResourceChanged::dispatch(CustomerGroup::class, 'deleted', [$group->id]);
-        }
-
-        return $result;
+        return $this->performDelete($group);
     }
 
     /**
@@ -106,13 +98,7 @@ class CustomerGroupService
      */
     public function restoreCustomerGroup(CustomerGroup $group): bool
     {
-        $result = $this->customerGroupRepository->restore($group);
-
-        if ($result) {
-            ResourceChanged::dispatch(CustomerGroup::class, 'restored', [$group->id]);
-        }
-
-        return $result;
+        return $this->performRestore($group);
     }
 
     /**
@@ -120,17 +106,7 @@ class CustomerGroupService
      */
     public function forceDeleteCustomerGroup(CustomerGroup $group): bool
     {
-        if ($this->isProtected($group)) {
-            return false;
-        }
-
-        $result = $this->customerGroupRepository->forceDelete($group);
-
-        if ($result) {
-            ResourceChanged::dispatch(CustomerGroup::class, 'force_deleted', [$group->id]);
-        }
-
-        return $result;
+        return $this->performForceDelete($group);
     }
 
     public function getAllActive(): array

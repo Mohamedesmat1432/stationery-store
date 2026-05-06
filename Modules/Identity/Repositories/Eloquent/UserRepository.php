@@ -9,13 +9,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
+use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
 use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
 use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
 
 class UserRepository extends BaseRepository implements ProtectsBulkResources, UserRepositoryInterface
 {
+    use HandlesQueryBuilder;
+
     /**
      * Get the model class for this repository.
      */
@@ -27,22 +29,23 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
     /**
      * Get paginated users with filters and eager loading.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
-        return QueryBuilder::for(User::class)
-            ->with('roles')
-            ->allowedFilters(...[
+        return $this->applyQueryBuilder(
+            model: User::class,
+            allowedFilters: [
                 AllowedFilter::scope('search'),
                 AllowedFilter::callback('role', function ($query, $value) {
                     $query->role($value);
                 }),
                 AllowedFilter::trashed('trash'),
-            ])
-            ->allowedIncludes(...['roles', 'customer'])
-            ->allowedSorts(...['name', 'email', 'created_at'])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ],
+            allowedIncludes: ['roles', 'customer'],
+            allowedSorts: ['name', 'email', 'created_at'],
+            perPage: $perPage,
+            with: ['roles', 'permissions'],
+            params: $params
+        );
     }
 
     /**
@@ -124,10 +127,11 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
         }
 
         // Eager-load roles to prevent N+1 during protection check
-        return User::whereIn('id', $ids)
+        return User::withTrashed()
+            ->whereIn('id', $ids)
             ->with('roles')
             ->cursor()
-            ->filter(fn (User $user) => $user->isProtectedBy($currentUser))
+            ->filter(fn (User $user) => $user->isProtected($currentUser))
             ->pluck('id')
             ->toArray();
     }

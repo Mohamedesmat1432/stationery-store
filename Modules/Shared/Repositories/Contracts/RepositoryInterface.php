@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 interface RepositoryInterface
 {
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator;
 
     /**
      * @return TModel

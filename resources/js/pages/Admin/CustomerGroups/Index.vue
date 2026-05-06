@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Download, Pencil, RotateCcw, Trash, Trash2, Upload, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
@@ -44,7 +45,7 @@ const props = defineProps<{
     };
 }>();
 
-const { searchQuery, showTrashed, applyFilters } = useResourceFilters(
+const { searchQuery, showTrashed, applyFilters, clearFilters } = useResourceFilters(
     () => props.filters?.filter,
     {
         baseUrl: customerGroupsRoutes.index.url(),
@@ -91,228 +92,180 @@ const allColumns = [
 <template>
     <Head :title="$t('Customer Groups')" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
-        <Card>
-            <AdminPageHeader
-                title="Customer Groups"
-                description="Manage customer segments and group-level discounts."
-                :icon="Users"
-                :selected-count="selectedIds?.length ?? 0"
-                :show-trashed="showTrashed"
-                :can-create="can('create_customer_groups')"
-                :create-url="customerGroupsRoutes.create.url()"
-                create-label="Create Group"
-                :can-delete="can('delete_customer_groups')"
-                :can-restore="can('restore_customer_groups')"
-                :can-force-delete="can('force_delete_customer_groups')"
-                @bulk-delete="bulkAction('delete')"
-                @bulk-restore="bulkAction('restore')"
-                @bulk-force-delete="bulkAction('forceDelete')"
+    <ResourceIndexLayout
+        title="Customer Groups"
+        description="Manage customer segments and group-level discounts."
+        :icon="Users"
+        :selected-count="selectedIds?.length ?? 0"
+        :can-create="can('create_customer_groups')"
+        :create-url="customerGroupsRoutes.create.url()"
+        create-label="Create Group"
+        :can-delete="can('delete_customer_groups')"
+        :can-restore="can('restore_customer_groups')"
+        :can-force-delete="can('force_delete_customer_groups')"
+        v-model:search-query="searchQuery"
+        v-model:show-trashed="showTrashed"
+        search-placeholder="Search groups..."
+        :pagination-links="groups?.links"
+        :pagination-total="groups?.total"
+        :pagination-count="groups?.data?.length"
+        resource-name="customer groups"
+        :confirm-state="confirmState"
+        @search="applyFilters"
+        @clear-filters="clearFilters"
+        @bulk-delete="bulkAction('delete')"
+        @bulk-restore="bulkAction('restore')"
+        @bulk-force-delete="bulkAction('forceDelete')"
+    >
+        <template #header-actions>
+            <Button
+                v-if="can('export_customer_groups')"
+                variant="outline"
+                class="flex items-center gap-2"
+                @click="isExportModalOpen = true"
             >
-                <template #actions>
-                    <Button
-                        v-if="can('export_customer_groups')"
-                        variant="outline"
-                        class="flex items-center gap-2"
-                        @click="isExportModalOpen = true"
-                    >
-                        <Download class="h-4 w-4" /> {{ $t('Export') }}
-                    </Button>
-                    <Button
-                        v-if="can('import_customer_groups')"
-                        variant="outline"
-                        class="flex items-center gap-2"
-                        @click="isImportModalOpen = true"
-                    >
-                        <Upload class="h-4 w-4" /> {{ $t('Import') }}
-                    </Button>
-                </template>
-            </AdminPageHeader>
+                <Download class="h-4 w-4" /> {{ $t('Export') }}
+            </Button>
+            <Button
+                v-if="can('import_customer_groups')"
+                variant="outline"
+                class="flex items-center gap-2"
+                @click="isImportModalOpen = true"
+            >
+                <Upload class="h-4 w-4" /> {{ $t('Import') }}
+            </Button>
+        </template>
 
-            <CardContent>
-                <ResourceFilterBar
-                    v-model:search="searchQuery"
-                    v-model:trashed="showTrashed"
-                    can-show-trashed
-                    search-placeholder="Search groups..."
-                    @search="applyFilters"
-                    @update:trashed="applyFilters"
-                />
-
-                <div
-                    class="overflow-x-auto rounded-md border border-sidebar-border"
+        <table class="w-full text-start text-sm">
+            <thead
+                class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+            >
+                <tr>
+                    <th class="w-10 px-6 py-3 font-medium">
+                        <Checkbox
+                            :model-value="
+                                isIndeterminate ? 'indeterminate' : isAllSelected
+                            "
+                            @update:model-value="toggleAll"
+                        />
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Name') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Slug') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Discount') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Customers') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Status') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Actions') }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr
+                    v-for="group in groups?.data ?? []"
+                    :key="group.id"
+                    class="table-row-themed"
                 >
-                    <table class="w-full text-start text-sm">
-                        <thead
-                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+                    <td class="px-6 py-4">
+                        <Checkbox
+                            v-if="selectableGroups.some((g) => g.id === group.id)"
+                            :model-value="selectedIds.includes(group.id)"
+                            @update:model-value="toggleItem(group.id)"
+                        />
+                    </td>
+                    <td class="px-6 py-4 text-start font-medium">
+                        {{ group.name }}
+                    </td>
+                    <td class="px-6 py-4 text-start text-muted-foreground">
+                        {{ group.slug }}
+                    </td>
+                    <td class="px-6 py-4 text-start">
+                        <Badge variant="secondary"
+                            >{{ group.discount_percentage }}%</Badge
                         >
-                            <tr>
-                                <th class="w-10 px-6 py-3 font-medium">
-                                    <Checkbox
-                                        :model-value="
-                                            isIndeterminate
-                                                ? 'indeterminate'
-                                                : isAllSelected
-                                        "
-                                        @update:model-value="toggleAll"
-                                    />
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Name') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Slug') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Discount') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Customers') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Status') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Actions') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="group in groups?.data ?? []"
-                                :key="group.id"
-                                class="table-row-themed"
+                    </td>
+                    <td class="px-6 py-4 text-start text-muted-foreground">
+                        {{ group.customers_count }}
+                    </td>
+                    <td class="px-6 py-4 text-start">
+                        <Badge
+                            :variant="group.is_active ? 'default' : 'destructive'"
+                        >
+                            {{
+                                group.is_active ? $t('Active') : $t('Inactive')
+                            }}
+                        </Badge>
+                    </td>
+                    <td class="flex items-center gap-2 px-6 py-4 text-start">
+                        <template v-if="!group.deleted_at">
+                            <Button
+                                v-if="can('update_customer_groups')"
+                                variant="outline"
+                                size="icon"
+                                class="h-8 w-8"
+                                as-child
                             >
-                                <td class="px-6 py-4">
-                                    <Checkbox
-                                        v-if="selectableGroups.some(g => g.id === group.id)"
-                                        :model-value="
-                                            selectedIds.includes(group.id)
-                                        "
-                                        @update:model-value="
-                                            toggleItem(group.id)
-                                        "
-                                    />
-                                </td>
-                                <td class="px-6 py-4 text-start font-medium">
-                                    {{ group.name }}
-                                </td>
-                                <td
-                                    class="px-6 py-4 text-start text-muted-foreground"
-                                >
-                                    {{ group.slug }}
-                                </td>
-                                <td class="px-6 py-4 text-start">
-                                    <Badge variant="secondary"
-                                        >{{ group.discount_percentage }}%</Badge
-                                    >
-                                </td>
-                                <td
-                                    class="px-6 py-4 text-start text-muted-foreground"
-                                >
-                                    {{ group.customers_count }}
-                                </td>
-                                <td class="px-6 py-4 text-start">
-                                    <Badge
-                                        :variant="
-                                            group.is_active
-                                                ? 'default'
-                                                : 'destructive'
-                                        "
-                                    >
-                                        {{
-                                            group.is_active
-                                                ? $t('Active')
-                                                : $t('Inactive')
-                                        }}
-                                    </Badge>
-                                </td>
-                                <td class="flex items-center gap-2 px-6 py-4 text-start">
-                                    <template v-if="!group.deleted_at">
-                                        <Button
-                                            v-if="can('update_customer_groups')"
-                                            variant="outline"
-                                            size="icon"
-                                            class="h-8 w-8"
-                                            as-child
-                                        >
-                                            <Link
-                                                :href="customerGroupsRoutes.edit.url(group.id)"
-                                            >
-                                                <Pencil class="h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            v-if="can('delete_customer_groups') && !group.is_protected"
-                                            variant="destructive"
-                                            size="icon"
-                                            class="h-8 w-8"
-                                            @click="deleteItem(group.id)"
-                                        >
-                                            <Trash2 class="h-4 w-4" />
-                                        </Button>
-                                    </template>
-                                    <template v-else>
-                                        <Button
-                                            v-if="
-                                                can('restore_customer_groups')
-                                            "
-                                            variant="outline"
-                                            size="icon"
-                                            class="h-8 w-8"
-                                            title="Restore"
-                                            @click="restoreItem(group.id)"
-                                        >
-                                            <RotateCcw class="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            v-if="
-                                                can(
-                                                    'force_delete_customer_groups',
-                                                )
-                                            "
-                                            variant="destructive"
-                                            size="icon"
-                                            class="h-8 w-8"
-                                            title="Force Delete"
-                                            @click="forceDeleteItem(group.id)"
-                                        >
-                                            <Trash class="h-4 w-4" />
-                                        </Button>
-                                    </template>
-                                </td>
-                            </tr>
-                            <tr v-if="(groups?.data?.length ?? 0) === 0">
-                                <td
-                                    colspan="7"
-                                    class="px-6 py-8 text-center text-muted-foreground"
-                                >
-                                    {{ $t('No customer groups found.') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <ResourcePagination
-                    :links="groups?.links ?? []"
-                    :total="groups?.total ?? 0"
-                    :count="groups?.data?.length ?? 0"
-                    resource-name="customer groups"
-                />
-            </CardContent>
-        </Card>
-    </div>
-
-    <ConfirmDialog
-        v-model:open="confirmState.isOpen"
-        :title="confirmState.title"
-        :description="confirmState.description"
-        :variant="confirmState.variant"
-        :confirm-label="confirmState.confirmLabel"
-        :loading="confirmState.loading"
-        @confirm="confirmState.onConfirm"
-    />
+                                <Link :href="customerGroupsRoutes.edit.url(group.id)">
+                                    <Pencil class="h-4 w-4" />
+                                </Link>
+                            </Button>
+                            <Button
+                                v-if="
+                                    can('delete_customer_groups') &&
+                                    !group.is_protected
+                                "
+                                variant="destructive"
+                                size="icon"
+                                class="h-8 w-8"
+                                @click="deleteItem(group.id)"
+                            >
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button
+                                v-if="can('restore_customer_groups')"
+                                variant="outline"
+                                size="icon"
+                                class="h-8 w-8"
+                                title="Restore"
+                                @click="restoreItem(group.id)"
+                            >
+                                <RotateCcw class="h-4 w-4" />
+                            </Button>
+                            <Button
+                                v-if="can('force_delete_customer_groups')"
+                                variant="destructive"
+                                size="icon"
+                                class="h-8 w-8"
+                                title="Force Delete"
+                                @click="forceDeleteItem(group.id)"
+                            >
+                                <Trash class="h-4 w-4" />
+                            </Button>
+                        </template>
+                    </td>
+                </tr>
+                <tr v-if="(groups?.data?.length ?? 0) === 0">
+                    <td
+                        colspan="7"
+                        class="px-6 py-8 text-center text-muted-foreground"
+                    >
+                        {{ $t('No customer groups found.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </ResourceIndexLayout>
 
     <ResourceExportModal
         v-model:open="isExportModalOpen"

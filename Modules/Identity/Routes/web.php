@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Identity\Http\Controllers\RoleController;
-use Modules\Identity\Http\Controllers\UserController;
+use Modules\Identity\Http\Controllers\Admin\RoleController;
+use Modules\Identity\Http\Controllers\Admin\UserController;
 
 /*
 |--------------------------------------------------------------------------

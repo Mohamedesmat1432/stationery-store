@@ -11,7 +11,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class CustomerGroup extends BaseModel
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, \Modules\Shared\Concerns\HasProtection;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -83,9 +83,9 @@ class CustomerGroup extends BaseModel
     }
 
     /**
-     * Check if the customer group is protected from deletion/modification.
+     * Determine if the customer group is protected from deletion/modification.
      */
-    public function isProtected(): bool
+    public function shouldBeProtected(?User $user = null): bool
     {
         return in_array($this->slug, self::PROTECTED_SLUGS, true);
     }

@@ -12,7 +12,7 @@ interface CustomerRepositoryInterface extends RepositoryInterface
     /**
      * Get paginated customers with filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator;
 
     /**
      * Get the query for exporting customers.

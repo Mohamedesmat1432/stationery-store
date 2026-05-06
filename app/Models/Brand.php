@@ -11,7 +11,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Brand extends BaseModel implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, \Modules\Shared\Concerns\HasProtection;
 
     protected $fillable = [
         'name',
@@ -22,6 +22,15 @@ class Brand extends BaseModel implements HasMedia
         'is_active',
         'sort_order',
     ];
+
+    /**
+     * Determine if the brand is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $user = null): bool
+    {
+        // Prevent deletion of brands with products
+        return $this->products()->exists();
+    }
 
     protected function casts(): array
     {

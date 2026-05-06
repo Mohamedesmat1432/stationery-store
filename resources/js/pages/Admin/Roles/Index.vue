@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ShieldCheck, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourcePagination from '@/components/ResourcePagination.vue';
@@ -48,9 +49,10 @@ const props = withDefaults(
     },
 );
 
-const { searchQuery, applyFilters } = useResourceFilters(() => props.filters?.filter, {
-    baseUrl: rolesRoutes.index.url(),
-});
+const { searchQuery, showTrashed, applyFilters, clearFilters } = useResourceFilters(
+    () => props.filters?.filter,
+    { baseUrl: rolesRoutes.index.url() },
+);
 
 // formatRoleName is a standalone utility, no form needed
 
@@ -76,146 +78,107 @@ const {
 </script>
 
 <template>
-    <Head :title="$t('Roles Management')" />
-
-    <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto p-4">
-        <Card>
-            <AdminPageHeader
-                title="Roles & Permissions"
-                description="Manage system roles and their associated permissions."
-                :icon="ShieldCheck"
-                :selected-count="selectedIds?.length ?? 0"
-                :can-create="can('create_roles')"
-                :create-url="rolesRoutes.create.url()"
-                create-label="Create Role"
-                :can-delete="can('delete_roles')"
-                @bulk-delete="bulkAction('delete')"
-            />
-
-            <CardContent>
-                <ResourceFilterBar
-                    v-model:search="searchQuery"
-                    search-placeholder="Search roles..."
-                    @search="applyFilters"
-                />
-
-                <div class="rounded-md border border-sidebar-border">
-                    <table class="w-full text-start text-sm">
-                        <thead
-                            class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+    <ResourceIndexLayout
+        title="Roles & Permissions"
+        description="Manage system roles and their associated permissions."
+        :icon="ShieldCheck"
+        :selected-count="selectedIds?.length ?? 0"
+        :can-create="can('create_roles')"
+        :create-url="rolesRoutes.create.url()"
+        create-label="Create Role"
+        :can-delete="can('delete_roles')"
+        v-model:search-query="searchQuery"
+        search-placeholder="Search roles..."
+        :can-show-trashed="false"
+        :pagination-links="roles?.links"
+        :pagination-total="roles?.total"
+        :pagination-count="roles?.data?.length"
+        resource-name="roles"
+        :confirm-state="confirmState"
+        @search="applyFilters"
+        @clear-filters="clearFilters"
+        @bulk-delete="bulkAction('delete')"
+    >
+        <table class="w-full text-start text-sm">
+            <thead
+                class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
+            >
+                <tr>
+                    <th class="w-10 px-6 py-3 font-medium">
+                        <Checkbox
+                            :model-value="
+                                isIndeterminate ? 'indeterminate' : isAllSelected
+                            "
+                            @update:model-value="toggleAll"
+                        />
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Role Name') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Permissions Count') }}
+                    </th>
+                    <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Actions') }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr
+                    v-for="role in roles?.data ?? []"
+                    :key="role.id"
+                    class="table-row-themed"
+                >
+                    <td class="px-6 py-4">
+                        <Checkbox
+                            v-if="selectableRoles.some((r) => r.id === role.id)"
+                            :model-value="selectedIds.includes(role.id)"
+                            @update:model-value="toggleItem(role.id)"
+                        />
+                    </td>
+                    <td class="px-6 py-4 font-medium">
+                        <Badge
+                            :variant="role.is_protected ? 'destructive' : 'default'"
                         >
-                            <tr>
-                                <th class="w-10 px-6 py-3 font-medium">
-                                    <Checkbox
-                                        :model-value="
-                                            isIndeterminate
-                                                ? 'indeterminate'
-                                                : isAllSelected
-                                        "
-                                        @update:model-value="toggleAll"
-                                    />
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Role Name') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Permissions Count') }}
-                                </th>
-                                <th class="px-6 py-3 text-start font-medium">
-                                    {{ $t('Actions') }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="role in roles?.data ?? []"
-                                :key="role.id"
-                                class="table-row-themed"
-                            >
-                                <td class="px-6 py-4">
-                                    <Checkbox
-                                        v-if="selectableRoles.some(r => r.id === role.id)"
-                                        :model-value="
-                                            selectedIds.includes(role.id)
-                                        "
-                                        @update:model-value="
-                                            toggleItem(role.id)
-                                        "
-                                    />
-                                </td>
-                                <td class="px-6 py-4 font-medium">
-                                    <Badge
-                                        :variant="
-                                            role.is_protected
-                                                ? 'destructive'
-                                                : 'default'
-                                        "
-                                    >
-                                        {{ formatRoleName(role.name) }}
-                                    </Badge>
-                                </td>
-                                <td class="px-6 py-4 text-muted-foreground">
-                                    {{
-                                        role.permissions
-                                            ? role.permissions.length
-                                            : 0
-                                    }}
-                                    {{ $t('Permissions') }}
-                                </td>
-                                <td class="flex items-center gap-2 px-6 py-4 text-start">
-                                    <Button
-                                        v-if="can('update_roles')"
-                                        variant="outline"
-                                        size="icon"
-                                        class="h-8 w-8"
-                                        as-child
-                                    >
-                                        <Link
-                                            :href="rolesRoutes.edit.url(role.id)"
-                                        >
-                                            <Pencil class="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        v-if="can('delete_roles') && !role.is_protected"
-                                        variant="destructive"
-                                        size="icon"
-                                        class="h-8 w-8"
-                                        @click="deleteItem(role.id)"
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </td>
-                            </tr>
-                            <tr v-if="(roles?.data?.length ?? 0) === 0">
-                                <td
-                                    colspan="4"
-                                    class="px-6 py-8 text-center text-muted-foreground"
-                                >
-                                    {{ $t('No roles found.') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <ResourcePagination
-                    :links="roles?.links ?? []"
-                    :total="roles?.total ?? 0"
-                    :count="roles?.data?.length ?? 0"
-                    resource-name="roles"
-                />
-            </CardContent>
-        </Card>
-    </div>
-
-    <ConfirmDialog
-        v-model:open="confirmState.isOpen"
-        :title="confirmState.title"
-        :description="confirmState.description"
-        :variant="confirmState.variant"
-        :confirm-label="confirmState.confirmLabel"
-        :loading="confirmState.loading"
-        @confirm="confirmState.onConfirm"
-    />
+                            {{ formatRoleName(role.name) }}
+                        </Badge>
+                    </td>
+                    <td class="px-6 py-4 text-muted-foreground">
+                        {{ role.permissions ? role.permissions.length : 0 }}
+                        {{ $t('Permissions') }}
+                    </td>
+                    <td class="flex items-center gap-2 px-6 py-4 text-start">
+                        <Button
+                            v-if="can('update_roles')"
+                            variant="outline"
+                            size="icon"
+                            class="h-8 w-8"
+                            as-child
+                        >
+                            <Link :href="rolesRoutes.edit.url(role.id)">
+                                <Pencil class="h-4 w-4" />
+                            </Link>
+                        </Button>
+                        <Button
+                            v-if="can('delete_roles') && !role.is_protected"
+                            variant="destructive"
+                            size="icon"
+                            class="h-8 w-8"
+                            @click="deleteItem(role.id)"
+                        >
+                            <Trash2 class="h-4 w-4" />
+                        </Button>
+                    </td>
+                </tr>
+                <tr v-if="(roles?.data?.length ?? 0) === 0">
+                    <td
+                        colspan="4"
+                        class="px-6 py-8 text-center text-muted-foreground"
+                    >
+                        {{ $t('No roles found.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </ResourceIndexLayout>
 </template>

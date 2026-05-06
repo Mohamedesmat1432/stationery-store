@@ -54,16 +54,24 @@ enum PermissionName: string
     case CREATE_PRODUCTS = 'create_products';
     case UPDATE_PRODUCTS = 'update_products';
     case DELETE_PRODUCTS = 'delete_products';
+    case RESTORE_PRODUCTS = 'restore_products';
+    case FORCE_DELETE_PRODUCTS = 'force_delete_products';
 
     case VIEW_CATEGORIES = 'view_categories';
     case CREATE_CATEGORIES = 'create_categories';
     case UPDATE_CATEGORIES = 'update_categories';
     case DELETE_CATEGORIES = 'delete_categories';
+    case RESTORE_CATEGORIES = 'restore_categories';
+    case FORCE_DELETE_CATEGORIES = 'force_delete_categories';
+    case EXPORT_CATEGORIES = 'export_categories';
+    case IMPORT_CATEGORIES = 'import_categories';
 
     case VIEW_BRANDS = 'view_brands';
     case CREATE_BRANDS = 'create_brands';
     case UPDATE_BRANDS = 'update_brands';
     case DELETE_BRANDS = 'delete_brands';
+    case RESTORE_BRANDS = 'restore_brands';
+    case FORCE_DELETE_BRANDS = 'force_delete_brands';
 
     case VIEW_ATTRIBUTES = 'view_attributes';
     case CREATE_ATTRIBUTES = 'create_attributes';

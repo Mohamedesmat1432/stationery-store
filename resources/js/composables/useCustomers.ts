@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/vue3';
-import { store, update } from '@/actions/Modules/CRM/Http/Controllers/CustomerController';
+import * as customersRoutes from '@/routes/admin/customers/index';
 
 export function useCustomers(initialData?: Modules.CRM.Data.CustomerData) {
     const form = useForm({
@@ -15,9 +15,9 @@ export function useCustomers(initialData?: Modules.CRM.Data.CustomerData) {
 
     const submit = (id?: string) => {
         if (id) {
-            form.put(update.url(id));
+            form.put(customersRoutes.update.url(id));
         } else {
-            form.post(store.url());
+            form.post(customersRoutes.store.url());
         }
     };
 

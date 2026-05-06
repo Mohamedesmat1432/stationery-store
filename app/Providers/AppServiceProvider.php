@@ -16,13 +16,9 @@ use App\Listeners\SendShippingUpdate;
 use App\Listeners\UpdateCustomerStatsOnOrderDelivered;
 use App\Listeners\UpdateStockOnOrder;
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\Stock;
 use App\Observers\OrderObserver;
-use App\Observers\ProductObserver;
 use App\Observers\StockObserver;
-use App\Repositories\Contracts\ProductRepositoryInterface;
-use App\Repositories\Eloquent\ProductRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -35,13 +31,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
-    public function register(): void
-    {
-        $this->app->bind(
-            ProductRepositoryInterface::class,
-            ProductRepository::class
-        );
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap any application services.
@@ -84,7 +74,6 @@ class AppServiceProvider extends ServiceProvider
     protected function registerObservers(): void
     {
         Order::observe(OrderObserver::class);
-        Product::observe(ProductObserver::class);
         Stock::observe(StockObserver::class);
     }
 

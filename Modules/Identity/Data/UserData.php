@@ -33,7 +33,7 @@ class UserData extends Data
         /** @var array<string> */
         public array $roles,
 
-        /** @var string|null */
+        #[Computed]
         public ?string $deleted_at = null,
     ) {}
 
@@ -48,10 +48,10 @@ class UserData extends Data
             email: $user->email,
             password: null, // Do not expose password
             roles: $user->roles->pluck('name')->toArray(),
-            deleted_at: $user->deleted_at?->toDateTimeString(),
+            deleted_at: $user->deleted_at?->toIso8601String(),
         );
 
-        $data->is_protected = $user->isProtectedBy(Auth::user());
+        $data->is_protected = $user->isProtected(Auth::user());
 
         return $data;
     }
@@ -61,7 +61,8 @@ class UserData extends Data
      */
     public static function rules(?ValidationContext $context = null): array
     {
-        $userId = request()->route('user')?->id;
+        $user = request()->route('user');
+        $userId = ($user instanceof User ? $user->id : $user) ?? request()->input('id');
         $isUpdate = $userId !== null;
 
         return [

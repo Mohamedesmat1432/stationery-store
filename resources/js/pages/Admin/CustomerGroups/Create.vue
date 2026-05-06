@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import { index, create } from '@/actions/Modules/CRM/Http/Controllers/CustomerGroupController';
+import * as customerGroupsRoutes from '@/routes/admin/customer-groups/index';
 import CustomerGroupForm from '@/components/forms/CustomerGroupForm.vue';
 import { Button } from '@/components/ui/button';
 import { useCustomerGroups } from '@/composables/useCustomerGroups';
@@ -10,8 +10,8 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Customer Groups', href: index.url() },
-            { title: 'Create Group', href: create.url() },
+            { title: 'Customer Groups', href: customerGroupsRoutes.index.url() },
+            { title: 'Create Group', href: customerGroupsRoutes.create.url() },
         ],
     },
 });
@@ -31,7 +31,7 @@ const onUpdateIsActive = (val: boolean) => {
         <CustomerGroupForm :form="form" @submit="handleSubmit" @update:is_active="onUpdateIsActive">
             <template #header-actions>
                 <Button variant="outline" as-child type="button">
-                    <Link :href="index.url()" class="flex items-center gap-2">
+                    <Link :href="customerGroupsRoutes.index.url()" class="flex items-center gap-2">
                         <ArrowLeft class="h-4 w-4" /> {{ $t('Back') }}
                     </Link>
                 </Button>

@@ -2,7 +2,6 @@
 
 namespace Modules\Identity\Policies;
 
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Modules\Identity\Enums\PermissionName;
@@ -46,7 +45,7 @@ class UserPolicy
         }
 
         // Only admins can update other admins
-        if ($model->hasRole(Role::ROLE_ADMIN) && ! $user->hasRole(Role::ROLE_ADMIN)) {
+        if ($model->isAdmin() && ! $user->isAdmin()) {
             return false;
         }
 
@@ -58,7 +57,7 @@ class UserPolicy
      */
     public function delete(User $user, ?User $model = null): bool
     {
-        if ($model && $model->isProtectedBy($user)) {
+        if ($model && $model->isProtected($user)) {
             return false;
         }
 
@@ -70,7 +69,7 @@ class UserPolicy
      */
     public function restore(User $user, ?User $model = null): bool
     {
-        if ($model && $model->isProtectedBy($user)) {
+        if ($model && $model->isProtected($user)) {
             return false;
         }
 
@@ -82,7 +81,7 @@ class UserPolicy
      */
     public function forceDelete(User $user, ?User $model = null): bool
     {
-        if ($model && $model->isProtectedBy($user)) {
+        if ($model && $model->isProtected($user)) {
             return false;
         }
 

@@ -7,13 +7,15 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
+use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
 use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
 use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
 
 class CustomerGroupRepository extends BaseRepository implements CustomerGroupRepositoryInterface, ProtectsBulkResources
 {
+    use HandlesQueryBuilder;
+
     /**
      * Get the model class for this repository.
      */
@@ -25,19 +27,21 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
     /**
      * Get paginated customer groups with filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
-        return QueryBuilder::for(CustomerGroup::class)
-            ->withCount('customers')
-            ->allowedFilters(...[
+        return $this->applyQueryBuilder(
+            model: CustomerGroup::class,
+            allowedFilters: [
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::trashed('trash'),
-            ])
-            ->allowedSorts(...['name', 'sort_order', 'discount_percentage', 'created_at'])
-            ->defaultSort('sort_order', '-id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ],
+            allowedSorts: ['name', 'sort_order', 'discount_percentage', 'created_at'],
+            defaultSort: ['sort_order', '-id'],
+            perPage: $perPage,
+            withCount: ['customers'],
+            params: $params
+        );
     }
 
     /**
@@ -72,7 +76,8 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
      */
     public function getProtectedIds(array $ids): array
     {
-        return CustomerGroup::whereIn('id', $ids)
+        return CustomerGroup::withTrashed()
+            ->whereIn('id', $ids)
             ->cursor()
             ->filter(fn (CustomerGroup $group) => $group->isProtected())
             ->pluck('id')

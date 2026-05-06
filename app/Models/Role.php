@@ -18,7 +18,7 @@ use Spatie\Permission\Models\Role as SpatieRole;
  */
 class Role extends SpatieRole
 {
-    use HasUlids;
+    use HasUlids, \Modules\Shared\Concerns\HasProtection;
 
     public const ROLE_ADMIN = RoleName::ADMIN->value;
 
@@ -37,9 +37,9 @@ class Role extends SpatieRole
     protected $keyType = 'string';
 
     /**
-     * Check if the role is protected from deletion or modification.
+     * Determine if the role is protected from deletion or modification.
      */
-    public function isProtected(): bool
+    public function shouldBeProtected(?User $user = null): bool
     {
         return $this->name === self::ROLE_ADMIN;
     }

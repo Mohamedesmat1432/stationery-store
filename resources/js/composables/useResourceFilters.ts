@@ -73,10 +73,18 @@ export function useResourceFilters(initialFiltersSource: MaybeRefOrGetter<any>, 
         }
     };
 
+    const clearFilters = () => {
+        searchQuery.value = '';
+        showTrashed.value = false;
+        extraFilters.value = {};
+        applyFilters();
+    };
+
     return {
         searchQuery,
         showTrashed,
         extraFilters,
         applyFilters,
+        clearFilters,
     };
 }

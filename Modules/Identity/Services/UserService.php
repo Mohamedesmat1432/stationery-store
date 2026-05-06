@@ -16,12 +16,13 @@ use Modules\Identity\Imports\UsersImport;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
 use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\HandlesResourceOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserService
 {
-    use HandlesBulkOperations, ProtectsSystemResources {
+    use HandlesBulkOperations, \Modules\Shared\Services\Logging\ModuleLogger, HandlesResourceOperations, ProtectsSystemResources {
         ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
     }
 
@@ -47,7 +48,7 @@ class UserService
         return IdentityCacheService::rememberUsers(
             $params,
             $perPage,
-            fn () => $this->userRepository->paginate($perPage)
+            fn () => $this->userRepository->paginate($perPage, $params)
         );
     }
 
@@ -100,17 +101,7 @@ class UserService
      */
     public function deleteUser(User $user): bool
     {
-        if ($this->isProtected($user)) {
-            return false;
-        }
-
-        $result = $this->userRepository->delete($user);
-
-        if ($result) {
-            ResourceChanged::dispatch(User::class, 'deleted', [$user->id]);
-        }
-
-        return $result;
+        return $this->performDelete($user);
     }
 
     /**
@@ -118,13 +109,7 @@ class UserService
      */
     public function restoreUser(User $user): bool
     {
-        $result = $this->userRepository->restore($user);
-
-        if ($result) {
-            ResourceChanged::dispatch(User::class, 'restored', [$user->id]);
-        }
-
-        return $result;
+        return $this->performRestore($user);
     }
 
     /**
@@ -132,17 +117,7 @@ class UserService
      */
     public function forceDeleteUser(User $user): bool
     {
-        if ($this->isProtected($user)) {
-            return false;
-        }
-
-        $result = $this->userRepository->forceDelete($user);
-
-        if ($result) {
-            ResourceChanged::dispatch(User::class, 'force_deleted', [$user->id]);
-        }
-
-        return $result;
+        return $this->performForceDelete($user);
     }
 
     /**
@@ -150,7 +125,7 @@ class UserService
      */
     public function isProtected(Model|User $model): bool
     {
-        return $model->isProtectedBy(Auth::user());
+        return $model->isProtected(Auth::user());
     }
 
     /**

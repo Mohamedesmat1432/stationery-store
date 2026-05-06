@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('seo_metas', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->morphs('seoable');
+            $table->ulidMorphs('seoable');
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->text('keywords')->nullable();

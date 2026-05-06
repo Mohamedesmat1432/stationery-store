@@ -12,8 +12,8 @@ import type { Auth } from '@/types';
 interface RouteHelper {
     (...args: any[]): { url: string; method?: string };
     url: (...args: any[]) => string;
-    definition: { methods: string[]; url: string };
-    form: { (...args: any[]): { action: string; method: string } };
+    definition?: { methods: string[]; url: string };
+    form?: { (...args: any[]): { action: string; method: string } };
 }
 
 interface BulkActionsConfig {
@@ -75,7 +75,7 @@ export function useBulkActions<T extends { id: string | number }>(
         confirmState.loading = false;
     };
 
-    const permissions = computed<string[]>(() => (usePage().props.auth as Auth).permissions || []);
+    const permissions = computed<string[]>(() => (usePage().props.auth as Auth)?.permissions ?? []);
     const can = (permission: string) => permissions.value.includes(permission);
 
     const openConfirm = (

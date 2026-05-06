@@ -49,7 +49,14 @@ class User extends Authenticatable implements HasMedia
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    use HasRoles, HasUlids, InteractsWithMedia, LogsActivity, SoftDeletes;
+    use HasRoles, HasUlids, InteractsWithMedia, LogsActivity, \Modules\Shared\Concerns\HasProtection, SoftDeletes;
+
+    /**
+     * Request-level cache for operator admin status to avoid redundant role checks.
+     *
+     * @var array<string, bool>
+     */
+    protected static array $operatorAdminCache = [];
 
     /**
      * Primary key is ULID string, not integer
@@ -120,9 +127,22 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Check if the user is protected from deletion or modification by the given operator.
+     * Determine if the user is an administrator.
+     * Uses request-level caching for performance.
      */
-    public function isProtectedBy(?User $operator = null): bool
+    public function isAdmin(): bool
+    {
+        if (! isset(static::$operatorAdminCache[$this->id])) {
+            static::$operatorAdminCache[$this->id] = $this->hasRole(Role::ROLE_ADMIN);
+        }
+
+        return static::$operatorAdminCache[$this->id];
+    }
+
+    /**
+     * Determine if the user is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $operator = null): bool
     {
         if (! $operator) {
             return false;
@@ -134,7 +154,7 @@ class User extends Authenticatable implements HasMedia
         }
 
         // Only admins can delete other admins
-        if ($this->hasRole(Role::ROLE_ADMIN) && ! $operator->hasRole(Role::ROLE_ADMIN)) {
+        if ($this->hasRole(Role::ROLE_ADMIN) && ! $operator->isAdmin()) {
             return true;
         }
 

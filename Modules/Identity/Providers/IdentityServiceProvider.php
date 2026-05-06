@@ -2,14 +2,12 @@
 
 namespace Modules\Identity\Providers;
 
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Modules\Identity\Enums\RoleName;
 use Modules\Identity\Listeners\SyncIdentityCache;
 use Modules\Identity\Policies\RolePolicy;
 use Modules\Identity\Policies\UserPolicy;
@@ -52,7 +50,7 @@ class IdentityServiceProvider extends ServiceProvider
 
         // Grant 'admin' role full access to everything
         Gate::before(function ($user, $ability) {
-            return $user->hasRole(RoleName::ADMIN->value) ? true : null;
+            return $user->isAdmin() ? true : null;
         });
     }
 

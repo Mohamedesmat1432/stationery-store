@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
@@ -14,11 +13,6 @@ Route::inertia('/', 'Welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // Admin Routes
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('products', [ProductController::class, 'index'])->name('products.index');
-    });
 });
 
 require __DIR__.'/settings.php';

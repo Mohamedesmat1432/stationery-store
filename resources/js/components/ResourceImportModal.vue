@@ -46,8 +46,8 @@ const submitImport = () => {
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader class="text-start">
                 <DialogTitle>{{ $t(title) }}</DialogTitle>
-                <DialogDescription v-if="description">
-                    {{ $t(description) }}
+                <DialogDescription>
+                    {{ description ? $t(description) : '' }}
                 </DialogDescription>
             </DialogHeader>
             <form @submit.prevent="submitImport">

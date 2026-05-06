@@ -41,7 +41,8 @@ class RoleData extends Data
 
     public static function rules(?ValidationContext $context = null): array
     {
-        $roleId = request()->route('role')?->id;
+        $role = request()->route('role');
+        $roleId = ($role instanceof Role ? $role->id : $role) ?? request()->input('id');
 
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($roleId)],

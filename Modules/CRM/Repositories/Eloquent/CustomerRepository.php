@@ -5,13 +5,32 @@ namespace Modules\CRM\Repositories\Eloquent;
 use App\Models\Customer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
+use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
+use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
 use Modules\Shared\Repositories\Eloquent\BaseRepository;
 use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
 
-class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface
+class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface, ProtectsBulkResources
 {
+    use HandlesQueryBuilder;
+
+    /**
+     * Get IDs from the given set that are protected from deletion or modification.
+     */
+    public function getProtectedIds(array $ids): array
+    {
+        $user = Auth::user();
+
+        return Customer::withTrashed()
+            ->whereIn('id', $ids)
+            ->cursor()
+            ->filter(fn (Customer $customer) => $customer->isProtected($user))
+            ->pluck('id')
+            ->toArray();
+    }
+
     /**
      * Get the model class for this repository.
      */
@@ -23,20 +42,21 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     /**
      * Get paginated customers with filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
-        return QueryBuilder::for(Customer::class)
-            ->with(['user', 'group'])
-            ->allowedFilters(...[
+        return $this->applyQueryBuilder(
+            model: Customer::class,
+            allowedFilters: [
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('group', 'customer_group_id'),
                 AllowedFilter::trashed('trash'),
-            ])
-            ->allowedIncludes(...['user', 'group', 'addresses', 'orders'])
-            ->allowedSorts(...['total_spent', 'orders_count', 'created_at'])
-            ->defaultSort('-id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ],
+            allowedIncludes: ['user', 'group', 'addresses', 'orders'],
+            allowedSorts: ['total_spent', 'orders_count', 'created_at'],
+            perPage: $perPage,
+            with: ['user', 'group'],
+            params: $params
+        );
     }
 
     /**

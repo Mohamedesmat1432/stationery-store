@@ -13,7 +13,7 @@ interface UserRepositoryInterface extends RepositoryInterface
     /**
      * Get paginated users with optional filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator;
 
     /**
      * Sync roles to a user.

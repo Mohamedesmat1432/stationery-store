@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('taggables', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('tag_id')->constrained();
-            $table->morphs('taggable');
+            $table->ulidMorphs('taggable');
             $table->timestamps();
             $table->softDeletes();
 

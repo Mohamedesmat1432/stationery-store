@@ -15,7 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Customer extends BaseModel
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, \Modules\Shared\Concerns\HasProtection;
 
     public function getActivitylogOptions(): LogOptions
     {

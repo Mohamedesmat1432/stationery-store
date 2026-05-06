@@ -9,11 +9,13 @@ use Modules\Identity\Data\RoleData;
 use Modules\Identity\Repositories\Contracts\RoleRepositoryInterface;
 use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\HandlesResourceOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
+use Modules\Shared\Services\Logging\ModuleLogger;
 
 class RoleService
 {
-    use HandlesBulkOperations, ProtectsSystemResources {
+    use HandlesBulkOperations, HandlesResourceOperations, ModuleLogger, ProtectsSystemResources {
         ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
     }
 
@@ -73,22 +75,9 @@ class RoleService
         });
     }
 
-    /**
-     * Delete a role if not protected.
-     */
     public function deleteRole(Role $role): bool
     {
-        if ($this->isProtected($role)) {
-            return false;
-        }
-
-        $result = $this->roleRepository->delete($role);
-
-        if ($result) {
-            ResourceChanged::dispatch(Role::class, 'deleted', [$role->id]);
-        }
-
-        return $result;
+        return $this->performDelete($role);
     }
 
     /**

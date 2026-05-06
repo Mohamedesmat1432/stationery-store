@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import { index } from '@/actions/Modules/CRM/Http/Controllers/CustomerController';
+import * as customersRoutes from '@/routes/admin/customers/index';
 import CustomerForm from '@/components/forms/CustomerForm.vue';
 import { Button } from '@/components/ui/button';
 import { useCustomers } from '@/composables/useCustomers';
@@ -10,7 +10,7 @@ defineOptions({
     layout: {
         breadcrumbs: [
             { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Customers', href: index.url() },
+            { title: 'Customers', href: customersRoutes.index.url() },
             { title: 'Edit Customer', href: '#' },
         ],
     },
@@ -45,7 +45,7 @@ const handleSubmit = () => submit(props.customer.id!);
         >
             <template #header-actions>
                 <Button variant="outline" as-child type="button">
-                    <Link :href="index.url()" class="flex items-center gap-2">
+                    <Link :href="customersRoutes.index.url()" class="flex items-center gap-2">
                         <ArrowLeft class="h-4 w-4" /> {{ $t('Back') }}
                     </Link>
                 </Button>

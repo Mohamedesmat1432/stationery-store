@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('prices', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->morphs('priceable');
+            $table->ulidMorphs('priceable');
             $table->decimal('amount', 15, 4);
             $table->decimal('compare_at_price', 15, 4)->nullable();
             $table->decimal('cost_price', 15, 4)->nullable();

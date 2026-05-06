@@ -110,8 +110,8 @@ const submitExport = () => {
         <DialogContent class="sm:max-w-106.25">
             <DialogHeader class="text-start">
                 <DialogTitle>{{ $t(title) }}</DialogTitle>
-                <DialogDescription v-if="description">
-                    {{ $t(description) }}
+                <DialogDescription>
+                    {{ description ? $t(description) : '' }}
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">

@@ -11,7 +11,7 @@ interface RoleRepositoryInterface extends RepositoryInterface
     /**
      * Get paginated roles with filtering.
      */
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator;
 
     /**
      * Sync permissions to a role.

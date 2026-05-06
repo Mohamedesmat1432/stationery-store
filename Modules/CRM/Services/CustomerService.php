@@ -3,7 +3,9 @@
 namespace Modules\CRM\Services;
 
 use App\Models\Customer;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\CRM\Data\CustomerData;
 use Modules\CRM\Exports\CustomersExport;
@@ -11,11 +13,16 @@ use Modules\CRM\Imports\CustomersImport;
 use Modules\CRM\Repositories\Contracts\CustomerRepositoryInterface;
 use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
+use Modules\Shared\Services\Concerns\HandlesResourceOperations;
+use Modules\Shared\Services\Concerns\ProtectsSystemResources;
+use Modules\Shared\Services\Logging\ModuleLogger;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerService
 {
-    use HandlesBulkOperations;
+    use HandlesBulkOperations, HandlesResourceOperations, ModuleLogger, ProtectsSystemResources {
+        ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
+    }
 
     public function __construct(
         protected CustomerRepositoryInterface $customerRepository
@@ -34,7 +41,7 @@ class CustomerService
         return CRMCacheService::rememberCustomers(
             $params,
             $perPage,
-            fn () => $this->customerRepository->paginate($perPage)
+            fn () => $this->customerRepository->paginate($perPage, $params)
         );
     }
 
@@ -52,12 +59,7 @@ class CustomerService
      */
     public function updateCustomer(Customer $customer, CustomerData $data): Customer
     {
-        $updateData = collect($data->toArray())
-            ->only([
-                'user_id', 'phone', 'birth_date', 'gender', 'tax_number',
-                'company_name', 'customer_group_id', 'metadata',
-            ])
-            ->toArray();
+        $updateData = $data->except('is_protected', 'total_spent', 'orders_count', 'age', 'name', 'email', 'deleted_at', 'group_name')->toArray();
 
         $customer = $this->customerRepository->update($customer, $updateData);
 
@@ -71,13 +73,7 @@ class CustomerService
      */
     public function deleteCustomer(Customer $customer): bool
     {
-        $result = $this->customerRepository->delete($customer);
-
-        if ($result) {
-            ResourceChanged::dispatch(Customer::class, 'deleted', [$customer->id]);
-        }
-
-        return $result;
+        return $this->performDelete($customer);
     }
 
     /**
@@ -85,13 +81,7 @@ class CustomerService
      */
     public function restoreCustomer(Customer $customer): bool
     {
-        $result = $this->customerRepository->restore($customer);
-
-        if ($result) {
-            ResourceChanged::dispatch(Customer::class, 'restored', [$customer->id]);
-        }
-
-        return $result;
+        return $this->performRestore($customer);
     }
 
     /**
@@ -99,13 +89,15 @@ class CustomerService
      */
     public function forceDeleteCustomer(Customer $customer): bool
     {
-        $result = $this->customerRepository->forceDelete($customer);
+        return $this->performForceDelete($customer);
+    }
 
-        if ($result) {
-            ResourceChanged::dispatch(Customer::class, 'force_deleted', [$customer->id]);
-        }
-
-        return $result;
+    /**
+     * Check if a customer is protected from deletion/modification.
+     */
+    public function isProtected(Model|Customer $model): bool
+    {
+        return $model->isProtected(Auth::user());
     }
 
     public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse

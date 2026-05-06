@@ -16,11 +16,11 @@ use Spatie\Permission\PermissionRegistrar;
 
 class IdentityCacheService extends BaseCacheService
 {
-    public const TAG_USERS = 'users';
+    public const TAG_USERS = 'identity:users';
 
-    public const TAG_ROLES = 'roles';
+    public const TAG_ROLES = 'identity:roles';
 
-    public const TAG_PERMISSIONS = 'permissions';
+    public const TAG_PERMISSIONS = 'identity:permissions';
 
     // ========== USER CACHE METHODS ==========
 

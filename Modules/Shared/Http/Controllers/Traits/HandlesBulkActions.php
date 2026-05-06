@@ -69,7 +69,7 @@ trait HandlesBulkActions
 
         $actionConfig = $config[$action->value];
 
-        Gate::authorize($action->value);
+        Gate::authorize($action->value, $modelClass);
 
         $this->{$serviceProperty}->{$actionConfig['method']}($data['ids']);
 
