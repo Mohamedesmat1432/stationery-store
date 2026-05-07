@@ -126,6 +126,7 @@ declare namespace Modules {
     namespace Catalog {
         namespace Data {
             export type BrandData = {
+                is_protected: boolean;
                 id: string | null;
                 name: string;
                 slug: string;
@@ -139,6 +140,7 @@ declare namespace Modules {
                 products_count: number | null;
             };
             export type CategoryData = {
+                is_protected: boolean;
                 full_path: string | null;
                 parent_name: string | null;
                 breadcrumbs: Array<any> | null;
@@ -181,6 +183,7 @@ declare namespace Modules {
                 file: string;
             };
             export type ProductData = {
+                is_protected: boolean;
                 id: string | null;
                 name: string;
                 sku: string;
@@ -233,6 +236,7 @@ declare namespace Modules {
                 password: string | null;
                 roles: string[];
                 deleted_at: string | null;
+                is_active: boolean;
             };
         }
         namespace Enums {
@@ -275,6 +279,8 @@ declare namespace Modules {
                 | 'delete_products'
                 | 'restore_products'
                 | 'force_delete_products'
+                | 'export_products'
+                | 'import_products'
                 | 'view_categories'
                 | 'create_categories'
                 | 'update_categories'
@@ -361,7 +367,12 @@ declare namespace Modules {
     }
     namespace Shared {
         namespace Enums {
-            export type BulkActionType = 'delete' | 'restore' | 'forceDelete';
+            export type BulkActionType =
+                | 'delete'
+                | 'restore'
+                | 'forceDelete'
+                | 'activate'
+                | 'deactivate';
         }
     }
 }

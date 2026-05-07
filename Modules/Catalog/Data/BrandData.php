@@ -12,6 +12,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 class BrandData extends Data
 {
+    #[Computed]
+    public bool $is_protected;
+
     public function __construct(
         public ?string $id,
         public string $name,
@@ -34,7 +37,7 @@ class BrandData extends Data
 
     public static function fromBrand(Brand $brand): self
     {
-        return new self(
+        $data = new self(
             id: $brand->id,
             name: $brand->name,
             slug: $brand->slug,
@@ -47,6 +50,10 @@ class BrandData extends Data
             deleted_at: $brand->deleted_at?->toIso8601String(),
             products_count: $brand->products_count,
         );
+
+        $data->is_protected = $brand->isProtected();
+
+        return $data;
     }
 
     public static function rules(?ValidationContext $context = null): array

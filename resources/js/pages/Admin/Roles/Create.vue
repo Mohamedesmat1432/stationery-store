@@ -15,14 +15,9 @@ defineOptions({
     },
 });
 
-const props = withDefaults(
-    defineProps<{
-        available_permissions?: Record<string, string[]>;
-    }>(),
-    {
-        available_permissions: () => ({}),
-    },
-);
+defineProps<{
+    available_permissions?: Record<string, string[]>;
+}>();
 
 const form = useForm({
     name: '',
@@ -41,7 +36,7 @@ const submit = () => {
         class="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-x-auto p-4"
     >
         <RoleForm
-            :form="form"
+            v-model:form="form"
             :available_permissions="available_permissions"
             @submit="submit"
         >

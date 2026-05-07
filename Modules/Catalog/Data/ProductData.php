@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Data;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
@@ -12,6 +13,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 class ProductData extends Data
 {
+    #[Computed]
+    public bool $is_protected;
+
     public function __construct(
         public ?string $id,
         public string $name,
@@ -87,6 +91,8 @@ class ProductData extends Data
         if ($product->relationLoaded('brand') && $product->brand) {
             $data->brand = BrandData::fromBrand($product->brand);
         }
+
+        $data->is_protected = $product->isProtected(Auth::user());
 
         return $data;
     }

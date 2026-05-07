@@ -56,18 +56,17 @@ const translateLabel = (label: string) => {
                     size="sm"
                     as-child
                 >
-                    <Link
-                        :href="link.url"
-                        v-html="translateLabel(link.label)"
-                    ></Link>
+                    <Link :href="link.url">
+                        <span v-html="translateLabel(link.label)"></span>
+                    </Link>
                 </Button>
                 <Button
                     v-else
                     variant="outline"
                     size="sm"
                     disabled
-                    v-html="translateLabel(link.label)"
                 >
+                    <span v-html="translateLabel(link.label)"></span>
                 </Button>
             </template>
         </div>

@@ -5,6 +5,7 @@ namespace Modules\Catalog\Repositories\Eloquent;
 use App\Models\Category;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Modules\Catalog\Repositories\Contracts\CategoryRepositoryInterface;
@@ -25,31 +26,33 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
 
     public function paginate(int $perPage = 5, array $params = []): LengthAwarePaginator
     {
-        $trash = $params['filter']['trash'] ?? null;
-        $search = $params['filter']['search'] ?? null;
+        $search = $params['filter']['search'] ?? request()->input('filter.search');
+        $trash = $params['filter']['trash'] ?? request()->input('filter.trash');
 
-        $request = request();
-        if (! empty($params)) {
-            $request = clone $request;
-            $request->merge($params);
-        }
-
-        $query = QueryBuilder::for(Category::class, $request)
-            ->allowedFilters(...[
+        $query = $this->buildQueryBuilder(
+            Category::query(),
+            [
                 AllowedFilter::scope('search'),
                 AllowedFilter::trashed('trash'),
-            ])
-            ->defaultSort('sort_order');
+            ],
+            [],
+            [],
+            ['sort_order'],
+            [],
+            [],
+            $params
+        );
 
         // If searching or viewing ONLY trashed items, return flat list for better UX
         if (! empty($search) || $trash === 'only') {
-            return $query->with('parent')->paginate($perPage)->withQueryString();
+            return $query->with(['parent', 'media'])
+                ->withCount(['products' => fn ($q) => $q->active()])
+                ->paginate($perPage);
         }
 
-        // Tree mode: get root items with all levels of children
         $this->applyTreeLoading($query, $trash);
 
-        return $query->paginate($perPage)->withQueryString();
+        return $query->paginate($perPage);
     }
 
     /**
@@ -57,20 +60,36 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
      */
     public function getTree(array $filters = []): Collection
     {
-        $trash = $filters['filter']['trash'] ?? null;
+        return $this->buildExportQuery($filters)->get();
+    }
 
-        $query = QueryBuilder::for(Category::class)
-            ->allowedFilters(...[
+    /**
+     * Build a filtered query for exports (no pagination).
+     */
+    public function buildExportQuery(array $params = []): Builder
+    {
+        $search = $params['filter']['search'] ?? request()->input('filter.search');
+        $trash = $params['filter']['trash'] ?? request()->input('filter.trash');
+
+        $query = $this->buildQueryBuilder(
+            Category::query(),
+            [
                 AllowedFilter::scope('search'),
                 AllowedFilter::trashed('trash'),
-            ])
-            ->defaultSort('sort_order');
+            ],
+            [],
+            [],
+            ['sort_order'],
+            [],
+            [],
+            $params
+        );
 
-        if (empty($filters['filter']['search']) && $trash !== 'only') {
+        if (empty($search) && $trash !== 'only') {
             $this->applyTreeLoading($query, $trash);
         }
 
-        return $query->get();
+        return $query->getEloquentBuilder();
     }
 
     /**
@@ -80,22 +99,24 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     {
         $query->root()->with([
             'allChildren' => function ($q) use ($trash) {
-                $q->orderBy('sort_order')->with('media')->withCount(['products' => fn ($q) => $q->active()]);
+                $q->orderBy('sort_order')->with('media');
                 if ($trash === 'with' || $trash === 'only') {
                     $q->withTrashed();
                 }
             },
-        ])->with('media')->withCount(['products' => fn ($q) => $q->active()]);
+            'media',
+        ])->withCount(['products' => fn ($q) => $q->active()]);
     }
 
     /**
      * Toggle the active status of a category.
      */
-    public function toggleActive(Category $category): bool
+    public function toggleActive(Model $model): bool
     {
-        $category->is_active = ! $category->is_active;
+        /** @var Category $model */
+        $model->is_active = ! $model->is_active;
 
-        return $category->save();
+        return $model->save();
     }
 
     /**
@@ -139,9 +160,10 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         $user = Auth::user();
 
         return Category::withTrashed()
+            ->withCount(['products' => fn ($q) => $q->active()])
             ->whereIn('id', $ids)
-            ->get()
-            ->filter(fn (Category $category) => $category->shouldBeProtected($user))
+            ->cursor()
+            ->filter(fn (Category $category) => $category->isProtected($user))
             ->pluck('id')
             ->toArray();
     }

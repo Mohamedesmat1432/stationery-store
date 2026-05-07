@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { ShieldCheck, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBulkActions } from '@/composables/useBulkActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
@@ -49,7 +44,7 @@ const props = withDefaults(
     },
 );
 
-const { searchQuery, showTrashed, applyFilters, clearFilters } = useResourceFilters(
+const { searchQuery, applyFilters, clearFilters } = useResourceFilters(
     () => props.filters?.filter,
     { baseUrl: rolesRoutes.index.url() },
 );
@@ -94,7 +89,7 @@ const {
         :pagination-total="roles?.total"
         :pagination-count="roles?.data?.length"
         resource-name="roles"
-        :confirm-state="confirmState"
+        v-model:confirm-state="confirmState"
         @search="applyFilters"
         @clear-filters="clearFilters"
         @bulk-delete="bulkAction('delete')"

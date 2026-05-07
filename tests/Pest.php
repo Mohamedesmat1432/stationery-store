@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Permission;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +46,16 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function actingAsAdmin(array $permissions = [])
 {
-    // ..
+    $user = User::factory()->create();
+
+    if (! empty($permissions)) {
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+        $user->givePermissionTo($permissions);
+    }
+
+    return test()->actingAs($user);
 }

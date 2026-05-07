@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
-import { Plus, Search, Trash2, FolderTree, Layers, Download, Upload } from 'lucide-vue-next';
-import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Deferred } from '@inertiajs/vue3';
+import { FolderTree, Layers, Download, Upload } from 'lucide-vue-next';
+import { ref, watch, provide } from 'vue';
+import draggable from 'vuedraggable';
 import CategoryTreeNode from '@/components/Admin/Catalog/CategoryTreeNode.vue';
-import { useCategoryActions } from '@/composables/useCategoryActions';
+import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCategoryActions } from '@/composables/useCategoryActions';
 import { useResourceFilters } from '@/composables/useResourceFilters';
 import * as categoriesRoutes from '@/routes/admin/categories/index';
-import draggable from 'vuedraggable';
 
 type CategoryData = Modules.Catalog.Data.CategoryData;
 
 const props = defineProps<{
-    categories: {
+    categories?: {
         data: CategoryData[];
         links: any[];
         current_page: number;
@@ -60,7 +61,6 @@ const {
 } = useCategoryActions(localCategories);
 
 // Provide actions to recursive tree nodes to avoid event bubbling overhead
-import { provide } from 'vue';
 provide('categoryActions', {
     toggleSelect: toggleItem,
     toggleActive,
@@ -101,6 +101,8 @@ const exportColumns = [
         :can-delete="can('delete_categories')"
         :can-restore="can('restore_categories')"
         :can-force-delete="can('force_delete_categories')"
+        :can-activate="can('update_categories')"
+        :can-deactivate="can('update_categories')"
         v-model:search-query="searchQuery"
         v-model:show-trashed="showTrashed"
         search-placeholder="Search by category name..."
@@ -108,12 +110,14 @@ const exportColumns = [
         :pagination-total="categories?.total"
         :pagination-count="categories?.data?.length"
         resource-name="categories"
-        :confirm-state="confirmState"
+        v-model:confirm-state="confirmState"
         @search="applyFilters"
         @clear-filters="clearFilters"
         @bulk-delete="bulkAction('delete')"
         @bulk-restore="bulkAction('restore')"
         @bulk-force-delete="bulkAction('forceDelete')"
+        @bulk-activate="bulkAction('activate')"
+        @bulk-deactivate="bulkAction('deactivate')"
     >
         <template #header-actions>
             <Button
@@ -142,48 +146,55 @@ const exportColumns = [
             </Button>
         </template>
 
-        <div class="rounded-md border-sidebar-border overflow-x-auto">
-            <!-- Table Header -->
-            <div class="grid grid-cols-[48px_1fr_80px] sm:grid-cols-[48px_1fr_100px_200px] md:grid-cols-[48px_1fr_100px_120px_200px] lg:grid-cols-[48px_1fr_100px_120px_120px_200px] border-b border-sidebar-border bg-sidebar text-[10px] sm:text-xs text-muted-foreground uppercase font-medium">
-                <div class="px-4 sm:px-6 py-3 flex items-center">
-                    <Checkbox
-                        :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
-                        @update:model-value="toggleAll"
-                    />
+        <Deferred data="categories">
+            <template #fallback>
+                <div class="space-y-4 p-6">
+                    <Skeleton class="h-10 w-full" v-for="i in 8" :key="i" />
                 </div>
-                <div class="px-4 sm:px-6 py-3 flex items-center">{{ $t('Category Name & Slug') }}</div>
-                <div class="hidden sm:flex px-4 sm:px-6 py-3 items-center">{{ $t('Status') }}</div>
-                <div class="hidden md:flex px-4 sm:px-6 py-3 items-center">{{ $t('Subcategories') }}</div>
-                <div class="hidden lg:flex px-4 sm:px-6 py-3 items-center">{{ $t('Product Count') }}</div>
-                <div class="px-4 sm:px-6 py-3 flex items-center justify-end">{{ $t('Actions') }}</div>
-            </div>
-
-            <!-- Draggable Tree Body -->
-            <div class="divide-y divide-sidebar-border">
-                <draggable
-                    v-model="localCategories"
-                    item-key="id"
-                    handle=".cursor-grab"
-                    @end="reorder(localCategories)"
-                    :animation="200"
-                    ghost-class="opacity-50"
-                    :disabled="!!searchQuery || showTrashed"
-                >
-                    <template #item="{ element }">
-                        <CategoryTreeNode
-                            :category="element"
-                            :depth="0"
-                            :selected-ids="selectedIds"
-                            :is-draggable-disabled="!!searchQuery || showTrashed"
+            </template>
+            <div class="rounded-md border-sidebar-border overflow-x-auto">
+                <!-- Table Header -->
+                <div class="grid grid-cols-[48px_1fr_80px] sm:grid-cols-[48px_1fr_100px_200px] md:grid-cols-[48px_1fr_100px_120px_200px] lg:grid-cols-[48px_1fr_100px_120px_120px_200px] border-b border-sidebar-border bg-sidebar text-[10px] sm:text-xs text-muted-foreground uppercase font-medium">
+                    <div class="px-4 sm:px-6 py-3 flex items-center">
+                        <Checkbox
+                            :model-value="isIndeterminate ? 'indeterminate' : isAllSelected"
+                            @update:model-value="toggleAll"
                         />
-                    </template>
-                </draggable>
+                    </div>
+                    <div class="px-4 sm:px-6 py-3 flex items-center">{{ $t('Category Name & Slug') }}</div>
+                    <div class="hidden sm:flex px-4 sm:px-6 py-3 items-center">{{ $t('Status') }}</div>
+                    <div class="hidden md:flex px-4 sm:px-6 py-3 items-center">{{ $t('Subcategories') }}</div>
+                    <div class="hidden lg:flex px-4 sm:px-6 py-3 items-center">{{ $t('Product Count') }}</div>
+                    <div class="px-4 sm:px-6 py-3 flex items-center justify-end">{{ $t('Actions') }}</div>
+                </div>
 
-                <div v-if="(categories?.data?.length ?? 0) === 0" class="px-6 py-8 text-center text-muted-foreground">
-                    {{ $t('No categories found.') }}
+                <!-- Draggable Tree Body -->
+                <div class="divide-y divide-sidebar-border">
+                    <draggable
+                        v-model="localCategories"
+                        item-key="id"
+                        handle=".cursor-grab"
+                        @end="reorder(localCategories)"
+                        :animation="200"
+                        ghost-class="opacity-50"
+                        :disabled="!!searchQuery || showTrashed"
+                    >
+                        <template #item="{ element }">
+                            <CategoryTreeNode
+                                :category="element"
+                                :depth="0"
+                                :selected-ids="selectedIds"
+                                :is-draggable-disabled="!!searchQuery || showTrashed"
+                            />
+                        </template>
+                    </draggable>
+
+                    <div v-if="(categories?.data?.length ?? 0) === 0" class="px-6 py-8 text-center text-muted-foreground">
+                        {{ $t('No categories found.') }}
+                    </div>
                 </div>
             </div>
-        </div>
+        </Deferred>
     </ResourceIndexLayout>
 
     <ResourceExportModal

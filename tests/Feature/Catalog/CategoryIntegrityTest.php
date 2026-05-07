@@ -1,13 +1,13 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Modules\Catalog\Data\CategoryData;
 use Modules\Catalog\Services\CategoryService;
 use Modules\Identity\Enums\PermissionName;
-use Spatie\Permission\Models\Permission;
 
 uses(RefreshDatabase::class);
 

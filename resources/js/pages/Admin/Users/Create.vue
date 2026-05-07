@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import * as usersRoutes from '@/routes/admin/users/index';
 import UserForm from '@/components/forms/UserForm.vue';
 import { Button } from '@/components/ui/button';
 import { useUsers } from '@/composables/useUsers';
+import * as usersRoutes from '@/routes/admin/users/index';
 
 defineOptions({
     layout: {
@@ -32,7 +32,7 @@ const handleSubmit = () => submit();
 <template>
     <Head :title="$t('Create User')" />
 
-    <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-4 overflow-x-auto p-4">
+    <div class="max-w-6xl mx-auto p-6 space-y-6">
         <UserForm
             :form="form"
             :available_roles="available_roles"

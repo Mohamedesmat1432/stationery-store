@@ -15,8 +15,10 @@ use App\Listeners\SendOrderConfirmation;
 use App\Listeners\SendShippingUpdate;
 use App\Listeners\UpdateCustomerStatsOnOrderDelivered;
 use App\Listeners\UpdateStockOnOrder;
+use App\Models\Currency;
 use App\Models\Order;
 use App\Models\Stock;
+use App\Observers\CurrencyObserver;
 use App\Observers\OrderObserver;
 use App\Observers\StockObserver;
 use Carbon\CarbonImmutable;
@@ -73,6 +75,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function registerObservers(): void
     {
+        Currency::observe(CurrencyObserver::class);
         Order::observe(OrderObserver::class);
         Stock::observe(StockObserver::class);
     }

@@ -16,9 +16,14 @@ class SyncCRMCache
      */
     public function handle(ResourceChanged $event): void
     {
-        if (in_array($event->modelClass, [Customer::class, CustomerGroup::class])) {
+        if ($event->modelClass === Customer::class) {
             CRMCacheService::flushCustomerCaches();
+        }
+
+        if ($event->modelClass === CustomerGroup::class) {
             CRMCacheService::flushCustomerGroupCaches();
+            // Customer lists may display group info
+            CRMCacheService::flushCustomerCaches();
         }
     }
 }

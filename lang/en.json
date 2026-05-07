@@ -440,6 +440,7 @@
     "Select Brand": "Select Brand",
     "Generic / No Brand": "Generic / No Brand",
     "e.g. Parker": "e.g. Parker",
+    "e.g. parker": "e.g. parker",
     "Save Brand": "Save Brand",
     "Create Product": "Create Product",
     "Edit Product": "Edit Product",
@@ -464,6 +465,7 @@
     "Primary Category": "Primary Category",
     "Select Category": "Select Category",
     "e.g. Parker Jotter Special Edition": "e.g. Parker Jotter Special Edition",
+    "e.g. parker-jotter-special": "e.g. parker-jotter-special",
     "PK-JOTTER-BLUE": "PK-JOTTER-BLUE",
     "Save Product": "Save Product",
     "PNG, JPG or SVG": "PNG, JPG or SVG",
@@ -498,5 +500,11 @@
     "Choose the columns you want to include in your brand export.": "Choose the columns you want to include in your brand export.",
     "Select an Excel or CSV file to import brands. The file should match the exported format.": "Select an Excel or CSV file to import brands. The file should match the exported format.",
     "Export Brands": "Export Brands",
-    "Import Brands": "Import Brands"
+    "Import Brands": "Import Brands",
+    "Create New Product": "Create New Product",
+    "Create New Brand": "Create New Brand",
+    "All Brands": "All Brands",
+    "All Categories": "All Categories",
+    "All Status": "All Status",
+    "Filter by Status": "Filter by Status"
 }

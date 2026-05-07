@@ -36,7 +36,7 @@ class CustomerController extends Controller
         Gate::authorize('viewAny', Customer::class);
 
         return Inertia::render('Admin/Customers/Index', [
-            'customers' => $this->customerService->getCustomersPaginated($request->all()),
+            'customers' => Inertia::defer(fn () => $this->customerService->getCustomersPaginated($request->all())),
             'filters' => $request->only(['filter']),
             'available_groups' => Inertia::defer(fn () => $this->customerGroupService->getAllActive()),
         ]);
@@ -146,11 +146,11 @@ class CustomerController extends Controller
     /**
      * Export customers.
      */
-    public function export(ExportCustomersData $data): BinaryFileResponse
+    public function export(Request $request, ExportCustomersData $data): BinaryFileResponse
     {
         Gate::authorize('export', Customer::class);
 
-        return $this->customerService->exportCustomers($data->columns, $data->format);
+        return $this->customerService->exportCustomers($data->columns, $data->format, $request->all());
     }
 
     /**

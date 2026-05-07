@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft, Save } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-vue-next';
 import BrandForm from '@/components/Admin/Catalog/BrandForm.vue';
+import { Button } from '@/components/ui/button';
 import { useBrands } from '@/composables/useBrands';
 import * as brandRoutes from '@/routes/admin/brands/index';
 
@@ -39,7 +39,7 @@ const handleSubmit = () => submit();
         </div>
 
         <BrandForm 
-            :form="form"
+            v-model:form="form"
             :brand="brand"
             :is-edit="true"
             :brand-name="brand.name"

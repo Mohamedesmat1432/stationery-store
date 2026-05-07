@@ -25,4 +25,5 @@ Route::get('users/export', [UserController::class, 'export'])->name('users.expor
 Route::post('users/import', [UserController::class, 'import'])->name('users.import');
 Route::post('users/{user}/restore', [UserController::class, 'restore'])->name('users.restore')->withTrashed();
 Route::delete('users/{user}/force-delete', [UserController::class, 'forceDelete'])->name('users.force-delete')->withTrashed();
+Route::patch('users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
 Route::resource('users', UserController::class);

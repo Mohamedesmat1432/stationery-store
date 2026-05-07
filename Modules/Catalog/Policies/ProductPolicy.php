@@ -68,6 +68,22 @@ class ProductPolicy
     }
 
     /**
+     * Determine whether the user can export products.
+     */
+    public function export(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::EXPORT_PRODUCTS->value);
+    }
+
+    /**
+     * Determine whether the user can import products.
+     */
+    public function import(User $user): bool
+    {
+        return $user->hasPermissionTo(PermissionName::IMPORT_PRODUCTS->value);
+    }
+
+    /**
      * Determine whether the user can perform bulk actions.
      */
     public function bulkAction(User $user): bool

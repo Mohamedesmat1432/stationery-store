@@ -1,26 +1,32 @@
 <?php
 
 use App\Models\Customer;
+use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->admin = User::factory()->create();
-    $this->admin->givePermissionTo([
+    $this->withoutMiddleware();
+
+    $permissions = [
         'view_customers',
         'delete_customers',
         'restore_customers',
         'force_delete_customers',
-    ]);
+    ];
+
+    foreach ($permissions as $permission) {
+        Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+    }
 });
 
 it('bulk deletes customers', function () {
     $customers = Customer::factory()->count(3)->create();
     $ids = $customers->pluck('id')->toArray();
 
-    $this->actingAs($this->admin)
+    actingAsAdmin(['delete_customers'])
         ->post(route('admin.customers.bulk-action'), [
             'ids' => $ids,
             'action' => 'delete',
@@ -30,14 +36,14 @@ it('bulk deletes customers', function () {
     foreach ($ids as $id) {
         $this->assertSoftDeleted('customers', ['id' => $id]);
     }
-})->skip(fn () => ! extension_loaded('pdo_sqlite'), 'SQLite not available in this environment');
+});
 
 it('bulk restores trashed customers', function () {
     $customers = Customer::factory()->count(2)->create();
     $ids = $customers->pluck('id')->toArray();
     Customer::whereIn('id', $ids)->delete();
 
-    $this->actingAs($this->admin)
+    actingAsAdmin(['restore_customers'])
         ->post(route('admin.customers.bulk-action'), [
             'ids' => $ids,
             'action' => 'restore',
@@ -47,14 +53,14 @@ it('bulk restores trashed customers', function () {
     foreach ($ids as $id) {
         $this->assertDatabaseHas('customers', ['id' => $id, 'deleted_at' => null]);
     }
-})->skip(fn () => ! extension_loaded('pdo_sqlite'), 'SQLite not available in this environment');
+});
 
 it('bulk force deletes trashed customers', function () {
     $customers = Customer::factory()->count(2)->create();
     $ids = $customers->pluck('id')->toArray();
     Customer::whereIn('id', $ids)->delete();
 
-    $this->actingAs($this->admin)
+    actingAsAdmin(['force_delete_customers'])
         ->post(route('admin.customers.bulk-action'), [
             'ids' => $ids,
             'action' => 'forceDelete',
@@ -64,7 +70,7 @@ it('bulk force deletes trashed customers', function () {
     foreach ($ids as $id) {
         $this->assertDatabaseMissing('customers', ['id' => $id]);
     }
-})->skip(fn () => ! extension_loaded('pdo_sqlite'), 'SQLite not available in this environment');
+});
 
 it('denies bulk delete without permission', function () {
     $noPermUser = User::factory()->create();
@@ -76,4 +82,4 @@ it('denies bulk delete without permission', function () {
             'action' => 'delete',
         ])
         ->assertForbidden();
-})->skip(fn () => ! extension_loaded('pdo_sqlite'), 'SQLite not available in this environment');
+});

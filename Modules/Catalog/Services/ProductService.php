@@ -2,10 +2,12 @@
 
 namespace Modules\Catalog\Services;
 
+use App\Models\Currency;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Catalog\Data\ProductData;
 use Modules\Catalog\Exports\ProductsExport;
@@ -53,33 +55,47 @@ class ProductService
 
     public function createProduct(ProductData $data): Product
     {
-        $product = $this->productRepository->create($data->except('price', 'compare_at_price', 'cost_price', 'featured_image')->toArray());
+        try {
+            return DB::transaction(function () use ($data) {
+                $product = $this->productRepository->create($data->except('price', 'compare_at_price', 'cost_price', 'featured_image')->toArray());
 
-        $this->syncPrice($product, $data);
-        $this->handleMedia($product, $data);
+                $this->syncPrice($product, $data);
+                $this->handleMedia($product, $data);
 
-        ResourceChanged::dispatch(Product::class, 'created', [$product->id]);
+                ResourceChanged::dispatch(Product::class, 'created', [$product->id]);
 
-        return $product;
+                return $product;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create product', ['name' => $data->name, 'sku' => $data->sku], $e);
+            throw $e;
+        }
     }
 
     public function updateProduct(Product $product, ProductData $data): Product
     {
-        $product = $this->productRepository->update($product, $data->except('price', 'compare_at_price', 'cost_price', 'featured_image')->toArray());
+        try {
+            return DB::transaction(function () use ($product, $data) {
+                $product = $this->productRepository->update($product, $data->except('price', 'compare_at_price', 'cost_price', 'featured_image')->toArray());
 
-        $this->syncPrice($product, $data);
-        $this->handleMedia($product, $data);
+                $this->syncPrice($product, $data);
+                $this->handleMedia($product, $data);
 
-        ResourceChanged::dispatch(Product::class, 'updated', [$product->id]);
+                ResourceChanged::dispatch(Product::class, 'updated', [$product->id]);
 
-        return $product;
+                return $product;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update product', ['id' => $product->id, 'sku' => $product->sku], $e);
+            throw $e;
+        }
     }
 
     protected function syncPrice(Product $product, ProductData $data): void
     {
         $product->prices()->updateOrCreate(
             [
-                'currency_id' => config('app.currency_id'),
+                'currency_id' => Currency::defaultId(),
                 'type' => 'base',
             ],
             [
@@ -121,9 +137,9 @@ class ProductService
     /**
      * Export products.
      */
-    public function exportProducts(array $columns, string $format): BinaryFileResponse
+    public function exportProducts(array $columns, string $format, array $params = []): BinaryFileResponse
     {
-        $query = Product::query()->with(['category', 'brand', 'prices']);
+        $query = $this->productRepository->buildExportQuery($params);
         $filename = 'products_'.now()->format('Y-m-d_H-i-s').'.'.$format;
 
         return Excel::download(
@@ -140,5 +156,19 @@ class ProductService
         Product::withoutEvents(fn () => Excel::import(new ProductsImport, $file));
 
         ResourceChanged::dispatch($this->getModelClass(), 'imported');
+    }
+
+    /**
+     * Toggle the active status of a product.
+     */
+    public function toggleActive(Product $product): bool
+    {
+        $result = $this->productRepository->toggleActive($product);
+
+        if ($result) {
+            ResourceChanged::dispatch(Product::class, 'updated', [$product->id]);
+        }
+
+        return $result;
     }
 }

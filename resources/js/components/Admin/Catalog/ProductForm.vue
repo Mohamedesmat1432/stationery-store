@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import { Save, Image as ImageIcon, X, Package, Tag, DollarSign } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { Save, ChevronLeft, Image as ImageIcon, X, Package, Tag, Layers, Star, DollarSign, Barcode } from 'lucide-vue-next';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import InputError from '@/components/InputError.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useAutoSlug } from '@/composables/useAutoSlug';
 import * as productRoutes from '@/routes/admin/products/index';
 
@@ -16,38 +17,39 @@ type ProductData = Modules.Catalog.Data.ProductData;
 type CategoryData = Modules.Catalog.Data.CategoryData;
 type BrandData = { id: string, name: string };
 
-const props = withDefaults(
-    defineProps<{
-        form: any;
-        product?: ProductData;
-        categories?: CategoryData[];
-        brands?: BrandData[];
-        isEdit?: boolean;
-        productName?: string;
-    }>(),
-    {
-        categories: () => [],
-        brands: () => [],
-    }
-);
+const form = defineModel<any>('form', { required: true });
+const {
+    product,
+    categories = [],
+    brands = [],
+    isEdit,
+    productName,
+} = defineProps<{
+    product?: ProductData;
+    categories?: CategoryData[];
+    brands?: BrandData[];
+    isEdit?: boolean;
+    productName?: string;
+}>();
 
-const emit = defineEmits(['submit']);
+defineEmits(['submit']);
 
-const { autoSlug } = useAutoSlug(props.form, 'name', 'slug', props.isEdit);
+const { autoSlug } = useAutoSlug(form.value, 'name', 'slug', isEdit);
 
-const imagePreview = ref(props.product?.featured_image || null);
+const imagePreview = ref(product?.featured_image || null);
 const imageInput = ref<HTMLInputElement | null>(null);
 
 const handleImageUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
+
     if (file) {
-        props.form.featured_image = file;
+        form.value.featured_image = file;
         imagePreview.value = URL.createObjectURL(file);
     }
 };
 
 const removeImage = () => {
-    props.form.featured_image = null;
+    form.value.featured_image = null;
     imagePreview.value = null;
 };
 
@@ -56,7 +58,9 @@ const flattenedCategories = computed(() => {
     const list: { id: string; name: string; depth: number }[] = [];
     
     const flatten = (items: CategoryData[], depth = 0) => {
-        if (!items) return;
+        if (!items) {
+return;
+}
         
         items.forEach(item => {
             list.push({ 
@@ -71,7 +75,8 @@ const flattenedCategories = computed(() => {
         });
     };
     
-    flatten(props.categories);
+    flatten(categories);
+
     return list;
 });
 </script>
@@ -134,7 +139,7 @@ const flattenedCategories = computed(() => {
                         <Input 
                             id="slug" 
                             v-model="form.slug" 
-                            :placeholder="$t('parker-jotter-special')"
+                            :placeholder="$t('e.g. parker-jotter-special')"
                             required 
                         />
                         <InputError :message="form.errors.slug" />
@@ -217,12 +222,12 @@ const flattenedCategories = computed(() => {
                 <CardContent class="space-y-6">
                     <div class="space-y-2">
                         <Label for="category_id">{{ $t('Primary Category') }}</Label>
-                        <Select v-model="form.category_id">
+                        <Select :model-value="form.category_id || 'none'" @update:model-value="v => form.category_id = (v === 'none' ? null : v)">
                             <SelectTrigger>
                                 <SelectValue :placeholder="$t('Select Category')" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{{ $t('Uncategorized') }}</SelectItem>
+                                <SelectItem value="none">{{ $t('Uncategorized') }}</SelectItem>
                                 <SelectItem 
                                     v-for="cat in flattenedCategories" 
                                     :key="cat.id" 
@@ -237,14 +242,14 @@ const flattenedCategories = computed(() => {
 
                     <div class="space-y-2">
                         <Label for="brand_id">{{ $t('Brand') }}</Label>
-                        <Select v-model="form.brand_id">
+                        <Select :model-value="form.brand_id || 'none'" @update:model-value="v => form.brand_id = (v === 'none' ? null : v)">
                             <SelectTrigger>
                                 <SelectValue :placeholder="$t('Select Brand')" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{{ $t('Generic / No Brand') }}</SelectItem>
+                                <SelectItem value="none">{{ $t('Generic / No Brand') }}</SelectItem>
                                 <SelectItem 
-                                    v-for="brand in brands" 
+                                    v-for="brand in brands || []" 
                                     :key="brand.id" 
                                     :value="brand.id"
                                 >
@@ -281,7 +286,7 @@ const flattenedCategories = computed(() => {
                 </CardHeader>
                 <CardContent>
                     <div 
-                        class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-[200px] group"
+                        class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-50 group"
                         @click="imageInput?.click()"
                     >
                         <input 

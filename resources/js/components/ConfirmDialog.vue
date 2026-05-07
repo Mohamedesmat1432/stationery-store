@@ -81,24 +81,6 @@ const handleCancel = () => {
     emit('cancel');
 };
 
-/**
- * Helper to translate string values within parameters
- */
-const translateParams = (params: any) => {
-    if (!params) {
-        return {};
-    }
-
-    const translated = { ...params };
-    Object.keys(translated).forEach((key) => {
-        if (typeof translated[key] === 'string') {
-            // We use the $t from the template scope which is available globally
-            // or we can use useI18n() if we want to be more explicit.
-        }
-    });
-
-    return translated;
-};
 </script>
 
 <template>
@@ -107,7 +89,7 @@ const translateParams = (params: any) => {
         @update:open="(val) => emit('update:open', val)"
         :dir="page.props.locale === 'ar' ? 'rtl' : 'ltr'"
     >
-        <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-[425px]">
+        <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-106.25">
             <div class="p-6">
                 <div class="flex items-start gap-4">
                     <div :class="['shrink-0 rounded-full p-2', iconClass]">

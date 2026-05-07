@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ACCENT_COLORS, useAppearance } from '@/composables/useAppearance';
 import { Check } from 'lucide-vue-next';
+import { ACCENT_COLORS, useAppearance } from '@/composables/useAppearance';
 
 const { resolvedAppearance, accentColor, updateAccentColor } = useAppearance();
 

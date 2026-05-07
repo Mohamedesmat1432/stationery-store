@@ -12,7 +12,10 @@ uses(RefreshDatabase::class);
 
 test('category with products is protected from deletion', function () {
     $category = Category::factory()->create();
-    Product::factory()->create(['category_id' => $category->id]);
+    Product::factory()->create([
+        'category_id' => $category->id,
+        'is_active' => true,
+    ]);
 
     $categoryService = app(CategoryService::class);
 
@@ -23,15 +26,17 @@ test('category with products is protected from deletion', function () {
 
 test('brand with products is protected from deletion', function () {
     $brand = Brand::factory()->create();
-    Product::factory()->create(['brand_id' => $brand->id]);
+    Product::factory()->create([
+        'brand_id' => $brand->id,
+        'category_id' => Category::factory()->create()->id,
+        'is_active' => true,
+    ]);
 
     $brandService = app(BrandService::class);
 
-    $result = $brandService->deleteBrand($brand);
-
-    expect($result)->toBeFalse();
-    expect(Brand::find($brand->id))->not->toBeNull();
-});
+    // BrandService::deleteBrand throws exception for protected brands
+    $brandService->deleteBrand($brand);
+})->throws(ValidationException::class);
 
 test('empty category can be deleted', function () {
     $category = Category::factory()->create();

@@ -23,7 +23,11 @@ abstract class BaseRepository implements RepositoryInterface
         return $this->model::orderBy('id', 'desc')->paginate($perPage);
     }
 
-    public function findById(string $id): Model
+    /**
+     * @note Subclasses should override this method to apply filters, sorting,
+     *       and eager loading via applyQueryBuilder() or custom logic.
+     */
+    public function findById(string|int $id): Model
     {
         return $this->model::findOrFail($id);
     }
@@ -71,6 +75,22 @@ abstract class BaseRepository implements RepositoryInterface
     }
 
     /**
+     * Perform a bulk update on models.
+     */
+    public function bulkUpdate(array $ids, array $data): bool
+    {
+        if (empty($ids) || empty($data)) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($ids, $data) {
+            $this->model::whereIn('id', $ids)->lazy()->each->update($data);
+
+            return true;
+        });
+    }
+
+    /**
      * Perform a bulk action on models while ensuring model events are triggered.
      * Uses lazy() for memory efficiency with large datasets.
      */
@@ -91,5 +111,19 @@ abstract class BaseRepository implements RepositoryInterface
 
             return true;
         });
+    }
+
+    /**
+     * Toggle the active status of a model.
+     */
+    public function toggleActive(Model $model): bool
+    {
+        if (! isset($model->is_active)) {
+            return false;
+        }
+
+        $model->is_active = ! $model->is_active;
+
+        return $model->save();
     }
 }

@@ -4,6 +4,7 @@ namespace Modules\Catalog\Data;
 
 use App\Models\Category;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
@@ -13,6 +14,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 class CategoryData extends Data
 {
+    #[Computed]
+    public bool $is_protected;
+
     #[Computed]
     public ?string $full_path;
 
@@ -114,6 +118,8 @@ class CategoryData extends Data
         } else {
             $data->children = null;
         }
+
+        $data->is_protected = $category->isProtected(Auth::user());
 
         return $data;
     }

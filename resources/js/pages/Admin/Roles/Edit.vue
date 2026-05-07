@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { ShieldCheck, Save, ArrowLeft, Trash2 } from 'lucide-vue-next';
+import { Save, ArrowLeft, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import RoleForm from '@/components/forms/RoleForm.vue';
@@ -74,7 +74,7 @@ const handleDeleteConfirm = () => {
         class="mx-auto flex h-full w-full max-w-5xl flex-1 flex-col gap-4 overflow-x-auto p-4"
     >
         <RoleForm
-            :form="form"
+            v-model:form="form"
             :available_permissions="available_permissions"
             is-edit
             :role-name="role.name"

@@ -81,7 +81,7 @@ class User extends Authenticatable implements HasMedia
         ];
     }
 
-    // Removed booted() method, logic moved to UserObserver for better separation of concerns.
+    // Access control logic is primarily handled via Policies and Gate::before in IdentityServiceProvider.
 
     public function getActivitylogOptions(): LogOptions
     {

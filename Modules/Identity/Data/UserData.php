@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Modules\Identity\Services\IdentityCacheService;
 use Spatie\LaravelData\Attributes\Computed;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
@@ -33,22 +34,27 @@ class UserData extends Data
         /** @var array<string> */
         public array $roles,
 
-        #[Computed]
+        /** @var string|null */
         public ?string $deleted_at = null,
+
+        /** @var bool */
+        public bool $is_active = true,
     ) {}
 
-    /**
-     * Create a DTO instance from a User model.
-     */
     public static function fromUser(User $user): self
     {
+        $roles = $user->relationLoaded('roles')
+            ? $user->roles->pluck('name')->toArray()
+            : IdentityCacheService::getUserRoles($user->id);
+
         $data = new self(
             id: $user->id,
             name: $user->name,
             email: $user->email,
             password: null, // Do not expose password
-            roles: $user->roles->pluck('name')->toArray(),
+            roles: $roles,
             deleted_at: $user->deleted_at?->toIso8601String(),
+            is_active: $user->is_active,
         );
 
         $data->is_protected = $user->isProtected(Auth::user());

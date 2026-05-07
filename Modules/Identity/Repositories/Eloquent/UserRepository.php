@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Modules\Identity\Repositories\Contracts\UserRepositoryInterface;
@@ -38,12 +39,13 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
                 AllowedFilter::callback('role', function ($query, $value) {
                     $query->role($value);
                 }),
+                AllowedFilter::exact('email'),
                 AllowedFilter::trashed('trash'),
             ],
             allowedIncludes: ['roles', 'customer'],
             allowedSorts: ['name', 'email', 'created_at'],
             perPage: $perPage,
-            with: ['roles', 'permissions'],
+            with: ['roles'],
             params: $params
         );
     }
@@ -51,7 +53,7 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
     /**
      * Find a user by ID with roles.
      */
-    public function findById(string $id): User
+    public function findById(string|int $id): User
     {
         return User::with('roles')->findOrFail($id);
     }
@@ -67,9 +69,21 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
     /**
      * Get the query for exporting users.
      */
-    public function getExportQuery(): Builder
+    public function buildExportQuery(array $params = []): Builder
     {
-        return User::query()->with('roles');
+        return $this->buildQueryBuilder(
+            model: User::class,
+            allowedFilters: [
+                AllowedFilter::scope('search'),
+                AllowedFilter::callback('role', function ($query, $value) {
+                    $query->role($value);
+                }),
+                AllowedFilter::exact('email'),
+                AllowedFilter::trashed('trash'),
+            ],
+            with: ['roles'],
+            params: $params
+        )->getEloquentBuilder();
     }
 
     /**
@@ -134,5 +148,16 @@ class UserRepository extends BaseRepository implements ProtectsBulkResources, Us
             ->filter(fn (User $user) => $user->isProtected($currentUser))
             ->pluck('id')
             ->toArray();
+    }
+
+    /**
+     * Toggle the active status of a user.
+     */
+    public function toggleActive(Model $model): bool
+    {
+        /** @var User $model */
+        $model->is_active = ! $model->is_active;
+
+        return $model->save();
     }
 }

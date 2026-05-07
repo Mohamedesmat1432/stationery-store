@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Imports;
 
+use App\Models\Currency;
 use App\Models\Product;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,7 @@ class ProductsImport implements SkipsOnError, SkipsOnFailure, ToCollection, With
                 if (isset($row['price'])) {
                     $product->prices()->create([
                         'amount' => $row['price'],
-                        'currency_id' => config('app.currency_id'),
+                        'currency_id' => Currency::defaultId(),
                         'type' => 'base',
                     ]);
                 }

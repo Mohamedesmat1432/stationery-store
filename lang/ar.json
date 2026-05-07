@@ -440,6 +440,7 @@
     "Select Brand": "اختر العلامة التجارية",
     "Generic / No Brand": "عام / بدون علامة تجارية",
     "e.g. Parker": "مثلاً: باركر",
+    "e.g. parker": "مثلاً: parker",
     "Save Brand": "حفظ العلامة التجارية",
     "Create Product": "إنشاء منتج",
     "Edit Product": "تعديل المنتج",
@@ -464,6 +465,7 @@
     "Primary Category": "التصنيف الأساسي",
     "Select Category": "اختر التصنيف",
     "e.g. Parker Jotter Special Edition": "مثلاً: باركر جوتر الإصدار الخاص",
+    "e.g. parker-jotter-special": "مثلاً: parker-jotter-special",
     "PK-JOTTER-BLUE": "PK-JOTTER-BLUE",
     "Save Product": "حفظ المنتج",
     "PNG, JPG or SVG": "PNG أو JPG أو SVG",
@@ -499,5 +501,11 @@
     "Choose the columns you want to include in your brand export.": "اختر الأعمدة التي تريد تضمينها في تصدير العلامات التجارية.",
     "Select an Excel or CSV file to import brands. The file should match the exported format.": "اختر ملف Excel أو CSV لاستيراد العلامات التجارية. يجب أن يتطابق الملف مع تنسيق التصدير.",
     "Export Brands": "تصدير العلامات التجارية",
-    "Import Brands": "استيراد العلامات التجارية"
+    "Import Brands": "استيراد العلامات التجارية",
+    "Create New Brand": "إنشاء علامة تجارية جديدة",
+    "Create New Product": "إنشاء منتج جديد",
+    "All Brands": "جميع العلامات التجارية",
+    "All Categories": "جميع التصنيفات",
+    "All Status": "جميع الحالات",
+    "Filter by Status": "التصفية حسب الحالة"
 }

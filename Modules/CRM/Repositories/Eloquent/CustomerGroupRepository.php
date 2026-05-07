@@ -6,6 +6,7 @@ use App\Models\CustomerGroup;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Modules\CRM\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
 use Modules\Shared\Repositories\Contracts\ProtectsBulkResources;
@@ -58,15 +59,24 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
     /**
      * Get the query for exporting customer groups.
      */
-    public function getExportQuery(): Builder
+    public function buildExportQuery(array $params = []): Builder
     {
-        return CustomerGroup::query();
+        return $this->buildQueryBuilder(
+            model: CustomerGroup::class,
+            allowedFilters: [
+                AllowedFilter::scope('search'),
+                AllowedFilter::exact('is_active'),
+                AllowedFilter::trashed('trash'),
+            ],
+            withCount: ['customers'],
+            params: $params
+        )->getEloquentBuilder();
     }
 
     /**
      * Find a customer group by ID.
      */
-    public function findById(string $id): CustomerGroup
+    public function findById(string|int $id): CustomerGroup
     {
         return CustomerGroup::withCount('customers')->findOrFail($id);
     }
@@ -76,10 +86,12 @@ class CustomerGroupRepository extends BaseRepository implements CustomerGroupRep
      */
     public function getProtectedIds(array $ids): array
     {
+        $user = Auth::user();
+
         return CustomerGroup::withTrashed()
             ->whereIn('id', $ids)
             ->cursor()
-            ->filter(fn (CustomerGroup $group) => $group->isProtected())
+            ->filter(fn (CustomerGroup $group) => $group->isProtected($user))
             ->pluck('id')
             ->toArray();
     }

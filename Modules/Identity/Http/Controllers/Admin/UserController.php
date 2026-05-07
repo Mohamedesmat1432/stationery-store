@@ -33,7 +33,7 @@ class UserController extends Controller
         Gate::authorize('viewAny', User::class);
 
         return Inertia::render('Admin/Users/Index', [
-            'users' => $this->userService->getUsersPaginated($request->all()),
+            'users' => Inertia::defer(fn () => $this->userService->getUsersPaginated($request->all())),
             'filters' => $request->only(['filter']),
             'available_roles' => Inertia::defer(fn () => IdentityCacheService::getAvailableRoles()),
         ]);
@@ -141,11 +141,11 @@ class UserController extends Controller
     /**
      * Export users to a file.
      */
-    public function export(ExportUsersData $data): BinaryFileResponse
+    public function export(Request $request, ExportUsersData $data): BinaryFileResponse
     {
         Gate::authorize('export', User::class);
 
-        return $this->userService->exportUsers($data->columns, $data->format);
+        return $this->userService->exportUsers($data->columns, $data->format, $request->all());
     }
 
     /**
@@ -158,5 +158,17 @@ class UserController extends Controller
         $this->userService->importUsers($data->file);
 
         return to_route('admin.users.index')->with('success', __('Users imported successfully.'));
+    }
+
+    /**
+     * Toggle the active status of a user.
+     */
+    public function toggleActive(User $user): RedirectResponse
+    {
+        Gate::authorize('update', $user);
+
+        $this->userService->toggleActive($user);
+
+        return back()->with('success', __('User status updated successfully.'));
     }
 }

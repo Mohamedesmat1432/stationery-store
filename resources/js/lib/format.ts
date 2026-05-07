@@ -3,7 +3,10 @@
  * Example: 'user_admin' -> 'User Admin'
  */
 export function formatLabel(str: string): string {
-    if (!str) return '';
+    if (!str) {
+return '';
+}
+
     return str
         .split(/[_-]+/)
         .filter((word) => word.length > 0)

@@ -4,9 +4,9 @@ namespace Modules\Identity\Services;
 
 use App\Models\Role;
 use App\Models\User;
-use Auth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,11 +18,12 @@ use Modules\Shared\Events\ResourceChanged;
 use Modules\Shared\Services\Concerns\HandlesBulkOperations;
 use Modules\Shared\Services\Concerns\HandlesResourceOperations;
 use Modules\Shared\Services\Concerns\ProtectsSystemResources;
+use Modules\Shared\Services\Logging\ModuleLogger;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserService
 {
-    use HandlesBulkOperations, \Modules\Shared\Services\Logging\ModuleLogger, HandlesResourceOperations, ProtectsSystemResources {
+    use HandlesBulkOperations, HandlesResourceOperations, ModuleLogger, ProtectsSystemResources {
         ProtectsSystemResources::filterBulkIds insteadof HandlesBulkOperations;
     }
 
@@ -54,20 +55,25 @@ class UserService
 
     public function createUser(UserData $data): User
     {
-        return DB::transaction(function () use ($data) {
-            /** @var User $user */
-            $user = $this->userRepository->create([
-                'name' => $data->name,
-                'email' => $data->email,
-                'password' => Hash::make($data->password),
-            ]);
+        try {
+            return DB::transaction(function () use ($data) {
+                /** @var User $user */
+                $user = $this->userRepository->create([
+                    'name' => $data->name,
+                    'email' => $data->email,
+                    'password' => Hash::make($data->password),
+                ]);
 
-            $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles));
+                $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles));
 
-            ResourceChanged::dispatch(User::class, 'created', [$user->id]);
+                ResourceChanged::dispatch(User::class, 'created', [$user->id]);
 
-            return $user;
-        });
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create user', ['email' => $data->email], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -75,25 +81,30 @@ class UserService
      */
     public function updateUser(User $user, UserData $data): User
     {
-        return DB::transaction(function () use ($user, $data) {
-            $updateData = [
-                'name' => $data->name,
-                'email' => $data->email,
-            ];
+        try {
+            return DB::transaction(function () use ($user, $data) {
+                $updateData = [
+                    'name' => $data->name,
+                    'email' => $data->email,
+                ];
 
-            if (filled($data->password)) {
-                $updateData['password'] = Hash::make($data->password);
-            }
+                if (filled($data->password)) {
+                    $updateData['password'] = Hash::make($data->password);
+                }
 
-            /** @var User $user */
-            $user = $this->userRepository->update($user, $updateData);
+                /** @var User $user */
+                $user = $this->userRepository->update($user, $updateData);
 
-            $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles, $user));
+                $this->userRepository->syncRoles($user, $this->filterAssignableRoles($data->roles, $user));
 
-            ResourceChanged::dispatch(User::class, 'updated', [$user->id]);
+                ResourceChanged::dispatch(User::class, 'updated', [$user->id]);
 
-            return $user;
-        });
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update user', ['id' => $user->id, 'email' => $user->email], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -153,13 +164,15 @@ class UserService
         return IdentityCacheService::getAvailableForCustomer($includeUserId);
     }
 
-    public function exportUsers(array $columns, string $formatKey): BinaryFileResponse
+    public function exportUsers(array $columns, string $formatKey, array $params = []): BinaryFileResponse
     {
         $format = $formatKey === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX;
         $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
 
+        $query = $this->userRepository->buildExportQuery($params);
+
         return Excel::download(
-            new UsersExport($this->userRepository->getExportQuery(), $columns),
+            new UsersExport($query, $columns),
             'users.'.$extension,
             $format
         );
@@ -170,5 +183,19 @@ class UserService
         User::withoutEvents(fn () => Excel::import(new UsersImport, $file));
 
         ResourceChanged::dispatch(User::class, 'imported');
+    }
+
+    /**
+     * Toggle the active status of a user.
+     */
+    public function toggleActive(User $user): bool
+    {
+        $result = $this->userRepository->toggleActive($user);
+
+        if ($result) {
+            ResourceChanged::dispatch(User::class, 'updated', [$user->id]);
+        }
+
+        return $result;
     }
 }

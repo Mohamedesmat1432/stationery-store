@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Deferred } from '@inertiajs/vue3';
+import { Deferred, Link } from '@inertiajs/vue3';
 import { UserCircle } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import * as customersRoutes from '@/routes/admin/customers/index';
 
 withDefaults(
     defineProps<{
@@ -171,7 +172,12 @@ defineEmits(['submit']);
                     </div>
                 </div>
             </CardContent>
-            <CardFooter class="flex justify-end border-t border-sidebar-border pt-6">
+            <CardFooter class="flex items-center justify-between border-t border-sidebar-border pt-6">
+                <Button variant="ghost" as-child type="button">
+                    <Link :href="customersRoutes.index.url()">
+                        {{ $t('Cancel') }}
+                    </Link>
+                </Button>
                 <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
                     <slot name="submit-icon"></slot>
                     {{ isEdit ? $t('Update Customer') : $t('Save Customer') }}

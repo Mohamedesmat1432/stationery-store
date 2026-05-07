@@ -56,17 +56,22 @@ class CustomerGroupService
         return CRMCacheService::rememberCustomerGroups(
             $params,
             $perPage,
-            fn () => $this->customerGroupRepository->paginate($perPage)
+            fn () => $this->customerGroupRepository->paginate($perPage, $params)
         );
     }
 
     public function createCustomerGroup(CustomerGroupData $data): CustomerGroup
     {
-        $group = $this->customerGroupRepository->create($data->toArray());
+        try {
+            $group = $this->customerGroupRepository->create($data->toArray());
 
-        ResourceChanged::dispatch(CustomerGroup::class, 'created', [$group->id]);
+            ResourceChanged::dispatch(CustomerGroup::class, 'created', [$group->id]);
 
-        return $group;
+            return $group;
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create customer group', ['name' => $data->name], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -74,15 +79,20 @@ class CustomerGroupService
      */
     public function updateCustomerGroup(CustomerGroup $group, CustomerGroupData $data): CustomerGroup
     {
-        $updateData = collect($data->toArray())
-            ->only(['name', 'slug', 'description', 'discount_percentage', 'is_active', 'sort_order'])
-            ->toArray();
+        try {
+            $updateData = collect($data->toArray())
+                ->only(['name', 'slug', 'description', 'discount_percentage', 'is_active', 'sort_order'])
+                ->toArray();
 
-        $group = $this->customerGroupRepository->update($group, $updateData);
+            $group = $this->customerGroupRepository->update($group, $updateData);
 
-        ResourceChanged::dispatch(CustomerGroup::class, 'updated', [$group->id]);
+            ResourceChanged::dispatch(CustomerGroup::class, 'updated', [$group->id]);
 
-        return $group;
+            return $group;
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update customer group', ['id' => $group->id, 'name' => $group->name], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -114,13 +124,15 @@ class CustomerGroupService
         return CRMCacheService::getActiveCustomerGroups();
     }
 
-    public function exportCustomerGroups(array $columns, string $formatKey): BinaryFileResponse
+    public function exportCustomerGroups(array $columns, string $formatKey, array $params = []): BinaryFileResponse
     {
         $format = $formatKey === 'csv' ? Excel::CSV : Excel::XLSX;
         $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
 
+        $query = $this->customerGroupRepository->buildExportQuery($params);
+
         return Excel::download(
-            new CustomerGroupsExport($this->customerGroupRepository->getExportQuery(), $columns),
+            new CustomerGroupsExport($query, $columns),
             'customer-groups.'.$extension,
             $format
         );

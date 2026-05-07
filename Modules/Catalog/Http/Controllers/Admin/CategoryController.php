@@ -32,7 +32,7 @@ class CategoryController extends Controller
         Gate::authorize('viewAny', Category::class);
 
         return Inertia::render('Admin/Catalog/Categories/Index', [
-            'categories' => $this->categoryService->getCategoriesPaginated($request->all(), (int) ($request->input('per_page', 5))),
+            'categories' => Inertia::defer(fn () => $this->categoryService->getCategoriesPaginated($request->all(), (int) ($request->input('per_page', 5)))),
             'filters' => $request->only(['filter']),
         ]);
     }
@@ -103,21 +103,17 @@ class CategoryController extends Controller
     /**
      * Restore a soft-deleted category.
      */
-    public function restore(Category $category): RedirectResponse
+    public function restore($id): RedirectResponse
     {
-        $this->categoryService->restoreCategory($category);
-
-        return back()->with('success', __('Category restored successfully.'));
+        return $this->performRestore($id, Category::class, 'categoryService', 'restoreCategory');
     }
 
     /**
      * Permanently delete a category.
      */
-    public function forceDelete(Category $category): RedirectResponse
+    public function forceDelete($id): RedirectResponse
     {
-        $this->categoryService->forceDeleteCategory($category);
-
-        return to_route('admin.categories.index')->with('success', __('Category permanently deleted.'));
+        return $this->performForceDelete($id, Category::class, 'categoryService', 'forceDeleteCategory');
     }
 
     /**
@@ -159,11 +155,11 @@ class CategoryController extends Controller
     /**
      * Export categories.
      */
-    public function export(ExportCategoriesData $data): BinaryFileResponse
+    public function export(Request $request, ExportCategoriesData $data): BinaryFileResponse
     {
         Gate::authorize('export', Category::class);
 
-        return $this->categoryService->exportCategories($data->columns, $data->format);
+        return $this->categoryService->exportCategories($data->columns, $data->format, $request->all());
     }
 
     /**

@@ -8,7 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class AttributeValue extends BaseModel
 {
-    use HasFactory;
+    use HasFactory, \Modules\Shared\Concerns\HasProtection;
+
+    /**
+     * Determine if the attribute value is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $user = null): bool
+    {
+        // Prevent deletion of values used in variants
+        return $this->variants()->exists();
+    }
 
     protected $fillable = [
         'attribute_id',

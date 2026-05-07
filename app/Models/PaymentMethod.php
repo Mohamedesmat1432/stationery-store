@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\ActiveScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,11 +29,6 @@ class PaymentMethod extends BaseModel
             'is_test_mode' => 'boolean',
             'sort_order' => 'integer',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new ActiveScope);
     }
 
     public function payments(): HasMany

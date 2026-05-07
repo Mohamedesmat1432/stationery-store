@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import draggable from 'vuedraggable';
-import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { 
     ChevronRight, 
@@ -15,8 +13,10 @@ import {
     RotateCcw,
     Trash
 } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
+import { ref, computed, inject } from 'vue';
+import draggable from 'vuedraggable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import * as categoriesRoutes from '@/routes/admin/categories/index';
 import type { Auth } from '@/types';
@@ -26,7 +26,7 @@ const can = (permission: string) => permissions.value.includes(permission);
 
 type CategoryData = Modules.Catalog.Data.CategoryData;
 
-const props = defineProps<{
+defineProps<{
     category: CategoryData;
     depth: number;
     selectedIds: (string | number)[];
@@ -34,7 +34,6 @@ const props = defineProps<{
 }>();
 
 // Inject actions from root to avoid event bubbling through recursive layers
-import { inject } from 'vue';
 const actions = inject<any>('categoryActions');
 
 const isExpanded = ref(true);
@@ -64,7 +63,7 @@ const formatNumber = (value: number) => {
             
             <div class="px-4 sm:px-6 py-4">
                 <div class="flex items-center gap-2" :style="{ marginLeft: `${depth * 1.5}rem` }">
-                    <div class="w-6 flex items-center justify-center flex-shrink-0">
+                    <div class="w-6 flex items-center justify-center shrink-0">
                         <button 
                             v-if="category.children && category.children.length > 0"
                             @click="toggleExpand"
@@ -77,10 +76,10 @@ const formatNumber = (value: number) => {
                     </div>
 
                     <div class="flex items-center gap-3 min-w-0">
-                        <GripVertical v-if="!category.deleted_at" class="w-3.5 h-3.5 text-muted-foreground/20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <GripVertical v-if="!category.deleted_at" class="w-3.5 h-3.5 text-muted-foreground/20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                         
                         <!-- Media Icon -->
-                        <div class="hidden sm:flex w-8 h-8 rounded border border-sidebar-border bg-sidebar/50 items-center justify-center overflow-hidden flex-shrink-0 group-hover:bg-sidebar transition-colors">
+                        <div class="hidden sm:flex w-8 h-8 rounded border border-sidebar-border bg-sidebar/50 items-center justify-center overflow-hidden shrink-0 group-hover:bg-sidebar transition-colors">
                             <img v-if="category.icon" :src="category.icon" class="w-full h-full object-contain p-0.5" />
                             <Tag v-else class="w-3.5 h-3.5 text-muted-foreground/30" />
                         </div>
@@ -90,11 +89,11 @@ const formatNumber = (value: number) => {
                                 <span class="font-medium text-inherit text-sm truncate" :class="{ 'line-through decoration-muted-foreground/50': category.deleted_at }">
                                     {{ category.name }}
                                 </span>
-                                <Badge v-if="category.parent_name && isDraggableDisabled" variant="outline" class="text-[8px] px-1 py-0 h-3.5 flex-shrink-0 bg-sidebar border-sidebar-border">
+                                <Badge v-if="category.parent_name && isDraggableDisabled" variant="outline" class="text-[8px] px-1 py-0 h-3.5 shrink-0 bg-sidebar border-sidebar-border">
                                     in {{ category.parent_name }}
                                 </Badge>
-                                <Star v-if="category.is_featured" class="w-2.5 h-2.5 text-amber-500 fill-amber-500 flex-shrink-0" />
-                                <Badge v-if="category.deleted_at" variant="outline" class="bg-destructive/5 text-destructive border-destructive/20 text-[8px] px-1 py-0 h-3.5 flex-shrink-0">
+                                <Star v-if="category.is_featured" class="w-2.5 h-2.5 text-amber-500 fill-amber-500 shrink-0" />
+                                <Badge v-if="category.deleted_at" variant="outline" class="bg-destructive/5 text-destructive border-destructive/20 text-[8px] px-1 py-0 h-3.5 shrink-0">
                                     Trashed
                                 </Badge>
                             </div>
@@ -163,7 +162,8 @@ const formatNumber = (value: number) => {
                             size="icon" 
                             class="h-7 w-7 sm:h-8 sm:w-8"
                             @click="actions.delete(category.id!)"
-                            title="Delete"
+                            :disabled="category.is_protected"
+                            :title="category.is_protected ? 'Protected (contains products)' : 'Delete'"
                         >
                             <Trash2 class="w-3.5 h-3.5" />
                         </Button>
@@ -199,6 +199,7 @@ const formatNumber = (value: number) => {
 
         <!-- Recursive Children Rows -->
         <div v-if="isExpanded && category.children && category.children.length > 0">
+            <!-- eslint-disable vue/no-mutating-props -->
             <draggable 
                 v-model="category.children" 
                 item-key="id" 

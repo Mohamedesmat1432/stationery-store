@@ -68,13 +68,20 @@ class CategoryService
      */
     public function createCategory(CategoryData $data): Category
     {
-        $category = $this->categoryRepository->create($data->except('icon', 'banner_image')->toArray());
+        try {
+            return DB::transaction(function () use ($data) {
+                $category = $this->categoryRepository->create($data->except('icon', 'banner_image')->toArray());
 
-        $this->handleMedia($category, $data);
+                $this->handleMedia($category, $data);
 
-        ResourceChanged::dispatch($this->getModelClass(), 'created', [$category->id]);
+                ResourceChanged::dispatch($this->getModelClass(), 'created', [$category->id]);
 
-        return $category;
+                return $category;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create category', ['name' => $data->name], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -82,30 +89,37 @@ class CategoryService
      */
     public function updateCategory(Category $category, CategoryData $data): Category
     {
-        // Prevent setting itself or a descendant as parent
-        if ($data->parent_id) {
-            if ($data->parent_id === $category->id) {
-                $data->parent_id = $category->parent_id;
-            } else {
-                $newParent = Category::find($data->parent_id);
-                if ($newParent && $newParent->isDescendantOf($category)) {
-                    throw new ValidationException(
-                        validator(
-                            ['parent_id' => $data->parent_id],
-                            ['parent_id' => [fn ($attr, $val, $fail) => $fail(__('Cannot set a descendant as parent.'))]]
-                        )
-                    );
+        try {
+            // Prevent setting itself or a descendant as parent
+            if ($data->parent_id) {
+                if ($data->parent_id === $category->id) {
+                    $data->parent_id = $category->parent_id;
+                } else {
+                    $newParent = Category::find($data->parent_id);
+                    if ($newParent && $newParent->isDescendantOf($category)) {
+                        throw new ValidationException(
+                            validator(
+                                ['parent_id' => $data->parent_id],
+                                ['parent_id' => [fn ($attr, $val, $fail) => $fail(__('Cannot set a descendant as parent.'))]]
+                            )
+                        );
+                    }
                 }
             }
+
+            return DB::transaction(function () use ($category, $data) {
+                $category = $this->categoryRepository->update($category, $data->except('icon', 'banner_image')->toArray());
+
+                $this->handleMedia($category, $data);
+
+                ResourceChanged::dispatch($this->getModelClass(), 'updated', [$category->id]);
+
+                return $category;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update category', ['id' => $category->id, 'name' => $category->name], $e);
+            throw $e;
         }
-
-        $category = $this->categoryRepository->update($category, $data->except('icon', 'banner_image')->toArray());
-
-        $this->handleMedia($category, $data);
-
-        ResourceChanged::dispatch($this->getModelClass(), 'updated', [$category->id]);
-
-        return $category;
     }
 
     /**
@@ -131,9 +145,9 @@ class CategoryService
         $descendantIds = $category->getDescendantIds();
         $subtreeIds = array_merge([$category->id], $descendantIds);
 
-        // Perform bulk deletion
+        // Perform bulk deletion of subtree
         return DB::transaction(function () use ($subtreeIds) {
-            $result = Category::whereIn('id', $subtreeIds)->lazy()->each->delete();
+            $this->getRepository()->bulkDelete($subtreeIds);
 
             ResourceChanged::dispatch($this->getModelClass(), 'deleted', $subtreeIds);
 
@@ -160,13 +174,7 @@ class CategoryService
             ]);
         }
 
-        $result = $this->categoryRepository->forceDelete($category);
-
-        if ($result) {
-            ResourceChanged::dispatch($this->getModelClass(), 'force_deleted', [$category->id]);
-        }
-
-        return $result;
+        return $this->performForceDelete($category);
     }
 
     /**
@@ -204,9 +212,9 @@ class CategoryService
     /**
      * Export categories.
      */
-    public function exportCategories(array $columns, string $format): BinaryFileResponse
+    public function exportCategories(array $columns, string $format, array $params = []): BinaryFileResponse
     {
-        $query = Category::query();
+        $query = $this->categoryRepository->buildExportQuery($params);
         $filename = 'categories_'.now()->format('Y-m-d_H-i-s').'.'.$format;
 
         return Excel::download(

@@ -10,12 +10,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Modules\CRM\Enums\Gender;
+use Modules\Shared\Concerns\HasProtection;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Customer extends BaseModel
 {
-    use HasFactory, LogsActivity, \Modules\Shared\Concerns\HasProtection;
+    use HasFactory, HasProtection, LogsActivity;
+
+    /**
+     * Determine if the customer is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $user = null): bool
+    {
+        // Prevent deletion of customers with orders
+        if ($this->orders_count > 0 || $this->total_spent > 0) {
+            return true;
+        }
+
+        return false;
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

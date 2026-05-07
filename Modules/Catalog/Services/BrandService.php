@@ -6,6 +6,7 @@ use App\Models\Brand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Catalog\Data\BrandData;
 use Modules\Catalog\Exports\BrandsExport;
@@ -50,24 +51,38 @@ class BrandService
 
     public function createBrand(BrandData $data): Brand
     {
-        $brand = $this->brandRepository->create($data->except('logo')->toArray());
+        try {
+            return DB::transaction(function () use ($data) {
+                $brand = $this->brandRepository->create($data->except('logo')->toArray());
 
-        $this->handleMedia($brand, $data);
+                $this->handleMedia($brand, $data);
 
-        ResourceChanged::dispatch(Brand::class, 'created', [$brand->id]);
+                ResourceChanged::dispatch(Brand::class, 'created', [$brand->id]);
 
-        return $brand;
+                return $brand;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create brand', ['name' => $data->name], $e);
+            throw $e;
+        }
     }
 
     public function updateBrand(Brand $brand, BrandData $data): Brand
     {
-        $brand = $this->brandRepository->update($brand, $data->except('logo')->toArray());
+        try {
+            return DB::transaction(function () use ($brand, $data) {
+                $brand = $this->brandRepository->update($brand, $data->except('logo')->toArray());
 
-        $this->handleMedia($brand, $data);
+                $this->handleMedia($brand, $data);
 
-        ResourceChanged::dispatch(Brand::class, 'updated', [$brand->id]);
+                ResourceChanged::dispatch(Brand::class, 'updated', [$brand->id]);
 
-        return $brand;
+                return $brand;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update brand', ['id' => $brand->id], $e);
+            throw $e;
+        }
     }
 
     public function deleteBrand(Brand $brand): bool
@@ -98,17 +113,22 @@ class BrandService
         $this->syncMedia($brand, $data->logo, 'logo');
     }
 
-    public function getAllActive()
+    public function getAllActive(): array
     {
-        return Brand::active()->orderBy('sort_order')->get();
+        return CatalogCacheService::rememberDirect(
+            CatalogCacheService::TAG_BRANDS,
+            'active_list',
+            fn () => $this->brandRepository->allActive(),
+            fn ($collection) => $collection->toArray()
+        );
     }
 
     /**
      * Export brands.
      */
-    public function exportBrands(array $columns, string $format): BinaryFileResponse
+    public function exportBrands(array $columns, string $format, array $params = []): BinaryFileResponse
     {
-        $query = Brand::query();
+        $query = $this->brandRepository->buildExportQuery($params);
         $filename = 'brands_'.now()->format('Y-m-d_H-i-s').'.'.$format;
 
         return Excel::download(
@@ -125,5 +145,19 @@ class BrandService
         Brand::withoutEvents(fn () => Excel::import(new BrandsImport, $file));
 
         ResourceChanged::dispatch($this->getModelClass(), 'imported');
+    }
+
+    /**
+     * Toggle the active status of a brand.
+     */
+    public function toggleActive(Brand $brand): bool
+    {
+        $result = $this->brandRepository->toggleActive($brand);
+
+        if ($result) {
+            ResourceChanged::dispatch(Brand::class, 'updated', [$brand->id]);
+        }
+
+        return $result;
     }
 }

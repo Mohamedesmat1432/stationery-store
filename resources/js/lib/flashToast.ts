@@ -1,4 +1,4 @@
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
 
 /**
@@ -9,7 +9,10 @@ let lastTimestamp: number = 0;
 let isInitialized = false;
 
 export function initializeFlashToast(): void {
-    if (isInitialized) return;
+    if (isInitialized) {
+return;
+}
+
     isInitialized = true;
 
     router.on('success', (event) => {
@@ -25,6 +28,7 @@ export function initializeFlashToast(): void {
 
         // Check if all flash values are null/empty
         const hasContent = Object.values(flash).some(v => v !== null && v !== undefined && v !== '');
+
         if (!hasContent) {
             return;
         }

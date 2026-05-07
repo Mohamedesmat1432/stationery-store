@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { Card, CardContent } from '@/components/ui/card';
+import type { Component } from 'vue';
 import AdminPageHeader from '@/components/AdminPageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourcePagination from '@/components/ResourcePagination.vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import type { Component } from 'vue';
+import { Card, CardContent } from '@/components/ui/card';
 
 
 interface Props {
@@ -20,6 +20,8 @@ interface Props {
     canDelete?: boolean;
     canRestore?: boolean;
     canForceDelete?: boolean;
+    canActivate?: boolean;
+    canDeactivate?: boolean;
     searchQuery: string;
     searchPlaceholder?: string;
     canShowTrashed?: boolean;
@@ -38,16 +40,27 @@ interface Props {
     };
 }
 
-const props = withDefaults(defineProps<Props>(), {
-    selectedCount: 0,
-    showTrashed: false,
-    canCreate: false,
-    canDelete: false,
-    canRestore: false,
-    canForceDelete: false,
-    canShowTrashed: true,
-    searchPlaceholder: 'Search...',
-});
+const confirmState = defineModel<any>('confirmState', { required: true });
+const {
+    title,
+    description,
+    icon,
+    selectedCount = 0,
+    showTrashed = false,
+    canCreate = false,
+    createUrl,
+    createLabel,
+    canDelete = false,
+    canRestore = false,
+    canForceDelete = false,
+    searchQuery,
+    searchPlaceholder = 'Search...',
+    canShowTrashed = true,
+    paginationLinks,
+    paginationTotal,
+    paginationCount,
+    resourceName,
+} = defineProps<Omit<Props, 'confirmState'>>();
 
 const emit = defineEmits<{
     (e: 'update:searchQuery', value: string | undefined): void;
@@ -56,6 +69,8 @@ const emit = defineEmits<{
     (e: 'bulk-delete'): void;
     (e: 'bulk-restore'): void;
     (e: 'bulk-force-delete'): void;
+    (e: 'bulk-activate'): void;
+    (e: 'bulk-deactivate'): void;
     (e: 'clear-filters'): void;
 }>();
 </script>
@@ -77,9 +92,13 @@ const emit = defineEmits<{
                 :can-delete="canDelete"
                 :can-restore="canRestore"
                 :can-force-delete="canForceDelete"
+                :can-activate="canActivate"
+                :can-deactivate="canDeactivate"
                 @bulk-delete="emit('bulk-delete')"
                 @bulk-restore="emit('bulk-restore')"
                 @bulk-force-delete="emit('bulk-force-delete')"
+                @bulk-activate="emit('bulk-activate')"
+                @bulk-deactivate="emit('bulk-deactivate')"
             >
                 <template #actions>
                     <slot name="header-actions" />

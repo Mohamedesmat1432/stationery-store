@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Shared\Concerns\HasProtection;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media as SpatieMedia;
 
 class Category extends BaseModel implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, \Modules\Shared\Concerns\HasProtection;
+    use HasFactory, HasProtection, InteractsWithMedia;
 
     protected $fillable = [
         'name',
@@ -33,7 +34,12 @@ class Category extends BaseModel implements HasMedia
     public function shouldBeProtected(?User $user = null): bool
     {
         // Prevent deletion of categories with active products
-        // We use the attribute which might be eager loaded
+        // Check loaded count first to avoid N+1
+        if ($this->products_count !== null && $this->products_count > 0) {
+            return true;
+        }
+
+        // Check total product count (includes descendants)
         if ($this->total_product_count > 0) {
             return true;
         }
@@ -74,11 +80,6 @@ class Category extends BaseModel implements HasMedia
         ];
     }
 
-    protected static function booted(): void
-    {
-        parent::booted();
-    }
-
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');
@@ -96,7 +97,9 @@ class Category extends BaseModel implements HasMedia
 
     public function allChildren(): HasMany
     {
-        return $this->children()->with('allChildren')->withCount(['products' => fn ($q) => $q->active()]);
+        return $this->children()
+            ->with(['allChildren', 'media'])
+            ->withCount(['products' => fn ($q) => $q->active()]);
     }
 
     public function ancestors(): array
@@ -207,7 +210,13 @@ class Category extends BaseModel implements HasMedia
 
         foreach ($children as $child) {
             $ids[] = $child->id;
-            $ids = array_merge($ids, $child->getDescendantIds());
+            if ($child->relationLoaded('allChildren') || $child->relationLoaded('children')) {
+                $ids = array_merge($ids, $child->getDescendantIds());
+            } else {
+                // If not loaded, we might want to avoid deep recursion here if it's many levels
+                // but for our tree it's usually fine.
+                $ids = array_merge($ids, $child->getDescendantIds());
+            }
         }
 
         return $ids;
@@ -219,15 +228,18 @@ class Category extends BaseModel implements HasMedia
     public function getTotalProductCountAttribute(): int
     {
         // If we have products count eager loaded, use it as base
-        $count = $this->products_count ?? (
+        $count = (int) ($this->products_count ?? (
             $this->relationLoaded('products')
-                ? $this->products->where('is_active', true)->count()
-                : $this->products()->active()->count()
-        );
+            ? $this->products->where('is_active', true)->count()
+            : $this->products()->active()->count()
+        ));
 
-        $children = $this->relationLoaded('allChildren')
-            ? $this->allChildren
-            : ($this->relationLoaded('children') ? $this->children : $this->children()->get());
+        // Avoid recursion if children aren't loaded and we don't want to trigger queries
+        if (! $this->relationLoaded('allChildren') && ! $this->relationLoaded('children')) {
+            return $count;
+        }
+
+        $children = $this->allChildren ?? $this->children;
 
         foreach ($children as $child) {
             $count += $child->total_product_count;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { Users } from 'lucide-vue-next';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import * as customerGroupsRoutes from '@/routes/admin/customer-groups/index';
 
 defineProps<{
     form: any;
@@ -118,7 +120,12 @@ const onIsActiveChange = (val: boolean | 'indeterminate') => {
                     <Label for="is_active">{{ $t('Active') }}</Label>
                 </div>
             </CardContent>
-            <CardFooter class="flex justify-end border-t border-sidebar-border pt-6">
+            <CardFooter class="flex items-center justify-between border-t border-sidebar-border pt-6">
+                <Button variant="ghost" as-child type="button">
+                    <Link :href="customerGroupsRoutes.index.url()">
+                        {{ $t('Cancel') }}
+                    </Link>
+                </Button>
                 <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
                     <slot name="submit-icon"></slot>
                     {{ isEdit ? $t('Update Group') : $t('Save Group') }}

@@ -4,6 +4,7 @@ namespace Modules\Catalog\Repositories\Eloquent;
 
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Modules\Catalog\Repositories\Contracts\ProductRepositoryInterface;
 use Modules\Shared\Repositories\Concerns\HandlesQueryBuilder;
@@ -26,7 +27,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
     public function paginate(int $perPage = 15, array $params = []): LengthAwarePaginator
     {
         return $this->applyQueryBuilder(
-            model: Product::withoutGlobalScopes(),
+            model: Product::class,
             allowedFilters: [
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('sku'),
@@ -35,12 +36,37 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::trashed('trash'),
             ],
-            allowedIncludes: ['category', 'brand', 'media', 'prices'],
-            allowedSorts: ['name', 'price', 'created_at', 'sku'],
-            perPage: $perPage,
             with: ['category', 'brand', 'prices', 'media'],
+            withCount: [
+                'wishlistItems as protection_wishlist_items_count',
+                'orders as protection_orders_count' => fn ($q) => $q->whereNotIn('status', ['cancelled', 'refunded']),
+            ],
             params: $params
         );
+    }
+
+    /**
+     * Build a filtered query for exports (no pagination).
+     */
+    public function buildExportQuery(array $params = []): Builder
+    {
+        return $this->buildQueryBuilder(
+            model: Product::class,
+            allowedFilters: [
+                AllowedFilter::scope('search'),
+                AllowedFilter::exact('sku'),
+                AllowedFilter::exact('category_id'),
+                AllowedFilter::exact('brand_id'),
+                AllowedFilter::exact('is_active'),
+                AllowedFilter::trashed('trash'),
+            ],
+            with: ['category', 'brand', 'prices', 'media'],
+            withCount: [
+                'wishlistItems as protection_wishlist_items_count',
+                'orders as protection_orders_count' => fn ($q) => $q->whereNotIn('status', ['cancelled', 'refunded']),
+            ],
+            params: $params
+        )->getEloquentBuilder();
     }
 
     /**
@@ -51,9 +77,13 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         $user = Auth::user();
 
         return Product::withTrashed()
+            ->withCount([
+                'wishlistItems as protection_wishlist_items_count',
+                'orders as protection_orders_count' => fn ($q) => $q->whereNotIn('status', ['cancelled', 'refunded']),
+            ])
             ->whereIn('id', $ids)
-            ->get()
-            ->filter(fn (Product $product) => $product->shouldBeProtected($user))
+            ->cursor()
+            ->filter(fn (Product $product) => $product->isProtected($user))
             ->pluck('id')
             ->toArray();
     }

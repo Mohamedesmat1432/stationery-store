@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import * as customerGroupsRoutes from '@/routes/admin/customer-groups/index';
 import CustomerGroupForm from '@/components/forms/CustomerGroupForm.vue';
 import { Button } from '@/components/ui/button';
 import { useCustomerGroups } from '@/composables/useCustomerGroups';
+import * as customerGroupsRoutes from '@/routes/admin/customer-groups/index';
 
 defineOptions({
     layout: {

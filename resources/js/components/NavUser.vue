@@ -13,9 +13,9 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import type { Auth } from '@/types/auth';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import type { Auth } from '@/types/auth';
 
 const page = usePage();
 const user = computed(() => (page.props.auth as Auth)?.user);

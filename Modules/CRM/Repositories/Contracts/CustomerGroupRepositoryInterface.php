@@ -23,10 +23,10 @@ interface CustomerGroupRepositoryInterface extends RepositoryInterface
     /**
      * Get the query for exporting customer groups.
      */
-    public function getExportQuery(): Builder;
+    public function buildExportQuery(array $params = []): Builder;
 
     /**
      * Find a customer group by ID.
      */
-    public function findById(string $id): CustomerGroup;
+    public function findById(string|int $id): CustomerGroup;
 }

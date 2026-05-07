@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\InventoryPolicy;
-use App\Models\Scopes\ActiveScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Redis;
 use Spatie\Activitylog\LogOptions;
@@ -52,8 +52,25 @@ class Product extends BaseModel implements HasMedia
      */
     public function shouldBeProtected(?User $user = null): bool
     {
-        // Prevent deletion of products with active orders
-        return $this->wishlistItems()->exists(); // For now check wishlist as placeholder, or orders if available
+        // Prevent deletion of products with active orders or wishlist items
+        // Check loaded counts first to prevent N+1 queries
+        if ($this->protection_wishlist_items_count !== null) {
+            if ($this->protection_wishlist_items_count > 0) {
+                return true;
+            }
+        } elseif ($this->wishlistItems()->exists()) {
+            return true;
+        }
+
+        if ($this->protection_orders_count !== null) {
+            if ($this->protection_orders_count > 0) {
+                return true;
+            }
+        } elseif ($this->orderItems()->whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled', 'refunded']))->exists()) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function casts(): array
@@ -72,14 +89,6 @@ class Product extends BaseModel implements HasMedia
             'sold_count' => 'integer',
             'metadata' => 'array',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        parent::booted();
-
-        static::addGlobalScope(new ActiveScope);
-
     }
 
     public function getActivitylogOptions(): LogOptions
@@ -124,7 +133,9 @@ class Product extends BaseModel implements HasMedia
     public function activePrices(): MorphMany
     {
         return $this->prices()
-            ->where('start_at', '<=', now())
+            ->where(function ($q) {
+                $q->whereNull('start_at')->orWhere('start_at', '<=', now());
+            })
             ->where(function ($q) {
                 $q->whereNull('end_at')->orWhere('end_at', '>=', now());
             });
@@ -135,7 +146,7 @@ class Product extends BaseModel implements HasMedia
         if ($this->relationLoaded('prices')) {
             return $this->prices
                 ->where('type', 'base')
-                ->where('currency_id', config('app.currency_id'))
+                ->where('currency_id', Currency::defaultId())
                 ->filter(fn ($price) => ($price->start_at === null || $price->start_at <= now()) &&
                     ($price->end_at === null || $price->end_at >= now())
                 )
@@ -144,7 +155,7 @@ class Product extends BaseModel implements HasMedia
 
         return $this->activePrices()
             ->where('type', 'base')
-            ->where('currency_id', config('app.currency_id'))
+            ->where('currency_id', Currency::defaultId())
             ->first();
     }
 
@@ -155,6 +166,10 @@ class Product extends BaseModel implements HasMedia
 
     public function totalStock(): int
     {
+        if ($this->relationLoaded('stock')) {
+            return (int) $this->stock->sum('available_quantity');
+        }
+
         return (int) $this->stock()->sum('available_quantity');
     }
 
@@ -193,6 +208,16 @@ class Product extends BaseModel implements HasMedia
         return $this->hasMany(WishlistItem::class);
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function orders(): HasManyThrough
+    {
+        return $this->hasManyThrough(Order::class, OrderItem::class, 'product_id', 'id', 'id', 'order_id');
+    }
+
     public function productUnits(): HasMany
     {
         return $this->hasMany(ProductUnit::class);
@@ -222,7 +247,7 @@ class Product extends BaseModel implements HasMedia
     {
         $currencyId = $currencyCode
             ? Currency::where('code', $currencyCode)->value('id')
-            : config('app.currency_id');
+            : Currency::defaultId();
 
         return $query->with([
             'prices' => fn ($q) => $q

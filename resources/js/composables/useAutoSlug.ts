@@ -1,6 +1,5 @@
-import { watch } from 'vue';
-
 export function useAutoSlug(form: any, sourceField: string = 'name', targetField: string = 'slug', isEdit: boolean = false) {
+
     const generateSlug = (text: string) => {
         return text
             .toLowerCase()

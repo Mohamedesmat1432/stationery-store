@@ -1,42 +1,44 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import { Save, Image as ImageIcon, X, Globe, Tag } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { Save, ChevronLeft, Image as ImageIcon, X, Globe, Tag } from 'lucide-vue-next';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import InputError from '@/components/InputError.vue';
 import { useAutoSlug } from '@/composables/useAutoSlug';
 import * as brandRoutes from '@/routes/admin/brands/index';
 
 type BrandData = Modules.Catalog.Data.BrandData;
 
-const props = defineProps<{
-    form: any;
+const form = defineModel<any>('form', { required: true });
+const { brand, isEdit, brandName } = defineProps<{
     brand?: BrandData;
     isEdit?: boolean;
     brandName?: string;
 }>();
 
-const emit = defineEmits(['submit']);
+defineEmits(['submit']);
 
-const { autoSlug } = useAutoSlug(props.form, 'name', 'slug', props.isEdit);
+const { autoSlug } = useAutoSlug(form.value, 'name', 'slug', isEdit);
 
-const logoPreview = ref(props.brand?.logo || null);
+const logoPreview = ref(brand?.logo || null);
 const logoInput = ref<HTMLInputElement | null>(null);
 
 const handleLogoUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
+
     if (file) {
-        props.form.logo = file;
+        form.value.logo = file;
         logoPreview.value = URL.createObjectURL(file);
     }
 };
 
 const removeLogo = () => {
-    props.form.logo = null;
+    form.value.logo = null;
     logoPreview.value = null;
 };
 </script>
@@ -84,7 +86,7 @@ const removeLogo = () => {
                             <Input 
                                 id="slug" 
                                 v-model="form.slug" 
-                                :placeholder="$t('parker')"
+                                :placeholder="$t('e.g. parker')"
                                 required 
                             />
                             <InputError :message="form.errors.slug" />
@@ -100,7 +102,7 @@ const removeLogo = () => {
                             id="website" 
                             type="url"
                             v-model="form.website" 
-                            :placeholder="$t('https://www.parkerpen.com')"
+                            placeholder="https://www.brand.com"
                         />
                         <InputError :message="form.errors.website" />
                     </div>
@@ -148,7 +150,7 @@ const removeLogo = () => {
                 </CardHeader>
                 <CardContent>
                     <div 
-                        class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-[160px] group"
+                        class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-40 group"
                         @click="logoInput?.click()"
                     >
                         <input 

@@ -56,6 +56,8 @@ enum PermissionName: string
     case DELETE_PRODUCTS = 'delete_products';
     case RESTORE_PRODUCTS = 'restore_products';
     case FORCE_DELETE_PRODUCTS = 'force_delete_products';
+    case EXPORT_PRODUCTS = 'export_products';
+    case IMPORT_PRODUCTS = 'import_products';
 
     case VIEW_CATEGORIES = 'view_categories';
     case CREATE_CATEGORIES = 'create_categories';

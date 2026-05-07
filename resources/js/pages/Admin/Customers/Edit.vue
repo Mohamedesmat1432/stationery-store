@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Save, ArrowLeft } from 'lucide-vue-next';
-import * as customersRoutes from '@/routes/admin/customers/index';
 import CustomerForm from '@/components/forms/CustomerForm.vue';
 import { Button } from '@/components/ui/button';
 import { useCustomers } from '@/composables/useCustomers';
+import * as customersRoutes from '@/routes/admin/customers/index';
 
 defineOptions({
     layout: {

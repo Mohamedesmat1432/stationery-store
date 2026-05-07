@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronLeft, FolderPlus } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
 import CategoryForm from '@/components/Admin/Catalog/CategoryForm.vue';
+import { Button } from '@/components/ui/button';
+import { useCategories } from '@/composables/useCategories';
 import * as categoriesRoutes from '@/routes/admin/categories/index';
 
 type CategoryData = Modules.Catalog.Data.CategoryData;
 
-import { useCategories } from '@/composables/useCategories';
-
-const props = defineProps<{
+defineProps<{
     available_categories?: CategoryData[];
 }>();
+
 
 defineOptions({
     layout: {
@@ -32,7 +32,7 @@ const handleSubmit = () => submit();
 
     <div class="max-w-6xl mx-auto p-6 space-y-6">
         <CategoryForm 
-            :form="form"
+            v-model:form="form"
             :available_categories="available_categories"
             @submit="handleSubmit" 
         >

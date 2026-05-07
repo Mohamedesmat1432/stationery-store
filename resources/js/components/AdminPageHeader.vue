@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Plus, Trash2, RotateCcw, Trash } from 'lucide-vue-next';
+import { Plus, Trash2, RotateCcw, Trash, CheckCircle, XCircle } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -16,18 +16,21 @@ interface Props {
     canDelete?: boolean;
     canRestore?: boolean;
     canForceDelete?: boolean;
+    canActivate?: boolean;
+    canDeactivate?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-    canCreate: false,
+withDefaults(defineProps<Props>(), {
     canDelete: false,
     canRestore: false,
     canForceDelete: false,
+    canActivate: false,
+    canDeactivate: false,
     selectedCount: 0,
     showTrashed: false,
 });
 
-defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
+defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete', 'bulk-activate', 'bulk-deactivate']);
 </script>
 
 <template>
@@ -55,6 +58,40 @@ defineEmits(['bulk-delete', 'bulk-restore', 'bulk-force-delete']);
                         <span class="whitespace-nowrap">
                             {{
                                 $t('Delete Selected ({count})', {
+                                    count: selectedCount,
+                                })
+                            }}
+                        </span>
+                    </Button>
+
+                    <Button
+                        v-if="canActivate"
+                        variant="outline"
+                        size="sm"
+                        class="flex items-center gap-2 border-success text-success hover:bg-success hover:text-white"
+                        @click="$emit('bulk-activate')"
+                    >
+                        <CheckCircle class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                $t('Activate Selected ({count})', {
+                                    count: selectedCount,
+                                })
+                            }}
+                        </span>
+                    </Button>
+
+                    <Button
+                        v-if="canDeactivate"
+                        variant="outline"
+                        size="sm"
+                        class="flex items-center gap-2 border-warning text-warning hover:bg-warning hover:text-white"
+                        @click="$emit('bulk-deactivate')"
+                    >
+                        <XCircle class="h-4 w-4 shrink-0" />
+                        <span class="whitespace-nowrap">
+                            {{
+                                $t('Deactivate Selected ({count})', {
                                     count: selectedCount,
                                 })
                             }}

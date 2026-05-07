@@ -39,7 +39,7 @@ interface ConfirmState {
     loading: boolean;
 }
 
-type ActionType = 'delete' | 'restore' | 'forceDelete';
+type ActionType = 'delete' | 'restore' | 'forceDelete' | 'activate' | 'deactivate';
 
 /**
  * Composable that provides bulk actions, single-row trash actions,
@@ -108,6 +108,8 @@ export function useBulkActions<T extends { id: string | number }>(
             delete: 'delete',
             restore: 'restore',
             forceDelete: 'permanently delete',
+            activate: 'activate',
+            deactivate: 'deactivate',
         };
 
         openConfirm({
@@ -120,8 +122,8 @@ export function useBulkActions<T extends { id: string | number }>(
                     entity: config.entityName
                 }
             },
-            label: action === 'restore' ? 'Restore All' : 'Delete All',
-            variant: action === 'restore' ? 'success' : 'destructive',
+            label: action === 'restore' || action === 'activate' ? 'Confirm' : 'Delete All',
+            variant: (action === 'restore' || action === 'activate') ? 'success' : (action === 'deactivate' ? 'warning' : 'destructive'),
         }, () => {
             router.post(config.bulkActionRoute.url(), { ids: selectedIds.value, action }, {
                 onSuccess: () => {

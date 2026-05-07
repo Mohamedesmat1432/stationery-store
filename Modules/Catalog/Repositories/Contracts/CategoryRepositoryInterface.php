@@ -4,6 +4,8 @@ namespace Modules\Catalog\Repositories\Contracts;
 
 use App\Models\Category;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Modules\Shared\Repositories\Contracts\RepositoryInterface;
 
@@ -32,5 +34,10 @@ interface CategoryRepositoryInterface extends RepositoryInterface
     /**
      * Toggle the active status of a category.
      */
-    public function toggleActive(Category $category): bool;
+    public function toggleActive(Model $model): bool;
+
+    /**
+     * Build a filtered query for exports (no pagination).
+     */
+    public function buildExportQuery(array $params = []): Builder;
 }

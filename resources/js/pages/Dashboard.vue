@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
     DollarSign,
     ShoppingCart,
     Package,
     AlertCircle,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';

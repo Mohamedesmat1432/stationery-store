@@ -17,10 +17,10 @@ interface CustomerRepositoryInterface extends RepositoryInterface
     /**
      * Get the query for exporting customers.
      */
-    public function getExportQuery(): Builder;
+    public function buildExportQuery(array $params = []): Builder;
 
     /**
      * Find a customer by ID.
      */
-    public function findById(string $id): Customer;
+    public function findById(string|int $id): Customer;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Deferred, Head, Link } from '@inertiajs/vue3';
+import { Deferred, Link, router } from '@inertiajs/vue3';
 import {
     Users,
     Pencil,
@@ -8,18 +8,14 @@ import {
     Trash,
     Download,
     Upload,
+    Power,
 } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
-import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import {
@@ -49,7 +45,7 @@ type User = Modules.Identity.Data.UserData & { id: string };
 
 const props = withDefaults(
     defineProps<{
-        users: {
+        users?: {
             data: User[];
             links: any[];
             current_page: number;
@@ -133,6 +129,8 @@ const allColumns = [
         :can-delete="can('delete_users')"
         :can-restore="can('restore_users')"
         :can-force-delete="can('force_delete_users')"
+        :can-activate="can('update_users')"
+        :can-deactivate="can('update_users')"
         v-model:search-query="searchQuery"
         v-model:show-trashed="showTrashed"
         search-placeholder="Search by name or email..."
@@ -140,12 +138,14 @@ const allColumns = [
         :pagination-total="users?.total"
         :pagination-count="users?.data?.length"
         resource-name="users"
-        :confirm-state="confirmState"
+        v-model:confirm-state="confirmState"
         @search="applyFilters"
         @clear-filters="clearFilters"
         @bulk-delete="bulkAction('delete')"
         @bulk-restore="bulkAction('restore')"
         @bulk-force-delete="bulkAction('forceDelete')"
+        @bulk-activate="bulkAction('activate')"
+        @bulk-deactivate="bulkAction('deactivate')"
     >
         <template #header-actions>
             <Button
@@ -191,7 +191,13 @@ const allColumns = [
             </div>
         </template>
 
-        <table class="w-full text-start text-sm">
+        <Deferred data="users">
+            <template #fallback>
+                <div class="space-y-4 p-6">
+                    <Skeleton class="h-10 w-full" v-for="i in 8" :key="i" />
+                </div>
+            </template>
+            <table class="w-full text-start text-sm">
             <thead
                 class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
             >
@@ -214,6 +220,9 @@ const allColumns = [
                         {{ $t('Roles') }}
                     </th>
                     <th class="px-6 py-3 text-start font-medium">
+                        {{ $t('Status') }}
+                    </th>
+                    <th class="px-6 py-3 text-end font-medium">
                         {{ $t('Actions') }}
                     </th>
                 </tr>
@@ -253,62 +262,85 @@ const allColumns = [
                             >
                         </div>
                     </td>
-                    <td class="flex items-center gap-2 px-6 py-4 text-start">
+                    <td class="px-6 py-4">
                         <template v-if="!user.deleted_at">
-                            <Button
-                                v-if="can('update_users')"
-                                variant="outline"
-                                size="icon"
-                                class="h-8 w-8"
-                                as-child
-                            >
-                                <Link :href="usersRoutes.edit.url(user.id)">
-                                    <Pencil class="h-4 w-4" />
-                                </Link>
-                            </Button>
-                            <Button
-                                v-if="
-                                    can('delete_users') &&
-                                    selectableUsers.some((u) => u.id === user.id)
-                                "
-                                variant="destructive"
-                                size="icon"
-                                class="h-8 w-8"
-                                @click="deleteItem(user.id)"
-                            >
-                                <Trash2 class="h-4 w-4" />
-                            </Button>
+                            <Badge v-if="user.is_active" variant="outline" class="bg-green-500/5 text-green-600 border-green-500/20 text-[10px] px-2 py-0">
+                                {{ $t('Active') }}
+                            </Badge>
+                            <Badge v-else variant="outline" class="bg-destructive/5 text-destructive border-destructive/20 text-[10px] px-2 py-0">
+                                {{ $t('Inactive') }}
+                            </Badge>
                         </template>
-                        <template v-else>
-                            <Button
-                                v-if="can('restore_users')"
-                                variant="outline"
-                                size="icon"
-                                class="h-8 w-8"
-                                title="Restore"
-                                @click="restoreItem(user.id)"
-                            >
-                                <RotateCcw class="h-4 w-4" />
-                            </Button>
-                            <Button
-                                v-if="
-                                    can('force_delete_users') &&
-                                    selectableUsers.some((u) => u.id === user.id)
-                                "
-                                variant="destructive"
-                                size="icon"
-                                class="h-8 w-8"
-                                title="Force Delete"
-                                @click="forceDeleteItem(user.id)"
-                            >
-                                <Trash class="h-4 w-4" />
-                            </Button>
-                        </template>
+                        <span v-else class="text-xs text-muted-foreground italic">-</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-end gap-2">
+                            <template v-if="!user.deleted_at">
+                                <Button
+                                    v-if="can('update_users')"
+                                    variant="outline"
+                                    size="icon"
+                                    class="h-8 w-8"
+                                    @click="router.patch(usersRoutes.toggleActive(user.id).url)"
+                                    :title="user.is_active ? 'Deactivate' : 'Activate'"
+                                >
+                                    <Power :class="['h-4 w-4', user.is_active ? 'text-green-500' : 'text-muted-foreground']" />
+                                </Button>
+                                <Button
+                                    v-if="can('update_users')"
+                                    variant="outline"
+                                    size="icon"
+                                    class="h-8 w-8"
+                                    as-child
+                                >
+                                    <Link :href="usersRoutes.edit.url(user.id)">
+                                        <Pencil class="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                                <Button
+                                    v-if="
+                                        can('delete_users') &&
+                                        selectableUsers.some((u) => u.id === user.id)
+                                    "
+                                    variant="destructive"
+                                    size="icon"
+                                    class="h-8 w-8"
+                                    @click="deleteItem(user.id)"
+                                >
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            </template>
+                            <template v-else>
+                                <Button
+                                    v-if="can('restore_users')"
+                                    variant="outline"
+                                    size="icon"
+                                    class="h-8 w-8"
+                                    title="Restore"
+                                    @click="restoreItem(user.id)"
+                                >
+                                    <RotateCcw class="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    v-if="
+                                        can('force_delete_users') &&
+                                        selectableUsers.some((u) => u.id === user.id)
+                                    "
+                                    variant="destructive"
+                                    size="icon"
+                                    class="h-8 w-8"
+                                    title="Force Delete"
+                                    @click="forceDeleteItem(user.id)"
+                                >
+                                    <Trash class="h-4 w-4" />
+                                </Button>
+                            </template>
+                        </div>
                     </td>
                 </tr>
                 <tr v-if="(users?.data?.length ?? 0) === 0">
                     <td
-                        colspan="5"
+                        colspan="6"
                         class="px-6 py-8 text-center text-muted-foreground"
                     >
                         {{ $t('No users found.') }}
@@ -316,6 +348,7 @@ const allColumns = [
                 </tr>
             </tbody>
         </table>
+        </Deferred>
     </ResourceIndexLayout>
 
     <ResourceExportModal

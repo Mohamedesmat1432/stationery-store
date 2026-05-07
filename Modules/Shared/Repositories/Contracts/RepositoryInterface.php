@@ -15,7 +15,7 @@ interface RepositoryInterface
     /**
      * @return TModel
      */
-    public function findById(string $id): Model;
+    public function findById(string|int $id): Model;
 
     /**
      * @return TModel
@@ -38,4 +38,8 @@ interface RepositoryInterface
     public function bulkRestore(array $ids): bool;
 
     public function bulkForceDelete(array $ids): bool;
+
+    public function bulkUpdate(array $ids, array $data): bool;
+
+    public function toggleActive(Model $model): bool;
 }

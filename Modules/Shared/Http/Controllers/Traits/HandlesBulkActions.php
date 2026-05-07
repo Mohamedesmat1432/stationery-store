@@ -12,10 +12,8 @@ trait HandlesBulkActions
 {
     /**
      * Handle single restore operation.
-     *
-     * @param  string|int  $id
      */
-    protected function performRestore($id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
+    protected function performRestore(string $id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
     {
         $model = $modelClass::onlyTrashed()->findOrFail($id);
         Gate::authorize('restore', $model);
@@ -27,10 +25,8 @@ trait HandlesBulkActions
 
     /**
      * Handle single force delete operation.
-     *
-     * @param  string|int  $id
      */
-    protected function performForceDelete($id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
+    protected function performForceDelete(string $id, string $modelClass, string $serviceProperty, string $methodName): RedirectResponse
     {
         $model = $modelClass::onlyTrashed()->findOrFail($id);
         Gate::authorize('forceDelete', $model);
@@ -64,6 +60,14 @@ trait HandlesBulkActions
             BulkActionType::FORCE_DELETE->value => [
                 'method' => 'bulkForceDelete',
                 'message' => __('Selected items permanently deleted.'),
+            ],
+            BulkActionType::ACTIVATE->value => [
+                'method' => 'bulkActivate',
+                'message' => __('Selected items activated successfully.'),
+            ],
+            BulkActionType::DEACTIVATE->value => [
+                'method' => 'bulkDeactivate',
+                'message' => __('Selected items deactivated successfully.'),
             ],
         ];
 

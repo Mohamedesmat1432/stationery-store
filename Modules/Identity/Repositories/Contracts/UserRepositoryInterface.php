@@ -5,6 +5,7 @@ namespace Modules\Identity\Repositories\Contracts;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Modules\Shared\Repositories\Contracts\RepositoryInterface;
 
@@ -25,7 +26,7 @@ interface UserRepositoryInterface extends RepositoryInterface
     /**
      * Get the query for exporting users.
      */
-    public function getExportQuery(): Builder;
+    public function buildExportQuery(array $params = []): Builder;
 
     /**
      * Get permission names for a user.
@@ -53,4 +54,9 @@ interface UserRepositoryInterface extends RepositoryInterface
      * @return array<string>
      */
     public function getAdminIds(array $ids, bool $withTrashed = false): array;
+
+    /**
+     * Toggle the active status of a user.
+     */
+    public function toggleActive(Model $model): bool;
 }

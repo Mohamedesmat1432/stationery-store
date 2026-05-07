@@ -41,6 +41,27 @@ class Currency extends BaseModel
         return $query->where('is_default', true);
     }
 
+    /**
+     * Get the default currency ID.
+     * Falls back to the first active currency if no default is set.
+     */
+    public static function defaultId(): string
+    {
+        return cache()->rememberForever('currency:default_id', function () {
+            $currency = self::where('is_default', true)->value('id');
+
+            return $currency ?? self::active()->value('id') ?? '';
+        });
+    }
+
+    /**
+     * Clear the default currency ID cache.
+     */
+    public static function clearDefaultIdCache(): void
+    {
+        cache()->forget('currency:default_id');
+    }
+
     public function convertTo(float $amount, Currency $targetCurrency): float
     {
         $baseAmount = $amount / $this->rate;

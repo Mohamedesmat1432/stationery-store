@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Deferred, Head, Link } from '@inertiajs/vue3';
+import { Deferred, Link } from '@inertiajs/vue3';
 import {
     Building2,
     Download,
@@ -13,16 +13,11 @@ import {
     UserCircle,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import AdminPageHeader from '@/components/AdminPageHeader.vue';
 import ResourceIndexLayout from '@/components/Admin/ResourceIndexLayout.vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import ResourceExportModal from '@/components/ResourceExportModal.vue';
-import ResourceFilterBar from '@/components/ResourceFilterBar.vue';
 import ResourceImportModal from '@/components/ResourceImportModal.vue';
-import ResourcePagination from '@/components/ResourcePagination.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
@@ -50,7 +45,7 @@ type Customer = Modules.CRM.Data.CustomerData & { id: string };
 
 const props = withDefaults(
     defineProps<{
-        customers: {
+        customers?: {
             data: Customer[];
             links: any[];
             current_page: number;
@@ -149,7 +144,7 @@ const allColumns = [
         :pagination-total="customers?.total"
         :pagination-count="customers?.data?.length"
         resource-name="customers"
-        :confirm-state="confirmState"
+        v-model:confirm-state="confirmState"
         @search="applyFilters"
         @clear-filters="clearFilters"
         @bulk-delete="bulkAction('delete')"
@@ -200,7 +195,13 @@ const allColumns = [
             </div>
         </template>
 
-        <table class="w-full text-start text-sm">
+        <Deferred data="customers">
+            <template #fallback>
+                <div class="space-y-4 p-6">
+                    <Skeleton class="h-10 w-full" v-for="i in 8" :key="i" />
+                </div>
+            </template>
+            <table class="w-full text-start text-sm">
             <thead
                 class="border-b border-sidebar-border bg-sidebar text-xs text-muted-foreground uppercase"
             >
@@ -359,6 +360,7 @@ const allColumns = [
                 </tr>
             </tbody>
         </table>
+        </Deferred>
     </ResourceIndexLayout>
 
     <ResourceExportModal

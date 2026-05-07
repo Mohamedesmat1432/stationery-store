@@ -9,7 +9,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Attribute extends BaseModel
 {
-    use HasFactory;
+    use HasFactory, \Modules\Shared\Concerns\HasProtection;
+
+    /**
+     * Determine if the attribute is protected from deletion or modification.
+     */
+    public function shouldBeProtected(?User $user = null): bool
+    {
+        // Prevent deletion of attributes that have values used in variants
+        return $this->values()->whereHas('variants')->exists();
+    }
 
     protected $fillable = [
         'name',
@@ -33,7 +42,7 @@ class Attribute extends BaseModel
 
     protected static function booted(): void
     {
-        static::addGlobalScope(new ActiveScope);
+        // Attribute does not have is_active column, so we don't apply ActiveScope here.
     }
 
     public function values(): HasMany

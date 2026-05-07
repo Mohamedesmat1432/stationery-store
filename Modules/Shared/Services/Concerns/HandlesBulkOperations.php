@@ -76,6 +76,48 @@ trait HandlesBulkOperations
     }
 
     /**
+     * Bulk activate items by IDs.
+     *
+     * @param  array<int, string|int>  $ids
+     */
+    public function bulkActivate(array $ids): bool
+    {
+        $ids = $this->filterBulkIds($ids, 'activate');
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        $result = $this->getRepository()->bulkUpdate($ids, ['is_active' => true]);
+        if ($result) {
+            event(new ResourceChanged($this->getModelClass(), 'bulk_activated', $ids));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Bulk deactivate items by IDs.
+     *
+     * @param  array<int, string|int>  $ids
+     */
+    public function bulkDeactivate(array $ids): bool
+    {
+        $ids = $this->filterBulkIds($ids, 'deactivate');
+
+        if (empty($ids)) {
+            return false;
+        }
+
+        $result = $this->getRepository()->bulkUpdate($ids, ['is_active' => false]);
+        if ($result) {
+            event(new ResourceChanged($this->getModelClass(), 'bulk_deactivated', $ids));
+        }
+
+        return $result;
+    }
+
+    /**
      * Filter IDs before bulk operation.
      * Services can override this to implement custom protection/filtering logic.
      *

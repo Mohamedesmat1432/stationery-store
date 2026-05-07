@@ -1,64 +1,68 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
+import { Save, Image as ImageIcon, X, FolderTree } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { Save, ChevronLeft, Image as ImageIcon, X, Plus, FolderTree } from 'lucide-vue-next';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import InputError from '@/components/InputError.vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useAutoSlug } from '@/composables/useAutoSlug';
+import * as categoryRoutes from '@/routes/admin/categories/index';
 
 type CategoryData = Modules.Catalog.Data.CategoryData;
 
-const props = withDefaults(
-    defineProps<{
-        form: any;
-        category?: CategoryData;
-        available_categories?: CategoryData[];
-        isEdit?: boolean;
-        categoryName?: string;
-    }>(),
-    {
-        available_categories: () => [],
-    }
-);
+const form = defineModel<any>('form', { required: true });
+const {
+    category,
+    available_categories = [],
+    isEdit,
+    categoryName,
+} = defineProps<{
+    category?: CategoryData;
+    available_categories?: CategoryData[];
+    isEdit?: boolean;
+    categoryName?: string;
+}>();
 
-const emit = defineEmits(['submit']);
+defineEmits(['submit']);
 
-const { autoSlug } = useAutoSlug(props.form, 'name', 'slug', props.isEdit);
+const { autoSlug } = useAutoSlug(form.value, 'name', 'slug', isEdit);
 
-const iconPreview = ref(props.category?.icon || null);
-const bannerPreview = ref(props.category?.banner_image || null);
+const iconPreview = ref(category?.icon || null);
+const bannerPreview = ref(category?.banner_image || null);
 
 const bannerInput = ref<HTMLInputElement | null>(null);
 const iconInput = ref<HTMLInputElement | null>(null);
 
 const handleIconUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
+
     if (file) {
-        props.form.icon = file;
+        form.value.icon = file;
         iconPreview.value = URL.createObjectURL(file);
     }
 };
 
 const handleBannerUpload = (event: Event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
+
     if (file) {
-        props.form.banner_image = file;
+        form.value.banner_image = file;
         bannerPreview.value = URL.createObjectURL(file);
     }
 };
 
 const removeIcon = () => {
-    props.form.icon = null;
+    form.value.icon = null;
     iconPreview.value = null;
 };
 
 const removeBanner = () => {
-    props.form.banner_image = null;
+    form.value.banner_image = null;
     bannerPreview.value = null;
 };
 
@@ -67,10 +71,15 @@ const flattenedCategories = computed(() => {
     const list: { id: string; name: string; depth: number }[] = [];
     
     const flatten = (items: CategoryData[], depth = 0) => {
-        if (!items) return;
+        if (!items) {
+            return;
+        }
         
         items.forEach(item => {
-            if (item.id === props.category?.id) return;
+            // Skip the current category AND all its descendants
+            if (item.id === category?.id) {
+                return;
+            }
             
             list.push({ 
                 id: item.id!, 
@@ -84,7 +93,8 @@ const flattenedCategories = computed(() => {
         });
     };
     
-    flatten(props.available_categories);
+    flatten(available_categories);
+
     return list;
 });
 </script>
@@ -194,12 +204,12 @@ const flattenedCategories = computed(() => {
                 <CardContent class="space-y-6">
                     <div class="space-y-2">
                         <Label for="parent_id">{{ $t('Parent Category') }}</Label>
-                        <Select v-model="form.parent_id">
+                        <Select :model-value="form.parent_id || 'none'" @update:model-value="v => form.parent_id = (v === 'none' ? null : v)">
                             <SelectTrigger>
                                 <SelectValue :placeholder="$t('None (Root Level)')" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem :value="null">{{ $t('None (Root Level)') }}</SelectItem>
+                                <SelectItem value="none">{{ $t('None (Root Level)') }}</SelectItem>
                                 <SelectItem 
                                     v-for="cat in flattenedCategories" 
                                     :key="cat.id" 
@@ -241,7 +251,7 @@ const flattenedCategories = computed(() => {
                     <div class="space-y-2">
                         <Label>{{ $t('Banner Image') }}</Label>
                         <div 
-                            class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-[140px] group"
+                            class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-35 group"
                             @click="bannerInput?.click()"
                         >
                             <input 
@@ -280,7 +290,7 @@ const flattenedCategories = computed(() => {
                     <div class="space-y-2">
                         <Label>{{ $t('Category Icon') }}</Label>
                         <div 
-                            class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-[100px] group"
+                            class="relative border-2 border-dashed border-sidebar-border rounded-xl p-4 flex flex-col items-center justify-center text-muted-foreground hover:bg-sidebar-accent/50 transition-all cursor-pointer min-h-25 group"
                             @click="iconInput?.click()"
                         >
                             <input 
@@ -316,13 +326,19 @@ const flattenedCategories = computed(() => {
                 </CardContent>
             </Card>
 
-            <Button type="submit" class="w-full h-12 text-lg shadow-xl" :disabled="form.processing">
-                <slot name="submit-icon">
-                    <Save v-if="!form.processing" class="w-5 h-5 mr-2" />
-                    <span v-else class="mr-2 animate-spin">◌</span>
-                </slot>
-                {{ isEdit ? $t('Update Category') : $t('Save Category') }}
-            </Button>
-        </div>
+                <Button type="submit" class="w-full h-12 text-lg shadow-xl" :disabled="form.processing">
+                    <slot name="submit-icon">
+                        <Save v-if="!form.processing" class="w-5 h-5 mr-2" />
+                        <span v-else class="mr-2 animate-spin">◌</span>
+                    </slot>
+                    {{ isEdit ? $t('Update Category') : $t('Save Category') }}
+                </Button>
+
+                <Button variant="ghost" as-child class="w-full" type="button">
+                    <Link :href="categoryRoutes.index.url()">
+                        {{ $t('Cancel') }}
+                    </Link>
+                </Button>
+            </div>
     </form>
 </template>

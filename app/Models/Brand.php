@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\ActiveScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +28,10 @@ class Brand extends BaseModel implements HasMedia
     public function shouldBeProtected(?User $user = null): bool
     {
         // Prevent deletion of brands with products
+        if ($this->products_count !== null) {
+            return $this->products_count > 0;
+        }
+
         return $this->products()->exists();
     }
 
@@ -38,11 +41,6 @@ class Brand extends BaseModel implements HasMedia
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new ActiveScope);
     }
 
     public function products(): HasMany

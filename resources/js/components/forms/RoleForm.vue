@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ShieldCheck } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { ChevronDown, ChevronRight, ShieldCheck } from 'lucide-vue-next';
+import { ref, computed, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,22 +16,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/composables/usePermissions';
-import { ref, computed, watch } from 'vue';
-import { ChevronDown, ChevronRight } from 'lucide-vue-next';
+import * as rolesRoutes from '@/routes/admin/roles/index';
 
-const props = withDefaults(
-    defineProps<{
-        form: any;
-        available_permissions?: Record<string, string[]>;
-        isEdit?: boolean;
-        roleName?: string;
-        canUpdate?: boolean;
-    }>(),
-    {
-        available_permissions: () => ({}),
-        canUpdate: true,
-    },
-);
+const form = defineModel<any>('form', { required: true });
+const {
+    available_permissions = {},
+    isEdit,
+    roleName,
+    canUpdate = true,
+} = defineProps<{
+    available_permissions?: Record<string, string[]>;
+    isEdit?: boolean;
+    roleName?: string;
+    canUpdate?: boolean;
+}>();
 
 defineEmits(['submit']);
 
@@ -39,19 +39,27 @@ const {
     formatPermissionLabel,
     togglePermission,
     toggleModule,
-} = usePermissions(props.form, () => props.available_permissions ?? {});
+} = usePermissions(form.value, () => available_permissions ?? {});
 
 const expandedModules = ref<Record<string, boolean>>({});
 
 const isAllExpanded = computed(() => {
     const keys = Object.keys(groupedPermissions.value);
-    if (keys.length === 0) return false;
+
+    if (keys.length === 0) {
+return false;
+}
+
     return keys.every(key => expandedModules.value[key]);
 });
 
 const isAllCollapsed = computed(() => {
     const keys = Object.keys(groupedPermissions.value);
-    if (keys.length === 0) return false;
+
+    if (keys.length === 0) {
+return false;
+}
+
     return keys.every(key => !expandedModules.value[key]);
 });
 
@@ -230,9 +238,11 @@ watch(
                 </div>
             </CardContent>
             <CardFooter class="flex items-center justify-between border-t border-sidebar-border pt-6">
-                <div>
-                    <slot name="footer-left"></slot>
-                </div>
+                <Button variant="ghost" as-child type="button">
+                    <Link :href="rolesRoutes.index.url()">
+                        {{ $t('Cancel') }}
+                    </Link>
+                </Button>
                 <Button type="submit" :disabled="form.processing" class="flex items-center gap-2">
                     <slot name="submit-icon"></slot>
                     {{ isEdit ? $t('Update Role') : $t('Save Role') }}

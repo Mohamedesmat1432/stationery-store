@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Filter } from 'lucide-vue-next';
 import SearchInput from '@/components/SearchInput.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -32,7 +31,7 @@ const handleSearch = (val: string) => {
             @search="handleSearch"
         />
 
-        <slot name="filters"></slot>
+        <slot name="extra-filters"></slot>
 
         <div v-if="canShowTrashed" class="ms-auto flex items-center gap-2 px-3">
             <Checkbox

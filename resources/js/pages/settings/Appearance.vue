@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import AppearanceTabs from '@/components/AppearanceTabs.vue';
+import { LayoutGrid, CheckCircle2, Monitor, Palette } from 'lucide-vue-next';
 import AccentColorPicker from '@/components/AccentColorPicker.vue';
+import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import Heading from '@/components/Heading.vue';
-import { edit } from '@/routes/appearance';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, CheckCircle2, Monitor, Moon, Sun, Palette } from 'lucide-vue-next';
+import { Card, CardContent } from '@/components/ui/card';
+import { edit } from '@/routes/appearance';
 
 defineOptions({
     layout: {

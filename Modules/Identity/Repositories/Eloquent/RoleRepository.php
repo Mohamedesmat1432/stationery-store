@@ -41,7 +41,7 @@ class RoleRepository extends BaseRepository implements ProtectsBulkResources, Ro
     /**
      * Find a role by ID with permissions.
      */
-    public function findById(string $id): Role
+    public function findById(string|int $id): Role
     {
         return Role::with('permissions')->findOrFail($id);
     }
@@ -72,7 +72,8 @@ class RoleRepository extends BaseRepository implements ProtectsBulkResources, Ro
 
     public function getProtectedIds(array $ids): array
     {
-        return Role::whereIn('id', $ids)
+        return Role::withTrashed()
+            ->whereIn('id', $ids)
             ->cursor()
             ->filter(fn (Role $role) => $role->isProtected())
             ->pluck('id')

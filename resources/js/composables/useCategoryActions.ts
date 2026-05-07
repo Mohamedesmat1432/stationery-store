@@ -15,6 +15,7 @@ export function useCategoryActions(categoriesSource: MaybeRefOrGetter<CategoryDa
         const flatten = (nodes: CategoryData[]) => {
             nodes.forEach(node => {
                 result.push(node);
+
                 if (node.children && node.children.length > 0) {
                     flatten(node.children);
                 }
@@ -22,6 +23,7 @@ export function useCategoryActions(categoriesSource: MaybeRefOrGetter<CategoryDa
         };
         
         flatten(items);
+
         return result;
     });
 
@@ -49,7 +51,9 @@ export function useCategoryActions(categoriesSource: MaybeRefOrGetter<CategoryDa
 
     let reorderTimeout: any = null;
     const reorder = (tree: any[]) => {
-        if (reorderTimeout) clearTimeout(reorderTimeout);
+        if (reorderTimeout) {
+clearTimeout(reorderTimeout);
+}
         
         reorderTimeout = setTimeout(() => {
             router.post(categoriesRoutes.reorder().url, { tree }, {

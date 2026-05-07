@@ -32,7 +32,7 @@ class BrandController extends Controller
         Gate::authorize('viewAny', Brand::class);
 
         return Inertia::render('Admin/Catalog/Brands/Index', [
-            'brands' => $this->brandService->getBrandsPaginated($request->all()),
+            'brands' => Inertia::defer(fn () => $this->brandService->getBrandsPaginated($request->all())),
             'filters' => $request->only(['filter']),
         ]);
     }
@@ -100,21 +100,17 @@ class BrandController extends Controller
     /**
      * Restore a soft-deleted brand.
      */
-    public function restore(Brand $brand): RedirectResponse
+    public function restore($id): RedirectResponse
     {
-        $this->brandService->restoreBrand($brand);
-
-        return back()->with('success', __('Brand restored successfully.'));
+        return $this->performRestore($id, Brand::class, 'brandService', 'restoreBrand');
     }
 
     /**
      * Permanently delete a brand.
      */
-    public function forceDelete(Brand $brand): RedirectResponse
+    public function forceDelete($id): RedirectResponse
     {
-        $this->brandService->forceDeleteBrand($brand);
-
-        return to_route('admin.brands.index')->with('success', __('Brand permanently deleted.'));
+        return $this->performForceDelete($id, Brand::class, 'brandService', 'forceDeleteBrand');
     }
 
     /**
@@ -128,11 +124,11 @@ class BrandController extends Controller
     /**
      * Export brands.
      */
-    public function export(ExportBrandsData $data): BinaryFileResponse
+    public function export(Request $request, ExportBrandsData $data): BinaryFileResponse
     {
         Gate::authorize('export', Brand::class);
 
-        return $this->brandService->exportBrands($data->columns, $data->format);
+        return $this->brandService->exportBrands($data->columns, $data->format, $request->all());
     }
 
     /**
@@ -145,5 +141,17 @@ class BrandController extends Controller
         $this->brandService->importBrands($data->file);
 
         return to_route('admin.brands.index')->with('success', __('Brands imported successfully.'));
+    }
+
+    /**
+     * Toggle the active status of a brand.
+     */
+    public function toggleActive(Brand $brand): RedirectResponse
+    {
+        Gate::authorize('update', $brand);
+
+        $this->brandService->toggleActive($brand);
+
+        return back()->with('success', __('Brand status updated successfully.'));
     }
 }

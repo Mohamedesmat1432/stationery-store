@@ -31,8 +31,10 @@ class ProductController extends Controller
         Gate::authorize('viewAny', Product::class);
 
         return Inertia::render('Admin/Catalog/Products/Index', [
-            'products' => $this->productService->getProductsPaginated($request->all()),
+            'products' => Inertia::defer(fn () => $this->productService->getProductsPaginated($request->all())),
             'filters' => $request->only(['filter']),
+            'categories' => Inertia::defer(fn () => app(CategoryService::class)->getCategoryTree()),
+            'brands' => Inertia::defer(fn () => CatalogCacheService::getAvailableBrands()),
         ]);
     }
 
@@ -102,11 +104,11 @@ class ProductController extends Controller
     /**
      * Export products.
      */
-    public function export(ExportProductsData $data): BinaryFileResponse
+    public function export(Request $request, ExportProductsData $data): BinaryFileResponse
     {
         Gate::authorize('export', Product::class);
 
-        return $this->productService->exportProducts($data->columns, $data->format);
+        return $this->productService->exportProducts($data->columns, $data->format, $request->all());
     }
 
     /**
@@ -119,5 +121,17 @@ class ProductController extends Controller
         $this->productService->importProducts($data->file);
 
         return to_route('admin.products.index')->with('success', __('Products imported successfully.'));
+    }
+
+    /**
+     * Toggle the active status of a product.
+     */
+    public function toggleActive(Product $product): RedirectResponse
+    {
+        Gate::authorize('update', $product);
+
+        $this->productService->toggleActive($product);
+
+        return back()->with('success', __('Product status updated successfully.'));
     }
 }

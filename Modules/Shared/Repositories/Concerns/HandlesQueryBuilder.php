@@ -9,20 +9,23 @@ use Spatie\QueryBuilder\QueryBuilder;
 trait HandlesQueryBuilder
 {
     /**
-     * Apply common query builder logic for index pages.
+     * Build the QueryBuilder instance for index pages.
      */
-    protected function applyQueryBuilder(
+    protected function buildQueryBuilder(
         string|Builder $model,
         array $allowedFilters = [],
         array $allowedIncludes = [],
         array $allowedSorts = [],
         array|string $defaultSort = '-id',
-        int $perPage = 15,
         array $with = [],
         array $withCount = [],
         array $params = []
-    ): LengthAwarePaginator {
-        $query = QueryBuilder::for($model, request()->merge($params));
+    ): QueryBuilder {
+        if (! empty($params)) {
+            request()->merge($params);
+        }
+
+        $query = QueryBuilder::for($model, request());
 
         if (! empty($with)) {
             $query->with($with);
@@ -36,7 +39,33 @@ trait HandlesQueryBuilder
             ->allowedFilters(...$allowedFilters)
             ->allowedIncludes(...$allowedIncludes)
             ->allowedSorts(...$allowedSorts)
-            ->defaultSort($defaultSort)
+            ->defaultSort(...(array) $defaultSort);
+    }
+
+    /**
+     * Apply common query builder logic and return paginated results.
+     */
+    protected function applyQueryBuilder(
+        string|Builder $model,
+        array $allowedFilters = [],
+        array $allowedIncludes = [],
+        array $allowedSorts = [],
+        array|string $defaultSort = '-id',
+        int $perPage = 15,
+        array $with = [],
+        array $withCount = [],
+        array $params = []
+    ): LengthAwarePaginator {
+        return $this->buildQueryBuilder(
+            $model,
+            $allowedFilters,
+            $allowedIncludes,
+            $allowedSorts,
+            $defaultSort,
+            $with,
+            $withCount,
+            $params
+        )
             ->paginate($perPage)
             ->withQueryString();
     }

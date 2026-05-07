@@ -48,7 +48,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             model: Customer::class,
             allowedFilters: [
                 AllowedFilter::scope('search'),
-                AllowedFilter::exact('group', 'customer_group_id'),
+                AllowedFilter::callback('group', function ($query, $value) {
+                    $query->where('customer_group_id', $value);
+                }),
                 AllowedFilter::trashed('trash'),
             ],
             allowedIncludes: ['user', 'group', 'addresses', 'orders'],
@@ -62,7 +64,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     /**
      * Find a customer by ID.
      */
-    public function findById(string $id): Customer
+    public function findById(string|int $id): Customer
     {
         return Customer::with(['user', 'group', 'addresses'])->findOrFail($id);
     }
@@ -70,8 +72,19 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     /**
      * Get the query for exporting customers.
      */
-    public function getExportQuery(): Builder
+    public function buildExportQuery(array $params = []): Builder
     {
-        return Customer::query()->with(['user', 'group']);
+        return $this->buildQueryBuilder(
+            model: Customer::class,
+            allowedFilters: [
+                AllowedFilter::scope('search'),
+                AllowedFilter::callback('group', function ($query, $value) {
+                    $query->where('customer_group_id', $value);
+                }),
+                AllowedFilter::trashed('trash'),
+            ],
+            with: ['user', 'group'],
+            params: $params
+        )->getEloquentBuilder();
     }
 }

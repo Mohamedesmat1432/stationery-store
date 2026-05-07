@@ -50,14 +50,19 @@ class RoleService
      */
     public function createRole(RoleData $data): Role
     {
-        return DB::transaction(function () use ($data) {
-            $role = $this->roleRepository->create(['name' => $data->name]);
-            $this->roleRepository->syncPermissions($role, $data->permissions);
+        try {
+            return DB::transaction(function () use ($data) {
+                $role = $this->roleRepository->create(['name' => $data->name]);
+                $this->roleRepository->syncPermissions($role, $data->permissions);
 
-            ResourceChanged::dispatch(Role::class, 'created', [$role->id]);
+                ResourceChanged::dispatch(Role::class, 'created', [$role->id]);
 
-            return $role;
-        });
+                return $role;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create role', ['name' => $data->name], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -65,14 +70,19 @@ class RoleService
      */
     public function updateRole(Role $role, RoleData $data): Role
     {
-        return DB::transaction(function () use ($role, $data) {
-            $role = $this->roleRepository->update($role, ['name' => $data->name]);
-            $this->roleRepository->syncPermissions($role, $data->permissions);
+        try {
+            return DB::transaction(function () use ($role, $data) {
+                $role = $this->roleRepository->update($role, ['name' => $data->name]);
+                $this->roleRepository->syncPermissions($role, $data->permissions);
 
-            ResourceChanged::dispatch(Role::class, 'updated', [$role->id]);
+                ResourceChanged::dispatch(Role::class, 'updated', [$role->id]);
 
-            return $role;
-        });
+                return $role;
+            });
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update role', ['id' => $role->id, 'name' => $role->name], $e);
+            throw $e;
+        }
     }
 
     public function deleteRole(Role $role): bool

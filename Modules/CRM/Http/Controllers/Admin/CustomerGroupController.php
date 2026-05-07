@@ -32,7 +32,7 @@ class CustomerGroupController extends Controller
         Gate::authorize('viewAny', CustomerGroup::class);
 
         return Inertia::render('Admin/CustomerGroups/Index', [
-            'groups' => $this->customerGroupService->getCustomerGroupsPaginated($request->all()),
+            'groups' => Inertia::defer(fn () => $this->customerGroupService->getCustomerGroupsPaginated($request->all())),
             'filters' => $request->only(['filter']),
         ]);
     }
@@ -143,11 +143,11 @@ class CustomerGroupController extends Controller
     /**
      * Export customer groups.
      */
-    public function export(ExportCustomerGroupsData $data): BinaryFileResponse
+    public function export(Request $request, ExportCustomerGroupsData $data): BinaryFileResponse
     {
         Gate::authorize('export', CustomerGroup::class);
 
-        return $this->customerGroupService->exportCustomerGroups($data->columns, $data->format);
+        return $this->customerGroupService->exportCustomerGroups($data->columns, $data->format, $request->all());
     }
 
     /**

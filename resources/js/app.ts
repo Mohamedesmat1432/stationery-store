@@ -1,6 +1,5 @@
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { createApp, h  } from 'vue';
-import type {DefineComponent} from 'vue';
 import { createI18n } from 'vue-i18n';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';

@@ -47,11 +47,16 @@ class CustomerService
 
     public function createCustomer(CustomerData $data): Customer
     {
-        $customer = $this->customerRepository->create($data->toArray());
+        try {
+            $customer = $this->customerRepository->create($data->toArray());
 
-        ResourceChanged::dispatch(Customer::class, 'created', [$customer->id]);
+            ResourceChanged::dispatch(Customer::class, 'created', [$customer->id]);
 
-        return $customer;
+            return $customer;
+        } catch (\Throwable $e) {
+            $this->logError('Failed to create customer', ['user_id' => $data->user_id], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -59,13 +64,18 @@ class CustomerService
      */
     public function updateCustomer(Customer $customer, CustomerData $data): Customer
     {
-        $updateData = $data->except('is_protected', 'total_spent', 'orders_count', 'age', 'name', 'email', 'deleted_at', 'group_name')->toArray();
+        try {
+            $updateData = $data->except('is_protected', 'total_spent', 'orders_count', 'age', 'name', 'email', 'deleted_at', 'group_name')->toArray();
 
-        $customer = $this->customerRepository->update($customer, $updateData);
+            $customer = $this->customerRepository->update($customer, $updateData);
 
-        ResourceChanged::dispatch(Customer::class, 'updated', [$customer->id]);
+            ResourceChanged::dispatch(Customer::class, 'updated', [$customer->id]);
 
-        return $customer;
+            return $customer;
+        } catch (\Throwable $e) {
+            $this->logError('Failed to update customer', ['id' => $customer->id], $e);
+            throw $e;
+        }
     }
 
     /**
@@ -100,13 +110,15 @@ class CustomerService
         return $model->isProtected(Auth::user());
     }
 
-    public function exportCustomers(array $columns, string $formatKey): BinaryFileResponse
+    public function exportCustomers(array $columns, string $formatKey, array $params = []): BinaryFileResponse
     {
         $format = $formatKey === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX;
         $extension = $formatKey === 'csv' ? 'csv' : 'xlsx';
 
+        $query = $this->customerRepository->buildExportQuery($params);
+
         return Excel::download(
-            new CustomersExport($this->customerRepository->getExportQuery(), $columns),
+            new CustomersExport($query, $columns),
             'customers.'.$extension,
             $format
         );

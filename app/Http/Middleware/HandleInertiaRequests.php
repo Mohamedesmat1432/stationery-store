@@ -44,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user ? UserData::fromUser($user) : null,
+                'user' => fn () => $user ? UserData::fromUser($user) : null,
                 'roles' => fn () => $user ? IdentityCacheService::getUserRoles($user->id) : [],
                 'permissions' => fn () => $user ? IdentityCacheService::getUserPermissions($user->id) : [],
             ],
